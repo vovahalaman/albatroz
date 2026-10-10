@@ -1,12 +1,12 @@
 gcp: {location: global}             # project comes from .env GOOGLE_CLOUD_PROJECT
 
-models:                              # set from the smoke-test model list, never hardcode in Python
-  perception: "<best available flash>"
-  detective:   "<best available flash>"
-  navigator:  "<flash-lite>"
-  cue_guard:  "<flash-lite>"
-  advocate:   "<flash or pro>"
-  baseline:   "<best available flash>"
+models:                             # set from the smoke-test model list, never hardcode in Python
+  perception: "gemini-2.5-flash"
+  detective:   "gemini-2.5-flash"
+  navigator:  "gemini-2.5-flash-lite"
+  cue_guard:  "gemini-2.5-flash-lite"
+  advocate:   "gemini-2.5-flash>"
+  baseline:   "gemini-2.5-flash"
 
 media_resolution: {views: MEDIUM, zoom: HIGH, overview: LOW}
 

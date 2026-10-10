@@ -220,7 +220,7 @@ def test_cli_solve_prints_coordinates(pano, fake_llm, fake_geo, capsys):
 
 def test_cli_batch_writes_summary_with_scores(tmp_path, pano, fake_llm, fake_geo, capsys):
     labels = tmp_path / "labels.csv"
-    labels.write_text(f"file,set,label\n{pano.name},train1,urban\nother.jpg,train1,urban\n", encoding="utf-8")
+    labels.write_text(f"file,set,label\n{pano.name},train1,Non-Urban\nother.jpg,train1,urban\n", encoding="utf-8")
     truth = tmp_path / "truth.csv"
     truth.write_text(f"filename,label,lat,lng\n{pano.name},urban,{LISBOA[0]},{LISBOA[1]}\n", encoding="utf-8")
     assert cli.main(["batch", str(tmp_path), "--labels", str(labels), "--truth", str(truth)]) == 0
@@ -229,6 +229,7 @@ def test_cli_batch_writes_summary_with_scores(tmp_path, pano, fake_llm, fake_geo
     summary = next((Path(scribe.st.runs_dir()) / "_batch").glob("batch_*.csv")).read_text(encoding="utf-8")
     header, row = summary.splitlines()[:2]
     assert "prompt_hash" in header and "distance_m" in header and pano.name in row
+    assert ",non_urban," in row  # "Non-Urban" in the labels CSV is normalised
 
 
 def test_baseline_schema_matches_example():

@@ -125,7 +125,9 @@ def batch(args: argparse.Namespace) -> int:
     from navegador.core import scribe
     from navegador.tools import strategist
 
-    labels = {Path(r.get("filename") or r["file"]).name: r["label"] for r in _read_csv(args.labels)}
+    # data/panoramas.csv writes "non-urban"; the contract is "non_urban"
+    labels = {Path(r.get("filename") or r["file"]).name: r["label"].strip().lower().replace("-", "_")
+              for r in _read_csv(args.labels)}
     truth = {r["filename"]: (float(r["lat"]), float(r["lng"])) for r in _read_csv(args.truth)
              if r.get("lat") and r.get("lng")} if args.truth.exists() else {}
     panos = [p for p in sorted(args.folder.rglob("*.jpg")) if p.name in labels][: args.limit]

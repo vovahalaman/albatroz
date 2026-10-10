@@ -42,7 +42,8 @@ def test_image_part_logs_hash_not_bytes(tmp_path):
     assert part.media_resolution.level.value == "MEDIA_RESOLUTION_MEDIUM"
 
 
-def test_unset_model_raises():
+def test_unset_model_raises(monkeypatch):
+    monkeypatch.setitem(llm.settings().models, "perception", "<best available flash>")
     with pytest.raises(llm.LLMConfigError):
         llm.model_for("perception")
 

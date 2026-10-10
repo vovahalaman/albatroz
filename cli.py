@@ -1,4 +1,4 @@
-"""Navegador CLI: check-llm | solve | batch | learn (SPEC §13). A thin shell over core/pipeline.py (R7)."""
+"""Navegador CLI: check-llm | geo-check | solve | batch | learn (SPEC §13). A thin shell over core/pipeline.py (R7)."""
 
 from __future__ import annotations
 
@@ -28,6 +28,23 @@ def check_llm(args: argparse.Namespace) -> int:
     return 0
 
 
+def geo_check(args: argparse.Namespace) -> int:
+    from navegador.tools import geo
+
+    try:
+        with geo.use_run("geo-check", actor="cli"):
+            results = geo.geocode(args.query, limit=1)
+    except geo.GeoError as exc:
+        print(f"geo-check FAILED: {exc}", file=sys.stderr)
+        return 1
+    if not results:
+        print(f"geo-check FAILED: no result for {args.query!r}", file=sys.stderr)
+        return 1
+    r = results[0]
+    print(f"{r['display_name']}\nlat, lng = {r['lat']:.6f}, {r['lng']:.6f}\ncall_id  = {r['call_id']}")
+    return 0
+
+
 def solve(args: argparse.Namespace) -> int:
     """TODO(P0b · A): start_run → advance; answer MCQs via a numbered input() prompt (no free text)."""
     raise NotImplementedError("P0b · A")
@@ -49,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("check-llm", help="smoke test: list models, one text + one image call")
     c.add_argument("--model", help="model ID to test (default: settings models.perception, else newest flash)")
     c.set_defaults(func=check_llm)
+    g = sub.add_parser("geo-check", help="smoke test: geocode one place via Nominatim (cached, logged)")
+    g.add_argument("--query", default="Torre de Belém, Lisboa")
+    g.set_defaults(func=geo_check)
     s = sub.add_parser("solve")
     s.add_argument("pano", type=Path)
     s.add_argument("--label", choices=["urban", "non_urban"], required=True)

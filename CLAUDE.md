@@ -3,7 +3,7 @@
 Read [SPEC.md](SPEC.md) first; it is the source of truth. This file tracks status only.
 Working rules: SPEC §2 (hard rules) and §16. Update this file after every phase.
 
-## Name mapping (SPEC.md → code)
+## Naming
 
 SPEC.md uses Portuguese crew names; the code uses English file, class and config-key names.
 When SPEC mentions a name on the left, edit the file on the right.
@@ -20,14 +20,14 @@ When SPEC mentions a name on the left, edit the file on the right.
 | Detetive | `agents/detective.py`, `prompts/detective.md`, `models.detective`, `budgets.detective_max_tool_calls` |
 | Advogado | `agents/advocate.py`, `prompts/advocate.md`, `AdvocateResult`, `flags.advocate_enabled` |
 
-The package and project name `navegador` is unchanged.
+`baseline`, `professor` and `cue_guard` are unchanged. The package and project name `navegador` is unchanged.
 
 ## Status
 
-**Phase: P0a scaffold — done, except the live `check-llm` run (needs GCP credentials).**
+**Phase: P0a scaffold — done. `check-llm` passes on Vertex AI.**
 **P0b · B Astrolábio (`tools/astrolabe.py`) — done, tuned on the 20 training panoramas. Deliberately conservative, low recall.**
 
-Implemented and tested (`uv run pytest` → 69 passed, 2 skipped, 1 failing in `test_llm.py`, see Known issues):
+Implemented and tested (`uv run pytest` → 145 passed, 1 skipped):
 
 | Module | What works |
 |---|---|
@@ -38,16 +38,27 @@ Implemented and tested (`uv run pytest` → 69 passed, 2 skipped, 1 failing in `
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
 | `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
 | `tools/astrolabe.py` | `detect(pano)` → `SunObs | None`, **conservative / low recall: a wrong sun is worse than no sun.** Bright low-saturation glare blobs in the upper half (seam-aware); the sun is located from the saturated core (min(R,G,B) ≥ 252), uncertainty = core radius + tilt margin. Rejected if too small/large/extended, core not round (circularity of the saturated core < 0.4), weak core (radius < 4° or < 30% of glare), below 3° elevation, above the date's max noon sun at 27.5°N (+ tilt), low ring contrast, or touching the top edge; `None` when unsure (score < 0.3) or ambiguous. Training set, blob detection only (`--no-vlm`): **4/12 suns, 0 false**. With the Gemini fallback/verifier (`tools/astrolabe_vlm.py`, `models.perception`, `astrolabe.vlm_fallback`): detected suns are verified ("no" vetoes), otherwise the VLM may point at the sun; the point must be locally bright and within min elevation/date ceiling; result `source=vlm`, confidence 0.3, uncertainty 8°. **10/12 suns (clear 6/7, cloud 4/5), 0 false, max residual 9.2° (194, 683: VLM points on bright cloud near the glare)**. Cost safeguards: disk cache by image hash (invalid answers too), ≤25 calls/process, sky image ≤1520×380, 512 output tokens (incl. thinking), 30 s, 1 retry, refuses `pro` models; `thinking_level` is only sent to Gemini 3+ models. `tools/astrolabe_summary.py`: `sun_summary()` for the agent (clock hypotheses, compass with image yaw per N…NW, compass uncertainty, plain note). Labels for evaluation: `eval/sun_labels.csv`; `sun_debug` prints suns found x/12, false suns, residual flags, VLM calls/tokens. `sun_check(lat, lng, ts, sun_yaw, sun_elev)`: evaluates **all** clock hypotheses (`astrolabe.time_hypotheses`: local tz, UTC, Europe/Lisbon), per-hypothesis expected elev/azimuth (pvlib), residual, `north_yaw_deg`; best fit, consistency 0–1, `ambiguous`. Matches the §9.2 reference table. `scripts/sun_debug.py <folder>` writes annotated PNGs + a table for tuning. `band()` is P2. |
-| `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
+| `tools/cache.py` | `lookup` (hit/miss, a cached `None` is a hit), `get`, `put` (atomic), `@cached(ns)`. `cache/<ns>/<sha256>.json`, no expiry. |
+| `tools/geo.py` | §9.3: `geocode`, `reverse` (Nominatim), `overpass_near`, `overpass_named`, `wiki_coords`. Every call: disk cache → policy check → HTTP with timeout + tenacity retry (429/5xx/connection) → `scribe.register_tool_call` (`call_id` on every result, `cached` flag). Failures log an `error` event and raise `GeoError`; errors are never cached. Nominatim: 1.1 s process-wide throttle (cache hits skip it), User-Agent from settings, `max_geocode_calls_per_pano` counted from the run's log. Calls must run inside `geo.use_run(pano_id, actor)`. Tests: `tests/test_geo.py` (mocked HTTP, fake clock). |
+| `cli.py` | `check-llm` and `geo-check` work; `solve`, `batch`, `learn` are stubs. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
 `core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`),
-`tools/geo.py`, `tools/cache.py`, `ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
+`ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
 `tests/test_magnifier.py`, `test_pipeline_baseline.py` are skipped placeholders.
 
 ## Known issues
 
+- **Geo context.** SPEC §9.3 signatures have no `pano_id` (they are exposed to the model as tools), so the
+  pano comes from the `geo.use_run(pano_id, actor)` context manager (contextvars; propagates through
+  `asyncio.to_thread`, not through bare threads). Calling a geo tool outside it raises `RuntimeError`.
+- **Nominatim throttle is per process.** It cannot coordinate the four laptops; the shared policy relies on
+  the cache and `max_geocode_calls_per_pano`. Geo refuses network calls while the User-Agent has no contact
+  address (`TEAM_EMAIL` in `.env`).
+- **Additions to SPEC §6 `geo:`** `http_timeout_s`, `overpass_timeout_s`, `overpass_max_results`, `retries`
+  and the three endpoint URLs (defaults in `GeoSettings`). `overpass_named` without `bbox` searches the
+  `regions.yaml` boxes, not the whole planet. `geo.py` is ~260 lines (soft limit ~250).
 - **`check-llm` not yet run against GCP.** `.env` is empty and no ADC credentials exist on this laptop.
   The `settings.yaml` model IDs are still placeholders; any role call raises `LLMConfigError` until set.
 - **Timestamp regex vs. real filenames.** SPEC §1 says `(\d{14})`, but the training files are named
@@ -55,6 +66,7 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   first and then `(\d{8})_(\d{6})`.
 - **Panorama folder.** The training panoramas live in `data/train1`, `data/train2` (with
   `data/panoramas.csv` from `make_csv.py`), not in `panos/` as in SPEC §7. Both are git-ignored.
+- **`settings.yaml → magnifier:`** (not in SPEC §6) holds the magnifier render settings. `schemas.ZoomRequest` now wraps yaw and clamps pitch/FOV instead of rejecting the whole Reader answer; the bounds stay in the JSON schema, NaN/inf is still rejected.
 - **Additions to SPEC §6 `settings.yaml`:** a `scoring:` block (rank decay, special-one ×3,
   10 m zero distance, θ scales, penalty factors ×0.8/×0.95/×0.5), so no Python hardcodes them.
 - `strategist.submit(state, fallback=None)`: the pipeline passes the geocoded Geographer top-region
@@ -81,42 +93,71 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   `astrolabe.py` is ~330 lines (soft limit ~250); VLM and summary code live in `astrolabe_vlm.py` / `astrolabe_summary.py`.
 - **VLM token cap:** `gemini-3.8-flash` thinks 137–192 tokens even at `thinking_level: LOW` (`MINIMAL` is rejected,
   `thinking_budget` is ignored); at 200 tokens 7/20 answers were cut off, at 512 only 1 (218) failed.
-- **Committed `models.*` still say `gemini-2.5-flash`**, which returns 404 "no longer available to new users" on our
-  project. Locally `gemini-3.8-flash` is used; the model-ID change is not committed yet (team decision). With 2.5,
-  VLM calls fail (404, not cached) and detection falls back to blob-only.
+- **`gemini-2.5-flash` image calls failed on 10 Oct**: Vertex refused them (cause not logged at the time) and the
+  API-key fallback answered 404 "no longer available to new users"; 2.5 text calls worked on Vertex. Models are now
+  `gemini-3.8-flash` (master). `llm.call` now logs each client's error as `fallback_errors`, so re-check there if 2.x
+  is ever used again. If VLM calls fail, detection falls back to blob-only (errors are not cached).
 - **`llm.py` additions (backward compatible):** `call(..., max_output_tokens, timeout_s, max_attempts, retry_invalid,
-  thinking_level)`; `retry_invalid=False` returns `parsed=None` instead of raising. `call_sync` now reuses one event
-  loop (with `asyncio.run` per call the cached genai client failed from the 2nd call on with "Event loop is closed").
+  thinking_level)`; `retry_invalid=False` returns `parsed=None` instead of raising; `thinking_level` is only sent to
+  Gemini 3+ (`supports_thinking_level`); every client error before a fallback is logged in `llm_call.fallback_errors`.
+  `call_sync` reuses one event loop (with `asyncio.run` per call the cached genai client failed from the 2nd call on
+  with "Event loop is closed").
 - `tests/conftest.py` blocks real LLM requests in every test (`llm._generate` raises).
-- `tests/test_llm.py::test_unset_model_raises` fails since master set real model IDs in `settings.yaml`
-  (the test expects placeholders). Not owned by Astrolábio; left as is.
 - `.env` was tracked in git (empty). Now untracked via `git rm --cached`, as SPEC §15 requires.
 
 ## Open questions
 
-[CONFIRM] items for the organizers (SPEC Appendix C). Defaults are implemented and configurable:
+Checked against the organizers' brief (`Albatroz Challenge - JunctionX Lisbon 2026.pdf`, 2026-10-10).
+
+Answered by the brief:
+
+- **MCQs may name geographic zones** (old Q6): yes. The brief says MCQs "can be about features,
+  about 'geographic zones', etc." and must be generated by the agent, not suggested by the team.
+- **Penalty scope** (old Q5): rule 9 says cue/MCQ/text factors apply "to all subsequent candidate
+  plausible locations". The current default (every penalty applies to all 10 ranks,
+  `flags.commit_then_ask: false`) is the safe lower bound. Committing candidates *before* asking could
+  avoid some penalties; that needs organizer confirmation before using it.
+- **Prepared knowledge / prompts are allowed**: the team "may prepare the software or AI agents or
+  whatever means it finds useful". During the run only text cues and MCQ clicks may be fed in, so
+  `knowledge/` and `prompts/` must be frozen before Sunday (tag `freeze-sunday`) and must stay general
+  (never "panorama X is in Y").
+
+[CONFIRM] still open for the organizers (ask on Discord):
 
 1. **Submission format** for the 10 coordinates. Default: `export.to_albatroz` = `to_json`.
-2. **JSON log format.** Default: our `log.json` (§11). Post a sample on Discord during the trial.
-3. **Timestamp local or UTC?** Default: local (`flags.timestamp_is_local: true`).
-4. **EXIF/XMP GPS/heading allowed?** Default: logged but not used (`flags.use_exif_gps: false`).
-5. **Penalty scope (rule 9):** only candidates committed after the MCQ/cue? Default: every penalty
-   issued before submission applies to all 10 ranks (`flags.commit_then_ask: false`).
-6. **May MCQ options name geographic zones** (e.g. "Alentejo")? Default: yes (reverse-geocoded zone names).
+2. **JSON log format.** Default: our `log.json` (§11). Post a sample during the trial.
+3. **Timestamp local or UTC?** Not stated in the brief. Default: local (`flags.timestamp_is_local: true`).
+4. **EXIF/XMP GPS/heading allowed?** Not stated. Default: logged but not used (`flags.use_exif_gps: false`).
+5. **Rule 8 (text localization ×0.5) vs. automatic geocoding.** The baseline agent returns place
+   *names* and code geocodes them. Does that count as a text localization (×0.5)? Our reading: no,
+   because rule 8 describes the *team* defining a coordinate. Unconfirmed; this is the biggest rules
+   risk for baseline mode. The Detective (agent outputs coordinates via tools) is the safer design.
+6. **Fixed knowledge file**: confirm that a prepared, unchanging notes file about regional features
+   is acceptable (the brief implies yes).
+
+Spec vs. brief differences:
+
+- **Islands:** the brief only says "mainly Portugal but also Spain and France"; the Azores, Madeira,
+  Canaries, Balearics and Corsica come from SPEC §1. Keeping them in `regions.yaml` is harmless.
+- **Ties are broken by time** (brief rule 12), so per-panorama speed matters.
+- Brief distance = gis.tools Haversine; Strategist uses Haversine with R = 6 371 008.8 m (difference negligible).
 
 Team questions:
 
 7. Should the timestamp fallback regex (see Known issues) stay, or will scored-run filenames be pure 14 digits?
 8. Move `data/train*` into `panos/`, or point the tooling at `data/`?
+9. The organizers' PDF is in the repo root and not git-ignored. Push it or ignore it?
 
 ## Next steps
 
 1. Fill `.env`, run `gcloud auth application-default login`, then `uv run python cli.py check-llm`.
    Put the chosen model IDs into `config/settings.yaml`.
-2. Commit, push to `main`, then start P0b in parallel (SPEC §15):
+2. Merge `feature/geo-tools`. P1 · C: `detective.py` wraps the geo tools inside `geo.use_run(...)` and turns
+   `GeoError` into a tool error message for the model.
+3. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
    - B: `magnifier.py` + tests (`astrolabe.py` done; re-tune with `scripts/sun_debug.py data/train1` on new data)
-   - C: `geo.py` + `cache.py` + `agents/baseline.py`
+   - C: ~~`geo.py` + `cache.py`~~ (done) + `agents/baseline.py`
    - D: `ui/app.py` + `export.py`
 3. Pipeline S2 stores `astrolabe.detect()` in `state.sun`; the Detective gets `sun_check` as a tool and passes
    `state.sun.yaw/elevation/uncertainty_deg`.

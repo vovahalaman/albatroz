@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 from google import genai
+from google.auth.exceptions import GoogleAuthError
 from google.genai import errors, types
 from pydantic import BaseModel, ValidationError
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
@@ -26,6 +27,7 @@ from navegador.core import scribe
 
 ImageRef = tuple[str | Path, str]  # (path, "LOW"|"MEDIUM"|"HIGH" or a settings.media_resolution key)
 RETRY_CODES = {429, 500, 503}
+FALLBACK_ERRORS = (errors.APIError, GoogleAuthError, OSError)  # auth/permission/network → next client
 _RESOLUTIONS = {"LOW", "MEDIUM", "HIGH"}
 
 
@@ -210,14 +212,18 @@ async def _generate(client: genai.Client, model: str, contents: list[Any], confi
 
 
 async def _generate_with_fallback(model: str, contents: list[Any], config: types.GenerateContentConfig,
-                                  sync: bool, timeout_s: float | None = None,
-                                  max_attempts: int = 4) -> tuple[types.GenerateContentResponse, str]:
+                                  sync: bool, timeout_s: float | None = None, max_attempts: int = 4,
+                                  failures: list[str] | None = None) -> tuple[types.GenerateContentResponse, str]:
+    """Try Vertex, then the API key. Each client's error is appended to `failures` (so a Vertex error is not
+    hidden behind the fallback's error in the log)."""
     last: Exception | None = None
     timeout = timeout_s or settings().budgets.llm_timeout_s
     for name, client in clients():
         try:
             return await _generate(client, model, contents, config, sync, timeout, max_attempts), name
-        except (errors.APIError, LLMConfigError, OSError) as exc:  # auth/permission/network → next client
+        except FALLBACK_ERRORS as exc:
+            if failures is not None:
+                failures.append(f"{name}: {type(exc).__name__}: {exc}"[:500])
             last = exc
             if _retryable(exc):
                 raise
@@ -249,8 +255,10 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
         "tools": [t.__name__ for t in tools or ()], "max_output_tokens": max_output_tokens,
     }
     t0 = time.perf_counter()
+    failures: list[str] = []
     try:
-        resp, backend = await _generate_with_fallback(model, contents, config, bool(tools), timeout_s, max_attempts)
+        resp, backend = await _generate_with_fallback(model, contents, config, bool(tools), timeout_s, max_attempts,
+                                                      failures)
         text, parsed, attempts = _response_text(resp), None, [_response_text(resp)]
         usage = [usage_dict(resp)]
         if schema is not None:
@@ -262,19 +270,22 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
                 else:  # retry once with the error appended
                     retry_contents = [*contents, f"Your previous JSON failed validation:\n{exc}\nReturn corrected JSON only."]
                     resp, backend = await _generate_with_fallback(model, retry_contents, config, False, timeout_s,
-                                                                  max_attempts)
+                                                                  max_attempts, failures)
                     text = _response_text(resp)
                     attempts.append(text)
                     usage.append(usage_dict(resp))
                     parsed = schema.model_validate_json(text)
     except Exception as exc:
-        log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}")
+        log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}",
+                   fallback_errors=failures)
         scribe.log_event(pano_id, "llm_call", role, log)
         scribe.log_event(pano_id, "error", role, {"where": "llm.call", "error": log["error"]})
         raise
     latency = time.perf_counter() - t0
     tool_calls = extract_tool_calls(resp)
     merged_usage = usage[-1] if len(usage) == 1 else {"attempts": usage}
+    if failures:
+        log["fallback_errors"] = failures
     log.update(backend=backend, latency_s=round(latency, 3), response_text=attempts if len(attempts) > 1 else text,
                parsed=parsed.model_dump(mode="json") if parsed else None, tool_calls=tool_calls, usage=merged_usage)
     scribe.log_event(pano_id, "llm_call", role, log)
@@ -301,15 +312,25 @@ SMOKE_PANO_ID = "_check_llm"
 
 
 def list_gemini_models() -> list[str]:
-    client = clients()[0][1]
-    return sorted(m.name for m in client.models.list() if m.name and "gemini" in m.name)
+    last: Exception | None = None
+    for _, client in clients():
+        try:
+            return sorted(m.name for m in client.models.list() if m.name and "gemini" in m.name)
+        except FALLBACK_ERRORS as exc:
+            last = exc
+    assert last is not None
+    raise last
 
 
 def pick_flash(names: Sequence[str]) -> str | None:
-    """Heuristic default for the smoke test only: newest plain 'flash' model in the listing."""
-    skip = ("lite", "image", "tts", "audio", "live", "embedding", "preview-tts", "exp")
-    flash = [n for n in names if "flash" in n and not any(s in n for s in skip)]
-    return (sorted(flash)[-1].split("/")[-1]) if flash else None
+    """Heuristic default for the smoke test only: highest-versioned plain `gemini-<version>-flash` model."""
+    versions = []
+    for name in names:
+        short = name.split("/")[-1]
+        m = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash", short)
+        if m:
+            versions.append((tuple(int(x) for x in m.group(1).split(".")), short))
+    return max(versions)[1] if versions else None
 
 
 async def smoke_test(model: str | None = None) -> dict[str, Any]:

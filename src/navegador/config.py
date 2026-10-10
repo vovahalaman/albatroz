@@ -59,6 +59,24 @@ class GeoSettings(BaseModel):
     nominatim_min_interval_s: float = 1.1
     max_geocode_calls_per_pano: int = 20
     user_agent: str
+    http_timeout_s: float = 15
+    overpass_timeout_s: int = 25
+    overpass_max_results: int = 50
+    retries: int = 3
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
+    overpass_url: str = "https://overpass-api.de/api/interpreter"
+    wiki_url: str = "https://{lang}.wikipedia.org/w/api.php"
+
+
+class MagnifierSettings(BaseModel):
+    view_fov: float = 90
+    view_size: int = 1024
+    ground_pitch: float = -50
+    up_pitch: float = 50
+    overview_wh: tuple[int, int] = (2048, 1024)
+    zoom_fov: tuple[float, float] = (8, 90)  # min, max
+    zoom_size: tuple[int, int] = (64, 2048)  # min, max px
+    jpeg_quality: int = 90
 
 
 class Flags(BaseModel):
@@ -124,6 +142,7 @@ class Settings(BaseModel):
     geo: GeoSettings
     flags: Flags
     scoring: Scoring
+    magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)
 
 

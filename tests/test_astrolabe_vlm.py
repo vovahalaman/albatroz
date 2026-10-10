@@ -6,10 +6,13 @@ from typing import Any
 
 import numpy as np
 import pytest
+from google.genai import errors, types
 from PIL import Image
 
 from navegador import llm
 from navegador.config import settings
+from navegador.core import scribe
+from navegador.schemas import SunVerifyResult
 from navegador.tools import astrolabe_vlm
 from navegador.tools.astrolabe import analyse, angles_to_pixel, detect
 
@@ -195,6 +198,23 @@ def test_llm_config_carries_limits():
 def test_thinking_level_only_sent_to_supporting_models(model: str, sent: bool):
     cfg = llm.build_config(None, "perception", None, None, None, thinking_level="LOW", model=model)
     assert (cfg.thinking_config is not None) is sent
+
+
+def test_vertex_error_is_logged_when_falling_back(monkeypatch):
+    async def fake_generate(client, model, contents, config, sync, timeout, attempts):
+        if client == "vertex-client":
+            raise errors.ClientError(400, {"error": {"code": 400, "message": "media_resolution not supported"}})
+        return types.GenerateContentResponse(candidates=[types.Candidate(
+            content=types.Content(role="model", parts=[types.Part(text='{"sun_at_point": true}')]))])
+
+    monkeypatch.setattr(llm, "clients", lambda: [("vertex", "vertex-client"), ("api_key", "key-client")])
+    monkeypatch.setattr(llm, "_generate", fake_generate)
+    monkeypatch.setitem(settings().models, "perception", "gemini-test-flash")
+    res = llm.call_sync("perception", "sun_verify.md", pano_id="_fb", text_parts=["x"], schema=SunVerifyResult)
+    assert res.parsed.sun_at_point is True
+    event = [e for e in scribe.read_events("_fb") if e["event"] == "llm_call"][-1]["payload"]
+    assert event["backend"] == "api_key"
+    assert event["fallback_errors"][0].startswith("vertex: ClientError: 400")
 
 
 def test_unmocked_llm_never_reaches_the_api(monkeypatch):

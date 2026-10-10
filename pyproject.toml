@@ -1,0 +1,37 @@
+[project]
+name = "navegador"
+version = "0.1.0"
+description = "Navegador: multi-agent geolocation of 360° panoramas (Albatroz Challenge, JunctionX Lisbon 2026)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "google-genai>=2.29,<3",
+    "pydantic>=2.7",
+    "numpy",
+    "pillow",
+    "py360convert>=1.0.4",
+    "pvlib>=0.16",
+    "timezonefinder>=9",
+    "pandas",
+    "requests",
+    "tenacity",
+    "pyyaml",
+    "python-dotenv",
+    "streamlit>=1.40",
+    "streamlit-folium>=0.27",
+    "folium",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/navegador"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]

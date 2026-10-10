@@ -1,0 +1,32 @@
+gcp: {location: global}             # project comes from .env GOOGLE_CLOUD_PROJECT
+
+models:                              # set from the smoke-test model list, never hardcode in Python
+  perception: "<best available flash>"
+  detetive:   "<best available flash>"
+  navegador:  "<flash-lite>"
+  cue_guard:  "<flash-lite>"
+  advogado:   "<flash or pro>"
+  baseline:   "<best available flash>"
+
+media_resolution: {views: MEDIUM, zoom: HIGH, overview: LOW}
+
+thinking_level: {default: null}     # set e.g. "low"/"high" if supported by chosen model
+
+budgets: {detetive_max_tool_calls: 12, llm_timeout_s: 120, pano_soft_budget_s: 420}
+
+mcq: {max_per_pano: 2, q_trust: 0.85, top_cluster_max: 0.6, top3_min: 0.7,
+      cluster_eps_m: {urban: 300, non_urban: 5000}, far_m: {urban: 1000, non_urban: 30000}}
+
+estratega: {mode: ev, mc_samples: 4000, grid_step_m: {urban: 25, non_urban: 2000}, estimated_weight_factor: 0.3}
+
+geo: {nominatim_min_interval_s: 1.1, max_geocode_calls_per_pano: 20, user_agent: "navegador-junctionx/1.0 (<team email>)"}
+
+flags: {use_exif_gps: false, timestamp_is_local: true, commit_then_ask: false, advogado_enabled: false}
+
+# Added in P0a (not in SPEC §6): the briefing's scoring constants, so no Python file hardcodes them.
+scoring:
+  rank_decay: 0.95
+  special_one_multiplier: 3.0
+  zero_distance_m: 10.0
+  theta_scale_m: {urban: 100.0, non_urban: 10000.0}
+  penalty_factors: {cue: 0.8, mcq: 0.95, text_location: 0.5}

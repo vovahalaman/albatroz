@@ -37,7 +37,7 @@ Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
 | `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
 | `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
-| `tools/magnifier.py` | `views()` → 17 Views: 8 horizontal (h) + 4 ground (g, pitch −50) + 4 up (u, pitch +50), all 1024² JPG q90, + `overview` (2048×1024, fov 360). u-views deviate from SPEC §9.1 (added for full-sphere coverage; pipeline may filter them by name); `zoom()` with FOV clamp 8–90, cached in `cache_dir()/zoom/` (key: path + mtime + size + params); pano decoded once per run (`lru_cache`). §9.1 tests pass. |
+| `tools/magnifier.py` | `views()` → 17 Views: 8 horizontal (h) + 4 ground (g) + 4 up (u), + `overview` (fov 360). Sizes, FOV, pitches and JPEG quality come from `settings.yaml → magnifier:` (SPEC §9.1 values). u-views deviate from SPEC §9.1 (added for full-sphere coverage; pipeline may filter them by name). `views()` writes `views.json` and reuses existing views when pano content + settings are unchanged (15.9 s → 0.01 s on a real pano). `zoom()` normalises model input via `zoom_params` (FOV 8–90, pitch ±90, size 64–2048, non-finite → `ValueError`), cached in `cache_dir()/zoom/` keyed by pano **content hash** + normalised params (survives moving/copying the pano). Files written via a per-thread temp file (safe with concurrent Streamlit runs). Pano decoded once per run (`lru_cache`). §9.1 tests pass. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
@@ -55,6 +55,7 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   first and then `(\d{8})_(\d{6})`.
 - **Panorama folder.** The training panoramas live in `data/train1`, `data/train2` (with
   `data/panoramas.csv` from `make_csv.py`), not in `panos/` as in SPEC §7. Both are git-ignored.
+- **`settings.yaml → magnifier:`** (not in SPEC §6) holds the magnifier render settings. `schemas.ZoomRequest` now wraps yaw and clamps pitch/FOV instead of rejecting the whole Reader answer; the bounds stay in the JSON schema, NaN/inf is still rejected.
 - **Additions to SPEC §6 `settings.yaml`:** a `scoring:` block (rank decay, special-one ×3,
   10 m zero distance, θ scales, penalty factors ×0.8/×0.95/×0.5), so no Python hardcodes them.
 - `strategist.submit(state, fallback=None)`: the pipeline passes the geocoded Geographer top-region

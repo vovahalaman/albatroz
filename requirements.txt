@@ -1,0 +1,9 @@
+google-genai
+python-dotenv
+pillow
+numpy
+py360convert
+geopy
+requests
+astral
+geoclip

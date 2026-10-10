@@ -7,6 +7,7 @@ core), rejected candidates in red with their reject reason (too_small blobs are 
 Prints a table and a summary against eval/sun_labels.csv (yes = clear sun, cloud = sun behind cloud,
 both are targets; no = no sun; unclear = ignored). Every reported sun is checked with sun_check at
 the region centre; a best elevation residual above 10° is flagged as a likely wrong spot.
+`faces` is the compass direction of the image centre from sun_summary (region centre, ± uncertainty).
 `ceil` is the date's highest possible sun (+ tilt margin is allowed).
 Thresholds live in config/settings.yaml → astrolabe.
 """
@@ -22,7 +23,9 @@ from PIL import Image, ImageDraw
 
 from navegador.config import ROOT, regions, runs_dir, settings
 from navegador.core.state import parse_timestamp
-from navegador.tools.astrolabe import Blob, choose, find_blobs, load_small, max_sun_elev, pano_date, sun_check
+from navegador.tools.astrolabe import (Blob, choose, find_blobs, load_small, max_sun_elev, pano_date, sun_check,
+                                       to_sun_obs)
+from navegador.tools.astrolabe_summary import summarise
 
 GREEN, RED, YELLOW = (0, 255, 0), (255, 40, 40), (255, 220, 0)
 RESIDUAL_FLAG_DEG = 10.0
@@ -91,14 +94,14 @@ def main() -> None:
 
     tilt = settings().astrolabe.tilt_margin_deg
     header = (f"{'file':<32} {'label':<7} {'result':<15} {'yaw':>7} {'elev':>6} {'unc':>5} {'conf':>5} "
-              f"{'resid':>6} {'ceil':>5} {'blobs':>6}  rejects")
+              f"{'resid':>6} {'faces':>11} {'ceil':>5} {'blobs':>6}  rejects")
     print(header)
     print("-" * len(header))
     results: Counter[str] = Counter()
     found: dict[str, str] = {}
     flagged: list[str] = []
     for path in panos:
-        rgb, _ = load_small(path)
+        rgb, orig = load_small(path)
         day = pano_date(path)
         blobs = find_blobs(rgb, day)
         best, why = choose(blobs)
@@ -107,13 +110,16 @@ def main() -> None:
         annotate(Image.fromarray(rgb), blobs, best).save(out / f"{path.stem}_sun.png")
         rejects = Counter(b.reject or "pass" for b in blobs)
         rej = ", ".join(f"{k}:{n}" for k, n in rejects.most_common(3))
-        resid = f"{'-':>6}"
+        resid, faces = f"{'-':>6}", f"{'-':>11}"
         if best is not None:
             found[key] = labels.get(key, "?")
             unc = best.core_radius_deg + tilt
             nums = f"{best.yaw:7.1f} {best.elev:6.1f} {unc:5.1f} {best.score:5.2f}"
             ts = parse_timestamp(path.name)
             if ts:
+                c = summarise(to_sun_obs(best, rgb.shape, orig), ts)
+                if c["compass"]:
+                    faces = f"{c['compass']['centre_faces']:>2} {c['compass']['centre_bearing_deg']:3.0f}±{c['compass_uncertainty_deg']:<3.0f}"
                 r = sun_check(*centre, ts, sun_yaw=best.yaw, sun_elev=best.elev, uncertainty_deg=unc)["best"]
                 res = r["elevation_residual_deg"]
                 resid = f"{res:5.1f}" + ("!" if res > RESIDUAL_FLAG_DEG else " ")
@@ -123,7 +129,7 @@ def main() -> None:
             nums = f"{'-':>7} {'-':>6} {'-':>5} {'-':>5}"
         ceil = f"{max_sun_elev(day):5.1f}" if day else f"{'-':>5}"
         name = path.name[:32]
-        print(f"{name:<32} {labels.get(key, '?'):<7} {why:<15} {nums} {resid} {ceil} {len(blobs):6d}  {rej}")
+        print(f"{name:<32} {labels.get(key, '?'):<7} {why:<15} {nums} {resid} {faces:>11} {ceil} {len(blobs):6d}  {rej}")
     print("-" * len(header))
     print(", ".join(f"{k}: {n}" for k, n in results.most_common()), f"| PNGs in {out}")
     print(summary(found, labels, [pano_key(p) for p in panos], flagged))

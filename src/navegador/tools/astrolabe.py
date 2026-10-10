@@ -195,17 +195,20 @@ def choose(blobs: list[Blob]) -> tuple[Blob | None, str]:
     return ok[0], "ok"
 
 
-def detect(pano_path: Path) -> SunObs | None:
-    """Sun position in image angles, or None. Conservative: a wrong sun is worse than no sun."""
-    rgb, (w0, h0) = load_small(Path(pano_path))
-    best, _ = choose(find_blobs(rgb, pano_date(pano_path)))
-    if best is None:
-        return None
-    h, w = rgb.shape[:2]
+def to_sun_obs(best: Blob, shape: tuple[int, ...], orig: tuple[int, int]) -> SunObs:
+    """SunObs from a chosen blob; `shape` is the detection image shape, `orig` the full-res (W, H)."""
+    h, w = shape[:2]
     return SunObs(yaw=round(best.yaw, 2), elevation=round(best.elev, 2), area_px=best.n_px,
                   confidence=round(best.score, 3),
                   uncertainty_deg=round(best.core_radius_deg + _cfg().tilt_margin_deg, 2),
-                  pixel_xy=(round(best.x * w0 / w, 1), round(best.y * h0 / h, 1)))
+                  pixel_xy=(round(best.x * orig[0] / w, 1), round(best.y * orig[1] / h, 1)))
+
+
+def detect(pano_path: Path) -> SunObs | None:
+    """Sun position in image angles, or None. Conservative: a wrong sun is worse than no sun."""
+    rgb, orig = load_small(Path(pano_path))
+    best, _ = choose(find_blobs(rgb, pano_date(pano_path)))
+    return to_sun_obs(best, rgb.shape, orig) if best is not None else None
 
 
 # ---------------------------------------------------------------- sun position

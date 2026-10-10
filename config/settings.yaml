@@ -88,3 +88,12 @@ astrolabe:
   vlm_min_ring_delta: 10       # disc mean - ring mean >= this, unless the disc is saturated (>= core_min)
   time_hypotheses: [local, UTC, Europe/Lisbon]
   consistency_falloff_deg: 3   # residual beyond the uncertainty at which consistency reaches 0
+
+# Added in P1 (not in SPEC §6): Detective tool loop. Tool budget stays in budgets.detective_max_tool_calls.
+detective:
+  timeout_s: 300
+  extra_turns: 8
+  max_hypotheses: 10
+  provenance_tolerance_m: {urban: 500, non_urban: 5000}
+  radius_min_m: {urban: 30, non_urban: 2000}
+  radius_max_m: {urban: 500, non_urban: 20000}

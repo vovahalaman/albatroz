@@ -146,6 +146,16 @@ class AstrolabeSettings(BaseModel):
     consistency_falloff_deg: float = 3
 
 
+class DetectiveSettings(BaseModel):
+    timeout_s: float = 300  # whole tool loop; hypotheses recorded before a timeout are kept
+    extra_turns: int = 8  # AFC turns on top of budgets.detective_max_tool_calls (add_hypothesis, summary)
+    max_hypotheses: int = 10
+    # add_hypothesis: the point must lie this close to a coordinate in the cited tool result (R2)
+    provenance_tolerance_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=500, non_urban=5000))
+    radius_min_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=30, non_urban=2000))
+    radius_max_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=500, non_urban=20000))
+
+
 class Settings(BaseModel):
     gcp: dict[str, str] = Field(default_factory=dict)
     models: dict[str, str]
@@ -163,6 +173,7 @@ class Settings(BaseModel):
     # SPEC §8 says response_json_schema; with images Gemini then wrote runaway floats (see CLAUDE.md).
     structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)
+    detective: DetectiveSettings = Field(default_factory=DetectiveSettings)
 
 
 class Regions(BaseModel):

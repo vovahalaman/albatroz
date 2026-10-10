@@ -273,7 +273,8 @@ def list_gemini_models() -> list[str]:
 
 def pick_flash(names: Sequence[str]) -> str | None:
     """Heuristic default for the smoke test only: newest plain 'flash' model in the listing."""
-    skip = ("lite", "image", "tts", "audio", "live", "embedding", "preview-tts", "exp")
+    skip = ("lite", "image", "tts", "audio", "live", "embedding", "preview-tts", "exp",
+            "omni", "translate", "transcribe", "nano", "preview")
     flash = [n for n in names if "flash" in n and not any(s in n for s in skip)]
     return (sorted(flash)[-1].split("/")[-1]) if flash else None
 

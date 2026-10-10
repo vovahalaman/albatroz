@@ -24,12 +24,11 @@ The package and project name `navegador` is unchanged.
 
 ## Status
 
-**Phase: P1 · A crew pipeline — done (branch `feature/crew-pipeline`). `autonomous`/`assisted` run S1–S8 with
-MCQ pause/resume and cues; verified on a real panorama (Reader live; Geographer/Detective stubs fall back). Waiting
-for: Geographer (`aatu-geographer`, not merged), Detective (P1 · C), UI (D).**
+**Phase: P1 crew — pipeline, Reader, Geographer, Detective, Navigator and cue guard merged (branch
+`feature/crew-pipeline`). `autonomous` solves real panoramas end to end (Gemini + Nominatim/Overpass/Wikipedia);
+`assisted` adds MCQ pause/resume and cues. Navigator phrasing and cue guard verified live. Missing: UI (D).**
 
-Implemented and tested (`uv run pytest` → 172 passed, 1 failed: `test_llm::test_fallback_reports_primary_error`
-uses an outdated `_generate_with_fallback` signature, failing on master too):
+Implemented and tested (`uv run pytest` → 196 passed):
 
 | Module | What works |
 |---|---|
@@ -43,23 +42,23 @@ uses an outdated `_generate_with_fallback` signature, failing on master too):
 | `tools/geo.py` | §9.3: `geocode`, `reverse` (Nominatim), `overpass_near`, `overpass_named`, `wiki_coords`. Every call: disk cache → policy check → HTTP with timeout + tenacity retry (429/5xx/connection) → `scribe.register_tool_call` (`call_id` on every result, `cached` flag). Failures log an `error` event and raise `GeoError`; errors are never cached. Nominatim: 1.1 s process-wide throttle (cache hits skip it), User-Agent from settings, `max_geocode_calls_per_pano` counted from the run's log. Calls must run inside `geo.use_run(pano_id, actor)`. Tests: `tests/test_geo.py` (mocked HTTP, fake clock). |
 | `tools/magnifier.py` | §9.1 `views()` (8 h + 4 g + 4 u + overview; reused via `views.json` when pano + settings unchanged), `zoom()` (input clamped, cached by pano content hash). Settings in `settings.yaml → magnifier:`. |
 | `core/pipeline.py` | `start_run` (S0), `advance` (runs the mode's stages until `done` or `awaiting_human`; every stage timed, logged, saved; a failing stage logs `error` and the run still submits), `answer_mcq` (×0.95, resumes at S6 or S4), `add_cue` (assisted only, not while an MCQ is pending; R4 length, guard, `cue_blocked`/`cue_override`, ×0.8, re-enters S4; caller then calls `advance`), `force_submit` (also while awaiting). Baseline: S1 → BASELINE → S7 → S8. Crew: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8. S7 fallback: baseline or Geographer country box. |
-| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, geocodes the Geographer's top `crew.region_top` region guesses (weight = prob, `crew.region_radius_m`); then drops hypotheses in `excluded_zones` (code, not prompt). S5 Advocate only with `flags.advocate_enabled`. S6 `navigator.evaluate` logged; ASK_MCQ → `mcq_shown`, pause. |
+| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, keeps the previous pass's Detective hypotheses (re-run after a cue / "none of these", e.g. Nominatim budget used up), else geocodes the Geographer's top `crew.region_top` region guesses (weight = prob, `crew.region_radius_m`); then drops hypotheses in `excluded_zones` (code, not prompt). S5 Advocate only with `flags.advocate_enabled`. S6 `navigator.evaluate` logged; ASK_MCQ → `mcq_shown`, pause. |
 | `core/navigator.py` | `evaluate`/`decide` (SPEC §4 rule on the top 3 clusters), `build_mcq` (reverse-geocoded zone names at `mcq.zone_zoom`, LLM phrasing; options mapped to clusters by position; template if the LLM fails or changes the option count), `apply_answer` (chosen cluster → `q_trust`, rest share 1−q; "none of these" → excluded zones reaching every member circle → S4), `apply_exclusions`. |
 | `agents/cue_guard.py` | Flash-Lite check via `prompts/cue_guard.md`; fails closed (flagged, override still possible). |
+| `agents/reader.py`, `geographer.py`, `detective.py` | Reader: 2 passes (views, then zoom crops). Geographer: one call over all views, cached on disk. Detective: AFC tool loop (geo tools + `sun_check` + `add_hypothesis` with R2 check: the point must lie near a coordinate in the cited result), lookup budget, soft deadline (`detective.soft_deadline_s`), writes `detective.json`. |
 | `agents/baseline.py` | One `llm.call` (overview LOW + h000…h315 MEDIUM + label/timestamp/image order) → `baseline.json`; top 3 places geocoded (model's country first, then pt,es,fr), results outside `regions.yaml` dropped, R2-validated Hypotheses (weight = confidence, radius 300 m / 8 km). Country-box fallback when nothing geocodes. |
 | `core/export.py` | `validate` (R1), `to_text`, `to_json`, `to_csv`, `to_albatroz` (= JSON until confirmed). S7 writes `submission.json/.txt/.csv`. |
 | `core/exif.py` | S0 probe: EXIF tags, GPS, XMP (GPano). GPS only used with `flags.use_exif_gps`. The training panos carry no EXIF at all. |
 | `cli.py` | `check-llm`, `geo-check`, `solve` (prints country probs, places → coordinates, clues, errors, the 10 pairs), `batch` (labels CSV `file|filename,label`; optional `--truth eval/labels.csv` → distance + pseudo-score; summary CSV with git commit, mode and a hash over the mode's prompts in `runs/_batch/`); `solve --mode assisted` answers MCQs via numbered `input()`; crew runs print sun, Geographer probs, hypotheses, MCQs, cues. `learn` is P2. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, `navigator.md`, `cue_guard.md`, knowledge seed (Appendix A). |
 
-Stubbed (signatures + docstrings, raise `NotImplementedError`): `agents/geographer.py` on master (implemented on
-`aatu-geographer`), `agents/detective.py`, `advocate.py`, `professor.py`, `astrolabe.band`, `ui/app.py`, `eval/compare.py`.
-Reader and Astrolabe (detect, sun_check, VLM fallback) are merged.
+Stubbed (signatures + docstrings, raise `NotImplementedError`): `advocate.py`, `professor.py`, `astrolabe.band`,
+`ui/app.py`, `eval/compare.py`.
 
-**Contract for the Detective (P1 · C)**, relied on by `core/stages.py`: `detective.run(state)` reads `reader.json`,
-`geographer.json`, `state.sun`, `state.cues`, answered `state.mcqs` and `state.excluded_zones`; appends R2-validated
-hypotheses with `source="detective"` to `state.hypotheses` and returns them. It runs inside `geo.use_run` already
-(nesting is fine). Each S4 starts from an empty list (EXIF hypotheses kept), so it re-derives everything after a cue.
+**Detective contract**, relied on by `core/stages.py`: `detective.run(state)` reads `reader.json`, `geographer.json`,
+`state.sun`, `state.cues`, answered `state.mcqs` and `state.excluded_zones`; returns R2-validated hypotheses with
+`source="detective"` (S4 adds them to `state.hypotheses`). Each S4 starts from an empty list (EXIF hypotheses kept),
+so it re-derives everything after a cue.
 
 ## Known issues
 
@@ -76,8 +75,14 @@ hypotheses with `source="detective"` to `state.hypotheses` and returns them. It 
 - **AI Studio fallback key has no credits** (402 RESOURCE_EXHAUSTED). Vertex works; the fallback only hides
   the real Vertex error (llm.py raises the last client's error).
 - **Baseline latency:** ~25–45 s per pano (default thinking), ~12 k tokens. `batch` is sequential.
-- **Crew latency (first real run):** S2 sun 8 s, S3 Reader 44 s (2 passes, ~27 k tokens) before the Geographer and
-  Detective exist. The Geographer runs in parallel with the Reader; the Detective adds a tool loop. Measure at the trial.
+- **Crew latency (real runs, 2026-10-10):** 3.5–6.5 min per pano, 45–60 k tokens. S3 35–66 s (Reader 2 passes ‖
+  Geographer), S4 Detective 160–294 s (each model turn 5–40 s; ~10 lookups). Ties are broken by time.
+- **Detective timeout cannot stop the tool loop.** `llm.call` wraps the sync AFC call in `asyncio.wait_for(to_thread)`;
+  on timeout the thread keeps running and `asyncio.run` in S4 waits for it. The model also records hypotheses only at
+  the end. Mitigation: `detective.soft_deadline_s` (180) makes lookups answer "time is up" so the model records its
+  candidates first (refusals are logged as `refused_tool`, not counted against the Nominatim budget).
+- **Detective varies between runs:** the same non-urban pano gave Albufeira do Maranhão once and Albufeira de
+  Montargil the next time. Overpass sometimes answers 504; the error goes back to the model, which continues.
 - **Overridden cues** get only the cue penalty (×0.8), not ×0.5 text localization. The override is for guard false
   positives; if a team member sends a real place name, that may count as rule 8 (open question 5).
 - **`settings.yaml → baseline:`** (added): `top_places`, `geocode_limit`, `radius_m`. Rule 8 (×0.5 text location)
@@ -156,9 +161,8 @@ Team questions:
 
 ## Next steps
 
-1. Merge `aatu-geographer`, then the Detective (contract above). Rerun
-   `uv run python cli.py batch data --labels data/panoramas.csv --mode autonomous` and compare with the baseline CSVs.
-2. UI (D): sidebar + Run, MCQ buttons (`pipeline.answer_mcq`), cue box (`pipeline.add_cue` → on `guard_flag` show the
+1. UI (D): sidebar + Run, MCQ buttons (`pipeline.answer_mcq`), cue box (`pipeline.add_cue` → on `guard_flag` show the
    override button → `add_cue(..., override=True)` → `advance`), result card, Force submit.
-3. Trial: post `log.json` + format questions on Discord; measure time and tokens per pano in crew mode.
-4. Fix `tests/test_llm.py::test_fallback_reports_primary_error` (outdated signature).
+2. `uv run python cli.py batch data --labels data/panoramas.csv --mode autonomous` and compare with the baseline CSVs.
+3. Speed: decide the time budget per pano (Detective `soft_deadline_s`, tool budget, Reader passes).
+4. Trial: post `log.json` + format questions on Discord; measure time and tokens per pano in crew mode.

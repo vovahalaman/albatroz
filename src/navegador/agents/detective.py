@@ -11,6 +11,7 @@ function declarations.
 
 import inspect
 import json
+import time
 import typing
 from collections.abc import Callable, Iterator
 from functools import wraps
@@ -36,6 +37,10 @@ class _Session:
     def __init__(self, state: State):
         self.state = state
         self.budget = settings().budgets.detective_max_tool_calls
+        # Soft deadline (pipeline integration): llm.call's timeout_s cannot stop the AFC worker thread, and the
+        # model records hypotheses only at the end. So lookups say "time is up" after soft_deadline_s, and the
+        # model records its candidates well before the hard timeout.
+        self.deadline = time.monotonic() + settings().detective.soft_deadline_s
         self.used = 0
         self.hypotheses: list[Hypothesis] = []
         self.rejected: list[dict[str, Any]] = []
@@ -142,6 +147,11 @@ def _lookup(session: _Session, fn: Callable[..., Any]) -> Callable[..., Any]:
     def tool(*args: Any, **kwargs: Any) -> Any:
         if session.used >= session.budget:
             return {"error": "tool budget exhausted; record your best candidates with add_hypothesis and stop"}
+        if time.monotonic() >= session.deadline:
+            scribe.log_event(session.state.pano_id, "tool_call", ACTOR,
+                             # not "tool": geo counts tool_call events by "tool" against the Nominatim budget
+                             {"refused_tool": fn.__name__, "reason": "soft deadline"}, run_id=session.state.run_id)
+            return {"error": "time is up; record your best candidates with add_hypothesis now and stop"}
         session.used += 1
         try:
             with geo.use_run(session.state.pano_id, ACTOR):

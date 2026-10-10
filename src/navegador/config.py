@@ -148,6 +148,9 @@ class AstrolabeSettings(BaseModel):
 
 class DetectiveSettings(BaseModel):
     timeout_s: float = 300  # whole tool loop; hypotheses recorded before a timeout are kept
+    # After this many seconds the lookup tools answer "time is up" so the model records its candidates.
+    # Needed because timeout_s cannot stop the AFC worker thread (asyncio.wait_for on to_thread).
+    soft_deadline_s: float = 180
     extra_turns: int = 8  # AFC turns on top of budgets.detective_max_tool_calls (add_hypothesis, summary)
     max_hypotheses: int = 10
     # add_hypothesis: the point must lie this close to a coordinate in the cited tool result (R2)

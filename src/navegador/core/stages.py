@@ -4,9 +4,11 @@ A stage returns None to continue with the next stage of the mode, or the name of
 Contracts with the agents:
 - `reader.run` / `geographer.run` write `reader.json` / `geographer.json` (S3, in parallel).
 - `detective.run` reads those files, `state.sun`, `state.cues`, answered `state.mcqs` and
-  `state.excluded_zones`; it appends R2-validated hypotheses to `state.hypotheses` (via add_hypothesis).
+  `state.excluded_zones`; it returns R2-validated hypotheses (`source="detective"`, from add_hypothesis),
+  which S4 adds to `state.hypotheses`.
 - Every S4 starts from scratch: hypotheses from earlier passes are dropped (only EXIF ones are kept).
-- If the Detective adds nothing (stub, error, no result), the Geographer's top region guesses are geocoded.
+- If the Detective adds nothing (error, no result): on a re-run the previous pass's hypotheses are kept
+  (outside excluded zones); otherwise the Geographer's top region guesses are geocoded.
 - Excluded zones are enforced here, in code, after every S4.
 """
 
@@ -87,23 +89,34 @@ def region_hypotheses(state: State) -> list[Hypothesis]:
 
 
 def s4_investigate(state: State) -> None:
+    previous = [h for h in state.hypotheses if h.source == "detective"]
     state.hypotheses = [h for h in state.hypotheses if h.source in KEEP_SOURCES]
     before = len(state.hypotheses)
     try:
         with geo.use_run(state.pano_id, actor="detective"):
             new = asyncio.run(detective.run(state)) or []
+        # detective.run returns its hypotheses (it does not append them itself); the identity check
+        # also covers a Detective that appends to state.hypotheses directly.
         state.hypotheses += [h for h in new if not any(h is x for x in state.hypotheses)]
     except Exception as exc:  # noqa: BLE001 - keep what the Detective added, then fall back
         _log(state, "detective", {"stage": "S4", "error": f"{type(exc).__name__}: {exc}"}, event="error")
     from_detective = len(state.hypotheses) - before
-    fallback = 0
-    if from_detective == 0:
+    kept = fallback = 0
+    if from_detective == 0 and previous:
+        # A re-run (after a cue or "none of these") found nothing, e.g. because the per-pano Nominatim budget
+        # (geo.max_geocode_calls_per_pano, shared by all passes) ran out. Keep the earlier pass's hypotheses
+        # outside the excluded zones rather than falling back to coarse regions.
+        state.hypotheses += previous
+        navigator.apply_exclusions(state)
+        kept = sum(h.source == "detective" for h in state.hypotheses)
+    if from_detective == 0 and kept == 0:
         regional = region_hypotheses(state)
         state.hypotheses += regional
         fallback = len(regional)
     dropped = navigator.apply_exclusions(state)
-    _log(state, "pipeline", {"stage": "S4", "detective": from_detective, "geographer_fallback": fallback,
-                             "excluded_dropped": dropped, "hypotheses": len(state.hypotheses)})
+    _log(state, "pipeline", {"stage": "S4", "detective": from_detective, "kept_previous": kept,
+                             "geographer_fallback": fallback, "excluded_dropped": dropped,
+                             "hypotheses": len(state.hypotheses)})
 
 
 def s5_critic(state: State) -> None:

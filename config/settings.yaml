@@ -92,6 +92,7 @@ astrolabe:
 # Added in P1 (not in SPEC §6): Detective tool loop. Tool budget stays in budgets.detective_max_tool_calls.
 detective:
   timeout_s: 300
+  soft_deadline_s: 180   # then lookups reply "time is up" so the model records candidates before timeout_s
   extra_turns: 8
   max_hypotheses: 10
   provenance_tolerance_m: {urban: 500, non_urban: 5000}

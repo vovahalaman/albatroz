@@ -16,7 +16,8 @@ from navegador.core import state as st
 from navegador.schemas import GeographerResult, Hypothesis, LanguageVerdict, ReaderResult, SunObs
 from navegador.tools import geo, strategist
 
-LISBOA, PORTO, FARO = (38.7101, -9.1366), (41.1579, -8.6291), (37.0194, -7.9304)
+REAL_DETECTIVE = detective.run  # the crew fixture replaces it; the integration test puts it back
+LISBOA, PORTO, FARO =(38.7101, -9.1366), (41.1579, -8.6291), (37.0194, -7.9304)
 GEOGRAPHER = {"country_probs": {"pt": 0.9, "es": 0.1, "fr": 0.0},
               "region_guesses": [{"region": "Algarve", "country": "pt", "prob": 0.6, "why": "dry scrub"},
                                  {"region": "Nowhere", "country": "pt", "prob": 0.3, "why": "not geocodable"}]}
@@ -86,6 +87,9 @@ def crew(monkeypatch: pytest.MonkeyPatch) -> dict:
     async def call(role, prompt_file, *, pano_id, text_parts=(), images=(), schema=None, **kw):
         box["llm_calls"].append({"role": role, "prompt": prompt_file, "text": list(text_parts)})
         result = box["llm"].get(prompt_file)
+        if callable(result):  # a tool loop: the fake "model" calls the real tools it was given
+            text = result({t.__name__: t for t in kw.get("tools") or []})
+            return llm.LLMResult(text, None, [], {"total_token_count": 10}, 0.1, "fake")
         if result is None or isinstance(result, Exception):
             raise result or RuntimeError(f"no fake result for {prompt_file}")
         return llm.LLMResult(json.dumps(result), schema.model_validate(result), [], {"total_token_count": 10}, 0.1,
@@ -132,6 +136,41 @@ def test_detective_failure_falls_back_to_geographer_regions(pano, crew):
     s4 = [e["payload"] for e in scribe.read_events(state.pano_id) if e["payload"].get("stage") == "S4"
           and "geographer_fallback" in e["payload"]]
     assert s4[-1]["detective"] == 0 and s4[-1]["geographer_fallback"] == 1
+
+
+def test_real_detective_tool_loop_in_pipeline(pano, crew, monkeypatch):
+    """The real agents/detective.py inside S4: its geocode + add_hypothesis tools, R2 check, detective.json."""
+    monkeypatch.setattr(detective, "run", REAL_DETECTIVE)
+    seen: dict = {}
+
+    def model(tools):
+        seen["inputs"] = json.loads(crew["llm_calls"][-1]["text"][0])
+        hit = tools["geocode"](query="Algarve", country_codes="pt", limit=1)["results"][0]
+        assert tools["add_hypothesis"](lat=hit["lat"], lng=hit["lng"], radius_m=5000, weight=0.8, label="Algarve",
+                                       provenance=hit["call_id"], evidence=["scrub"], why="Geographer")["ok"]
+        bad = tools["add_hypothesis"](lat=PORTO[0], lng=PORTO[1], radius_m=5000, weight=0.5, label="Porto",
+                                      provenance=hit["call_id"], evidence=[], why="from memory")
+        assert not bad["ok"]  # coordinates not in the cited result (R2)
+        return "Algarve from the Geographer's region guess."
+
+    crew["llm"]["detective.md"] = model
+    state = run(pano, label="non_urban")
+    assert state.status == "done" and [h.source for h in state.hypotheses] == ["detective"]
+    assert near(state.submission, FARO, 5000)
+    assert seen["inputs"]["geographer"]["region_guesses"][0]["region"] == "Algarve"
+    out = json.loads((st.run_dir(state.pano_id) / "detective.json").read_text(encoding="utf-8"))
+    assert len(out["hypotheses"]) == 1 and len(out["rejected"]) == 1 and out["error"] is None
+
+
+def test_rerun_without_new_hypotheses_keeps_previous(pano, crew):
+    crew["detective"] = [[(*LISBOA, 0.9, "Alfama")], []]  # e.g. Nominatim budget used up on the re-run
+    crew["llm"]["cue_guard.md"] = {"references_location": False, "why": "feature"}
+    state = run(pano, "assisted")
+    assert pipeline.add_cue(state.pano_id, "tram tracks").accepted
+    state = pipeline.advance(state.pano_id)
+    assert [h.label for h in state.hypotheses] == ["Alfama"] and near(state.submission, LISBOA)
+    s4 = [e["payload"] for e in scribe.read_events(state.pano_id) if "kept_previous" in e["payload"]]
+    assert s4[-1]["kept_previous"] == 1 and s4[-1]["geographer_fallback"] == 0
 
 
 def test_one_perception_agent_failing_keeps_the_other(pano, crew):

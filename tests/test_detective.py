@@ -67,6 +67,17 @@ def test_estimated_weight_cut_and_radius_clamped(state):
     assert h.radius_m == settings().detective.radius_min_m.get("urban")
 
 
+def test_soft_deadline_tells_model_to_record_candidates(state):
+    session = detective._Session(state)
+    session.deadline = 0  # already past
+    tool = detective._lookup(session, lambda query: [{"lat": 1.0, "lng": 2.0}])
+    assert "time is up" in tool(query="a")["error"] and session.used == 0
+    refused = [e for e in scribe.read_events(state.pano_id) if e["payload"].get("reason") == "soft deadline"]
+    assert len(refused) == 1 and "tool" not in refused[0]["payload"]  # not counted as a Nominatim call
+    out, s2 = _add(state, provenance="estimated")  # add_hypothesis still works after the deadline
+    assert out["ok"]
+
+
 def test_lookup_budget_and_errors_go_back_to_model(state, monkeypatch):
     session = detective._Session(state)
     session.budget = 1

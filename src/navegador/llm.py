@@ -7,11 +7,11 @@ output or runs an automatic function-calling loop, retries 429/500/503 and logs 
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +49,9 @@ class LLMConfigError(RuntimeError):
 # ---------------------------------------------------------------- clients
 
 
-@lru_cache
+# Not cached: a client's async session is bound to the event loop it first ran on, and every
+# asyncio.run() (one per pipeline stage / call_sync) creates a new loop. A cached client made the
+# second call in a process fail with "Event loop is closed" (batch, Streamlit). Construction is cheap.
 def vertex_client() -> genai.Client:
     e = env()
     if not e.project:
@@ -57,7 +59,6 @@ def vertex_client() -> genai.Client:
     return genai.Client(vertexai=True, project=e.project, location=e.location)
 
 
-@lru_cache
 def api_key_client() -> genai.Client | None:
     key = env().gemini_api_key
     return genai.Client(api_key=key) if key else None
@@ -124,6 +125,12 @@ def image_part(path: str | Path, level: str) -> tuple[types.Part, dict[str, Any]
     return part, {"path": str(path), "sha256": scribe.sha256_file(Path(path)), "media_resolution": res}
 
 
+def schema_instruction(schema: type[BaseModel]) -> str:
+    """json_mode: the output contract as text (a generic llm-layer instruction, not agent prompt text)."""
+    schema_json = json.dumps(schema.model_json_schema(), ensure_ascii=False)
+    return f"Return only JSON that validates against this JSON Schema:\n{schema_json}"
+
+
 def model_for(role: str) -> str:
     model = settings().models.get(role)
     if not model or model.startswith("<"):
@@ -144,16 +151,24 @@ def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | Non
     """`model`, when given, gates thinking_level (only sent to models that support it)."""
     kwargs: dict[str, Any] = {
         "http_options": types.HttpOptions(timeout=int((timeout_s or settings().budgets.llm_timeout_s) * 1000)),
+        "max_output_tokens": settings().budgets.llm_max_output_tokens,  # stops runaway (degenerate) JSON early
     }
-    if max_output_tokens is not None:
+    if max_output_tokens is not None:  # per-call override of the budget default
         kwargs["max_output_tokens"] = max_output_tokens
     if prompt is not None:
         kwargs["system_instruction"] = prompt.system
     if schema is not None and tools:
-        raise ValueError("do not combine tools with response_json_schema (SPEC §8)")
+        raise ValueError("do not combine tools with a response schema (SPEC §8)")
     if schema is not None:
         kwargs["response_mime_type"] = "application/json"
-        kwargs["response_json_schema"] = schema.model_json_schema()
+        mode = settings().structured_output
+        if mode == "response_json_schema":  # SPEC §8 as written
+            kwargs["response_json_schema"] = schema.model_json_schema()
+        elif mode == "response_schema":
+            kwargs["response_schema"] = schema
+        # json_mode (default): JSON output without constrained decoding; the schema goes in as text
+        # (schema_instruction) and Pydantic validates. Constrained decoding let Gemini write endless
+        # digits in number fields ("0.92345678901234567890…") until max_output_tokens (CLAUDE.md).
     if tools:
         kwargs["tools"] = list(tools)
         kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
@@ -215,20 +230,25 @@ async def _generate_with_fallback(model: str, contents: list[Any], config: types
                                   sync: bool, timeout_s: float | None = None, max_attempts: int = 4,
                                   failures: list[str] | None = None) -> tuple[types.GenerateContentResponse, str]:
     """Try Vertex, then the API key. Each client's error is appended to `failures` (so a Vertex error is not
-    hidden behind the fallback's error in the log)."""
-    last: Exception | None = None
+    hidden behind the fallback's error in the log). If every client fails, the primary backend's error is
+    raised, with the fallbacks' errors attached as notes."""
     timeout = timeout_s or settings().budgets.llm_timeout_s
+    errs: list[tuple[str, Exception]] = []
     for name, client in clients():
         try:
             return await _generate(client, model, contents, config, sync, timeout, max_attempts), name
         except FALLBACK_ERRORS as exc:
+            errs.append((name, exc))
             if failures is not None:
                 failures.append(f"{name}: {type(exc).__name__}: {exc}"[:500])
-            last = exc
             if _retryable(exc):
                 raise
-    assert last is not None
-    raise last
+    assert errs
+    # Raise the primary backend's error: the fallback's (e.g. "402 credits depleted") would hide the real cause.
+    primary = errs[0][1]
+    for name, exc in errs[1:]:
+        primary.add_note(f"fallback {name} also failed: {type(exc).__name__}: {str(exc)[:300]}")
+    raise primary
 
 
 async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: Sequence[str] = (),
@@ -247,6 +267,8 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
                           max_output_tokens=max_output_tokens, timeout_s=timeout_s, thinking_level=thinking_level,
                           model=model)
     img_parts, img_log = zip(*(image_part(p, lvl) for p, lvl in images)) if images else ((), ())
+    if schema is not None and settings().structured_output == "json_mode":
+        text_parts = [*text_parts, schema_instruction(schema)]
     contents: list[Any] = [*text_parts, *img_parts]
     log: dict[str, Any] = {
         "role": role, "model": model, "prompt_file": str(prompt.path.name) if prompt else None,

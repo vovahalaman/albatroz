@@ -20,7 +20,9 @@ def test_load_prompt_appends_knowledge():
 
 def test_build_config_schema_and_tools_exclusive():
     cfg = llm.build_config(None, "baseline", Out, None, None)
-    assert cfg.response_mime_type == "application/json" and cfg.response_json_schema["type"] == "object"
+    assert cfg.response_mime_type == "application/json" and cfg.response_schema is None  # json_mode
+    assert cfg.response_json_schema is None and '"properties"' in llm.schema_instruction(Out)
+    assert cfg.max_output_tokens == llm.settings().budgets.llm_max_output_tokens
 
     def tool(a: int) -> int:
         """doc"""
@@ -52,3 +54,17 @@ def test_pick_flash():
     names = ["publishers/google/models/gemini-2.5-flash", "publishers/google/models/gemini-2.5-flash-lite",
              "publishers/google/models/gemini-3-flash", "publishers/google/models/gemini-2.5-flash-image"]
     assert llm.pick_flash(names) == "gemini-3-flash"
+
+
+def test_fallback_reports_primary_error(monkeypatch):
+    import asyncio
+
+    async def fail(client, model, contents, config, sync):
+        raise client
+
+    monkeypatch.setattr(llm, "clients", lambda: [("vertex", TimeoutError("vertex slow")),
+                                                 ("api_key", OSError("402 credits depleted"))])
+    monkeypatch.setattr(llm, "_generate", fail)
+    with pytest.raises(TimeoutError, match="vertex slow") as info:
+        asyncio.run(llm._generate_with_fallback("m", [], None, sync=False))
+    assert "402 credits depleted" in info.value.__notes__[0]

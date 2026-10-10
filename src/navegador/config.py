@@ -36,6 +36,7 @@ class PerLabel(BaseModel):
 class Budgets(BaseModel):
     detective_max_tool_calls: int = 12
     llm_timeout_s: float = 120
+    llm_max_output_tokens: int = 8192
     pano_soft_budget_s: float = 420
 
 
@@ -77,6 +78,12 @@ class MagnifierSettings(BaseModel):
     zoom_fov: tuple[float, float] = (8, 90)  # min, max
     zoom_size: tuple[int, int] = (64, 2048)  # min, max px
     jpeg_quality: int = 90
+
+
+class BaselineSettings(BaseModel):
+    top_places: int = 3  # SPEC §10: geocode the top 3 places
+    geocode_limit: int = 1  # Nominatim results kept per place
+    radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=300, non_urban=8000))
 
 
 class Flags(BaseModel):
@@ -143,6 +150,9 @@ class Settings(BaseModel):
     flags: Flags
     scoring: Scoring
     magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
+    baseline: BaselineSettings = Field(default_factory=BaselineSettings)
+    # SPEC §8 says response_json_schema; with images Gemini then wrote runaway floats (see CLAUDE.md).
+    structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)
 
 

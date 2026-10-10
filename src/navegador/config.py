@@ -86,6 +86,13 @@ class BaselineSettings(BaseModel):
     radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=300, non_urban=8000))
 
 
+class CrewSettings(BaseModel):
+    """S4 fallback when the Detective yields nothing: geocode the Geographer's top region guesses."""
+
+    region_top: int = 3
+    region_radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=5000, non_urban=25000))
+
+
 class AdvocateSettings(BaseModel):
     top_n: int = Field(default=3, ge=1)  # SPEC §10: contradictions for the top 3 hypotheses (label groups)
     min_multiplier: float = Field(default=0.3, gt=0, le=1)  # floor for a weight multiplier (code-enforced)
@@ -145,6 +152,9 @@ class AstrolabeSettings(BaseModel):
 
 class DetectiveSettings(BaseModel):
     timeout_s: float = 300  # whole tool loop; hypotheses recorded before a timeout are kept
+    # After this many seconds the lookup tools answer "time is up" so the model records its candidates.
+    # Needed because timeout_s cannot stop the AFC worker thread (asyncio.wait_for on to_thread).
+    soft_deadline_s: float = 180
     extra_turns: int = 8  # AFC turns on top of budgets.detective_max_tool_calls (add_hypothesis, summary)
     max_hypotheses: int = 10
     # add_hypothesis: the point must lie this close to a coordinate in the cited tool result (R2)
@@ -166,6 +176,9 @@ class Settings(BaseModel):
     scoring: Scoring
     magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
     baseline: BaselineSettings = Field(default_factory=BaselineSettings)
+    crew: CrewSettings = Field(default_factory=CrewSettings)
+
+
     advocate: AdvocateSettings = Field(default_factory=AdvocateSettings)
     # SPEC §8 says response_json_schema; with images Gemini then wrote runaway floats (see CLAUDE.md).
     structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"

@@ -27,8 +27,10 @@ You do not look at the images yourself; you work from the other members' finding
   (e.g. `amenity=place_of_worship`, `railway=tram`, `amenity=fountain`, `brand=Pingo Doce`). Max 50 results.
 - `overpass_named(name, bbox)` — features with this name (also chain brands) inside an optional bounding box.
 - `wiki_coords(query, lang)` — coordinates of landmarks, monuments, churches, villages from Wikipedia.
-- `sun_check(lat, lng, timestamp, sun_yaw, sun_elev)` — expected sun position at a candidate;
-  returns the elevation residual and `north_offset_yaw` (the image yaw that points north).
+- `sun_check(lat, lng)` — expected sun position at a candidate for this panorama's timestamp, compared
+  with the observed sun (both filled in automatically). Returns, per clock hypothesis, the elevation
+  residual and `north_yaw_deg` (the image yaw that points north), plus `consistency` (0–1).
+  Its result cannot be cited as provenance.
 - `add_hypothesis(lat, lng, radius_m, weight, label, provenance, evidence, why)` — record a candidate.
 - If available: `web_search(query)` — find companies, projects, events, addresses that maps do not know.
 - If available: `overpass_cooccur(tags, bbox, max_dist_m)` — places where several feature types occur
@@ -67,7 +69,7 @@ Remove candidates that contradict other clues. Use the cheapest decisive check f
   Choose features that OpenStreetMap actually maps (churches, fountains, tram or railway lines, schools,
   pharmacies, fuel stations, chain stores, water). Trees, fences, paint and façades are usually not mapped.
 - `sun_check` (if the sun is visible): a large elevation residual (more than a few degrees) argues
-  against the candidate. `north_offset_yaw` tells where north is in the image; then check that the
+  against the candidate. `north_yaw_deg` tells where north is in the image; then check that the
   Geographer's water/coast yaw points the right way (e.g. the sea must lie west of a candidate on the
   west coast).
 - Excluded zones: drop every candidate inside them.

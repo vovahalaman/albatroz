@@ -1,7 +1,8 @@
 """Pipeline: the public, synchronous API used by both the UI and the CLI (SPEC §4).
 
-Baseline mode (P0b): S0 INGEST → S1 VIEWS → BASELINE (one LLM call + geocoding) → S7 SUBMIT → S8 REPORT.
-TODO(P1 · A): S2–S6 crew stages, MCQ pause/resume, cues.
+Baseline mode (P0): S0 INGEST → S1 VIEWS → BASELINE (LLM + geocode) → S7 SUBMIT → S8 REPORT.
+TODO(P1 · A): S2–S6 crew stages, MCQ pause/resume, cues. Until then `autonomous`/`assisted` run the
+baseline stages (logged as a `stage` event).
 Rules: every stage loads/saves `state.json`; a failing stage logs an `error` event and the run still
 produces a valid 10-pair submission via fallback (SPEC §16). R4: cues enter only via `add_cue`.
 R8: EXIF/XMP is read and logged at S0; GPS tags only used if `flags.use_exif_gps`.
@@ -15,65 +16,56 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PIL import ExifTags, Image
-
 from navegador.agents import baseline
-from navegador.config import settings
-from navegador.core import scribe
+from navegador.config import regions, settings
+from navegador.core import export, scribe
 from navegador.core import state as st
+from navegador.core.exif import probe
 from navegador.core.state import State
-from navegador.schemas import CueResult, Label, Mode
+from navegador.schemas import CueResult, Hypothesis, Label, Mode
 from navegador.tools import magnifier, strategist
 
-# Stage order per mode. `state.stage` always names the next stage to run.
-STAGE_ORDER: dict[str, list[str]] = {"baseline": ["S1", "BASELINE", "S7", "S8"]}
-CRITICAL = {"S7", "S8"}  # if these fail there is no valid submission → status "error"
+STALE_OUTPUTS = ("baseline.json", "submission.json", "submission.txt", "submission.csv", "log.json", "report.md")
 
 
 def views_dir(pano_id: str) -> Path:
     return st.run_dir(pano_id) / "views"
 
 
-def start_run(pano_path: Path, label: Label, special_one: bool, mode: Mode) -> str:
-    if mode not in STAGE_ORDER:
-        raise NotImplementedError(f"mode {mode!r} is P1; only {sorted(STAGE_ORDER)} works now")
+def start_run(pano_path: Path, label: Label, special_one: bool, mode: Mode, timestamp: str | None = None) -> str:
+    """Create the run state (S0 INGEST), log `run_start`; return pano_id. `timestamp` overrides the filename."""
     pano_path = Path(pano_path)
     if not pano_path.is_file():
         raise FileNotFoundError(pano_path)
-    state = st.new_state(pano_path, label, mode, special_one=special_one)
-    state.exif = read_exif(pano_path)
-    state.stage = STAGE_ORDER[mode][0]
+    state = st.new_state(pano_path, label, mode, special_one, timestamp)
+    out = st.run_dir(state.pano_id)
+    for name in STALE_OUTPUTS:  # a re-run must never pick up the previous run's files
+        (out / name).unlink(missing_ok=True)
+    state.exif = probe(pano_path)
+    scribe.log_event(state.pano_id, "run_start", "pipeline",
+                     {"pano_path": str(pano_path), "pano_sha256": scribe.sha256_file(pano_path), "label": label,
+                      "mode": mode, "special_one": special_one, "timestamp": state.timestamp,
+                      "exif": state.exif, "git_commit": scribe.git_commit()},
+                     run_id=state.run_id)
+    if settings().flags.use_exif_gps and state.exif.get("gps"):
+        _add_exif_hypothesis(state)
+    state.stage = "S1"
     st.save(state)
-    scribe.log_event(state.pano_id, "run_start", "pipeline", {
-        "pano_path": str(pano_path), "pano_sha256": scribe.sha256_file(pano_path), "label": label,
-        "special_one": special_one, "mode": mode, "timestamp": state.timestamp, "exif": state.exif,
-    }, run_id=state.run_id)
     return state.pano_id
 
 
 def advance(pano_id: str) -> State:
-    """Run stages until `done` or `awaiting_human`. Uses asyncio.run(...) internally for LLM stages."""
+    """Run stages until `done` or `awaiting_human`."""
     state = st.load(pano_id)
-    order = STAGE_ORDER[state.mode]
-    while state.status == "running":
-        stage = state.stage
-        scribe.log_event(pano_id, "stage", "pipeline", {"stage": stage}, run_id=state.run_id)
-        t0 = time.perf_counter()
-        try:
-            _STAGES[stage](state)
-        except Exception as exc:  # noqa: BLE001 - SPEC §16: log, fall back, keep going
-            scribe.log_event(pano_id, "error", "pipeline",
-                             {"stage": stage, "error": f"{type(exc).__name__}: {exc}"}, run_id=state.run_id)
-            if stage in CRITICAL:
-                state.status = "error"
-        state.timings[stage] = round(time.perf_counter() - t0, 3)
-        if state.status == "running":
-            i = order.index(stage)
-            if i + 1 < len(order):
-                state.stage = order[i + 1]
-            else:
-                state.status = "done"
-        st.save(state)
+    if state.status in ("done", "awaiting_human"):
+        return state
+    if state.mode != "baseline" and state.stage == "S1":
+        scribe.log_event(pano_id, "stage", "pipeline",
+                         {"stage": "S1", "note": f"mode {state.mode}: crew stages not implemented, running baseline"},
+                         run_id=state.run_id)
+    order = [s for s, _ in STAGES]
+    for name, fn in STAGES[order.index(state.stage):] if state.stage in order else []:
+        state = _run_stage(state, name, fn)
     return state
 
 
@@ -92,12 +84,35 @@ def force_submit(pano_id: str) -> State:
     state = st.load(pano_id)
     if state.status == "done":
         return state
-    state.stage, state.status = "S7", "running"
-    st.save(state)
-    return advance(pano_id)
+    scribe.log_event(pano_id, "stage", "pipeline", {"stage": "force_submit", "from": state.stage},
+                     run_id=state.run_id)
+    state.stage = "S7"
+    state = _run_stage(state, "S7", _s7_submit)
+    return _run_stage(state, "S8", _s8_report)
 
 
 # ---------------------------------------------------------------- stages
+
+
+def _run_stage(state: State, name: str, fn: Callable[[State], None]) -> State:
+    """Time, log and save one stage. On failure: `error` event, then continue (S7 has its own fallback)."""
+    scribe.log_event(state.pano_id, "stage", "pipeline", {"stage": name, "status": "start"}, run_id=state.run_id)
+    t0 = time.perf_counter()
+    try:
+        fn(state)
+        status: dict[str, Any] = {"status": "done"}
+    except Exception as exc:  # noqa: BLE001 - SPEC §16: a failing stage must not stop the run
+        status = {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
+        scribe.log_event(state.pano_id, "error", "pipeline", {"stage": name, **status}, run_id=state.run_id)
+    state.timings[name] = round(time.perf_counter() - t0, 3)
+    scribe.log_event(state.pano_id, "stage", "pipeline",
+                     {"stage": name, **status, "seconds": state.timings[name]}, run_id=state.run_id)
+    order = [s for s, _ in STAGES]
+    state.stage = order[order.index(name) + 1] if name in order and name != order[-1] else "done"
+    if name == "S8" or state.stage == "done":
+        state.status = "done" if state.submission else "error"
+    st.save(state)
+    return state
 
 
 def _s1_views(state: State) -> None:
@@ -108,51 +123,52 @@ def _s1_views(state: State) -> None:
 
 def _baseline(state: State) -> None:
     result = asyncio.run(baseline.run(state))
-    (st.run_dir(state.pano_id) / "baseline.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
-    state.hypotheses = baseline.to_hypotheses(state, result)
+    st.save(state)  # keep token usage even if geocoding fails
+    state.hypotheses.extend(baseline.to_hypotheses(state, result))
 
 
 def _s7_submit(state: State) -> None:
-    state.submission = strategist.submit(state)
-    (st.run_dir(state.pano_id) / "submission.json").write_text(
-        state.submission.model_dump_json(indent=2), encoding="utf-8")
+    fallback = baseline.country_fallback(baseline.load_result(state))
+    try:
+        sub = strategist.submit(state, fallback=fallback)
+    except Exception as exc:  # noqa: BLE001 - R1: always produce 10 valid pairs
+        scribe.log_event(state.pano_id, "error", "pipeline", {"stage": "S7", "error": f"{type(exc).__name__}: {exc}",
+                                                              "fallback": "fallback_point"}, run_id=state.run_id)
+        state.hypotheses = []
+        sub = strategist.submit(state)
+    export.validate(sub)
+    state.submission = sub
+    out = st.run_dir(state.pano_id)
+    (out / "submission.json").write_text(export.to_json(sub), encoding="utf-8")
+    (out / "submission.txt").write_text(export.to_text(sub), encoding="utf-8")
+    (out / "submission.csv").write_text(export.to_csv(sub), encoding="utf-8")
     scribe.log_event(state.pano_id, "submission", "strategist",
-                     state.submission.model_dump(mode="json"), run_id=state.run_id)
+                     {"candidates": [c.model_dump() for c in sub.candidates], "expected_score": sub.expected_score,
+                      "penalty_factor": sub.penalty_factor, "hypotheses": len(state.hypotheses),
+                      "fallback_used": not state.hypotheses}, run_id=state.run_id)
 
 
 def _s8_report(state: State) -> None:
-    st.save(state)  # export reads state.json
+    st.save(state)  # export() reads state.json
     scribe.export(state.pano_id)
 
 
-_STAGES: dict[str, Callable[[State], None]] = {
-    "S1": _s1_views, "BASELINE": _baseline, "S7": _s7_submit, "S8": _s8_report,
-}
+def _add_exif_hypothesis(state: State) -> None:
+    """R8: only with flags.use_exif_gps. Registered as a tool call so it passes R2."""
+    lat, lng = state.exif["gps"]["lat"], state.exif["gps"]["lng"]
+    if not regions().contains(lat, lng):
+        return
+    call_id = scribe.register_tool_call(state.pano_id, "pipeline", "exif_gps", {}, state.exif["gps"])
+    state.hypotheses.append(Hypothesis(lat=lat, lng=lng, radius_m=50, weight=1.0, label="EXIF GPS",
+                                       provenance=call_id, source="exif"))
 
 
-# ---------------------------------------------------------------- S0 helpers
+STAGES: list[tuple[str, Callable[[State], None]]] = [
+    ("S1", _s1_views), ("BASELINE", _baseline), ("S7", _s7_submit), ("S8", _s8_report),
+]
 
 
-def read_exif(pano_path: Path) -> dict[str, Any]:
-    """R8: EXIF/XMP is read and logged. GPS is reported as present/absent; values are not used."""
-    try:
-        with Image.open(pano_path) as img:
-            exif = img.getexif()
-            xmp = img.info.get("xmp")
-    except OSError as exc:
-        return {"error": str(exc)}
-    tags = {ExifTags.TAGS.get(k, str(k)): _short(v) for k, v in exif.items() if k != ExifTags.IFD.GPSInfo}
-    gps = exif.get_ifd(ExifTags.IFD.GPSInfo)
-    out: dict[str, Any] = {"tags": tags, "has_gps": bool(gps), "has_xmp": bool(xmp)}
-    if gps and settings().flags.use_exif_gps:
-        out["gps"] = {ExifTags.GPSTAGS.get(k, str(k)): _short(v) for k, v in gps.items()}
-    return out
-
-
-def _short(v: Any, limit: int = 200) -> str:
-    s = v.decode("utf-8", "replace") if isinstance(v, bytes) else str(v)
-    s = s.replace("\x00", "")
-    return s if len(s) <= limit else s[:limit] + "…"
+# ---------------------------------------------------------------- CLI / UI helpers
 
 
 def summary(state: State) -> dict[str, Any]:

@@ -25,8 +25,9 @@ The package and project name `navegador` is unchanged.
 ## Status
 
 **Phase: P0a scaffold — done, except the live `check-llm` run (needs GCP credentials).**
+**P0b · B Astrolábio (`tools/astrolabe.py`) — done; thresholds still need tuning on real panoramas.**
 
-Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
+Implemented and tested (`uv run pytest` → 67 passed, 2 skipped):
 
 | Module | What works |
 |---|---|
@@ -36,13 +37,14 @@ Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
 | `core/scribe.py` | `log_event` (append-only `log.jsonl`, event names enforced, bytes logged as sha256), `register_tool_call` → `call_id` + `tool_registry` (R2), `add_penalty` / `penalty_factor`, `export` → `log.json` (with git commit, prompt hashes, knowledge hash, models) + `report.md`. |
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
 | `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
+| `tools/astrolabe.py` | `detect(pano)` → `SunObs | None`: bright low-saturation blobs in the upper half (seam-aware), rejected if too small/large/extended/not round/low ring contrast or touching the top edge; returns `None` when unsure or ambiguous. `sun_check(lat, lng, ts, sun_yaw, sun_elev)`: evaluates **all** clock hypotheses (`astrolabe.time_hypotheses`: local tz, UTC, Europe/Lisbon), per-hypothesis expected elev/azimuth (pvlib), residual, `north_yaw_deg`; best fit, consistency 0–1, `ambiguous`. Matches the §9.2 reference table. `scripts/sun_debug.py <folder>` writes annotated PNGs + a table for tuning. `band()` is P2. |
 | `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
-`core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`), `tools/astrolabe.py`,
+`core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`),
 `tools/geo.py`, `tools/cache.py`, `ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
-`tests/test_magnifier.py`, `test_astrolabe.py`, `test_pipeline_baseline.py` are skipped placeholders.
+`tests/test_magnifier.py`, `test_pipeline_baseline.py` are skipped placeholders.
 
 ## Known issues
 
@@ -63,6 +65,16 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   noise; with random draws the 9 630 example came out at 9 737.
 - Legacy `requirements.txt` (adds geopy, astral, geoclip) and `make_csv.py` remain from before the
   scaffold. Dependencies are now managed by `pyproject.toml` + uv.
+- **Python version:** uv defaults to Python 3.15 if installed, where `h5py` (a pvlib dependency) has no wheel and
+  fails to build. Use 3.13 (SPEC): `export UV_PYTHON=3.13` before `uv sync`. Consider committing `.python-version`.
+- **Astrolábio ignores `flags.timestamp_is_local`.** The camera clock is unreliable (local, UTC or Lisbon time,
+  even in ES/FR), so `sun_check` always evaluates every clock in `astrolabe.time_hypotheses`. Clocks that give
+  the same instant are merged (e.g. local = Lisbon in PT). The azimuth cannot separate clocks (unknown heading),
+  so several may fit → `ambiguous: true`.
+- **Additions for Astrolábio:** `astrolabe:` block in `settings.yaml` + `AstrolabeSettings` in `config.py`;
+  `SunObs` gained `uncertainty_deg` and `pixel_xy` (full-res pixels); `scipy` is now a direct dependency.
+- Detection thresholds are only validated on synthetic images (no panoramas on the dev laptop). Ring contrast is
+  measured on luminance, not max(R,G,B), so blue sky separates from a white sun. `astrolabe.py` is ~260 lines.
 - `.env` was tracked in git (empty). Now untracked via `git rm --cached`, as SPEC §15 requires.
 
 ## Open questions
@@ -88,6 +100,8 @@ Team questions:
    Put the chosen model IDs into `config/settings.yaml`.
 2. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
-   - B: `magnifier.py` + `astrolabe.py` + tests
+   - B: `magnifier.py` + tests (`astrolabe.py` done; tune thresholds with `scripts/sun_debug.py data/train1`)
    - C: `geo.py` + `cache.py` + `agents/baseline.py`
    - D: `ui/app.py` + `export.py`
+3. Pipeline S2 stores `astrolabe.detect()` in `state.sun`; the Detective gets `sun_check` as a tool and passes
+   `state.sun.yaw/elevation/uncertainty_deg`.

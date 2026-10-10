@@ -93,6 +93,11 @@ class CrewSettings(BaseModel):
     region_radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=5000, non_urban=25000))
 
 
+class AdvocateSettings(BaseModel):
+    top_n: int = Field(default=3, ge=1)  # SPEC §10: contradictions for the top 3 hypotheses (label groups)
+    min_multiplier: float = Field(default=0.3, gt=0, le=1)  # floor for a weight multiplier (code-enforced)
+
+
 class Flags(BaseModel):
     use_exif_gps: bool = False  # [CONFIRM] may EXIF GPS be used?
     timestamp_is_local: bool = True  # [CONFIRM] local time or UTC?
@@ -172,6 +177,9 @@ class Settings(BaseModel):
     magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
     baseline: BaselineSettings = Field(default_factory=BaselineSettings)
     crew: CrewSettings = Field(default_factory=CrewSettings)
+
+
+    advocate: AdvocateSettings = Field(default_factory=AdvocateSettings)
     # SPEC §8 says response_json_schema; with images Gemini then wrote runaway floats (see CLAUDE.md).
     structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)

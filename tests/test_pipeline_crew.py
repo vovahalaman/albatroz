@@ -173,6 +173,22 @@ def test_rerun_without_new_hypotheses_keeps_previous(pano, crew):
     assert s4[-1]["kept_previous"] == 1 and s4[-1]["geographer_fallback"] == 0
 
 
+def test_advocate_in_s5_goes_through_apply(pano, crew, monkeypatch):
+    """Real agents/advocate.py: H1 = heaviest label group; multipliers clamped and only with an objection."""
+    crew["detective"] = [[(*LISBOA, 0.6, "Alfama"), (*PORTO, 0.4, "Ribeira")]]
+    crew["llm"]["advocate.md"] = {"objections": [{"hypothesis_label": "H1", "issue": "tram gauge", "severity": "high"}],
+                                  "weight_multipliers": {"H1": 0.1, "H2": 0.5}}
+    state = run(pano)  # flag off (default): no Advocate call, weights unchanged
+    assert "advocate" not in [c["role"] for c in crew["llm_calls"]] and near(state.submission, LISBOA)
+
+    monkeypatch.setattr(settings().flags, "advocate_enabled", True)
+    state = run(pano)
+    w = {h.label: h.weight for h in state.hypotheses}
+    floor = settings().advocate.min_multiplier
+    assert w == {"Alfama": pytest.approx(0.6 * floor), "Ribeira": pytest.approx(0.4)}  # H2: no objection → dropped
+    assert near(state.submission, PORTO) and (st.run_dir(state.pano_id) / "advocate.json").exists()
+
+
 def test_one_perception_agent_failing_keeps_the_other(pano, crew):
     crew["reader"] = RuntimeError("reader down")
     state = run(pano)

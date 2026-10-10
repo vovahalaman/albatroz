@@ -130,12 +130,11 @@ def s4_investigate(state: State) -> None:
 
 
 def s5_critic(state: State) -> None:
-    if not settings().flags.advocate_enabled:
-        _log(state, "pipeline", {"stage": "S5", "note": "advocate disabled"})
-        return
+    """advocate.run logs its own skip (flag off / no hypotheses) and returns an empty result then.
+    Weights change only through advocate.apply, which enforces the multiplier limits."""
     result = asyncio.run(advocate.run(state))
-    for h in state.hypotheses:
-        h.weight *= max(0.0, result.weight_multipliers.get(h.label, 1.0))
+    if result.weight_multipliers:  # skip an empty `advocate_apply` log event
+        advocate.apply(state, result)
 
 
 def s6_decide(state: State) -> str | None:

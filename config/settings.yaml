@@ -45,6 +45,9 @@ baseline: {top_places: 3, geocode_limit: 1, radius_m: {urban: 300, non_urban: 80
 # top region guesses (weight = prob) with these radii.
 crew: {region_top: 3, region_radius_m: {urban: 5000, non_urban: 25000}}
 
+# Added in P2 (not in SPEC §6): Advocate (SPEC §10). Label groups shown to the model; lowest weight multiplier code applies.
+advocate: {top_n: 3, min_multiplier: 0.3}
+
 # Added in P0b (not in SPEC §6): how llm.py requests JSON. SPEC §8 says response_json_schema, but with images
 # Gemini's constrained decoding wrote runaway floats ("0.98500000000000010214…") until max_output_tokens:
 # 2/4 calls with response_json_schema, ~1/4 with response_schema, 0/6 with json_mode (schema sent as text).

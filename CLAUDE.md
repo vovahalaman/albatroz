@@ -28,7 +28,7 @@ The package and project name `navegador` is unchanged.
 `feature/crew-pipeline`). `autonomous` solves real panoramas end to end (Gemini + Nominatim/Overpass/Wikipedia);
 `assisted` adds MCQ pause/resume and cues. Navigator phrasing and cue guard verified live. Missing: UI (D).**
 
-Implemented and tested (`uv run pytest` → 196 passed):
+Implemented and tested (`uv run pytest` → 204 passed):
 
 | Module | What works |
 |---|---|
@@ -42,17 +42,18 @@ Implemented and tested (`uv run pytest` → 196 passed):
 | `tools/geo.py` | §9.3: `geocode`, `reverse` (Nominatim), `overpass_near`, `overpass_named`, `wiki_coords`. Every call: disk cache → policy check → HTTP with timeout + tenacity retry (429/5xx/connection) → `scribe.register_tool_call` (`call_id` on every result, `cached` flag). Failures log an `error` event and raise `GeoError`; errors are never cached. Nominatim: 1.1 s process-wide throttle (cache hits skip it), User-Agent from settings, `max_geocode_calls_per_pano` counted from the run's log. Calls must run inside `geo.use_run(pano_id, actor)`. Tests: `tests/test_geo.py` (mocked HTTP, fake clock). |
 | `tools/magnifier.py` | §9.1 `views()` (8 h + 4 g + 4 u + overview; reused via `views.json` when pano + settings unchanged), `zoom()` (input clamped, cached by pano content hash). Settings in `settings.yaml → magnifier:`. |
 | `core/pipeline.py` | `start_run` (S0), `advance` (runs the mode's stages until `done` or `awaiting_human`; every stage timed, logged, saved; a failing stage logs `error` and the run still submits), `answer_mcq` (×0.95, resumes at S6 or S4), `add_cue` (assisted only, not while an MCQ is pending; R4 length, guard, `cue_blocked`/`cue_override`, ×0.8, re-enters S4; caller then calls `advance`), `force_submit` (also while awaiting). Baseline: S1 → BASELINE → S7 → S8. Crew: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8. S7 fallback: baseline or Geographer country box. |
-| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, keeps the previous pass's Detective hypotheses (re-run after a cue / "none of these", e.g. Nominatim budget used up), else geocodes the Geographer's top `crew.region_top` region guesses (weight = prob, `crew.region_radius_m`); then drops hypotheses in `excluded_zones` (`_apply_exclusions`, code, not prompt). S5 Advocate only with `flags.advocate_enabled`. S6 `navigator.assess` logged; ASK_MCQ → `mcq_shown`, pause. |
+| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, keeps the previous pass's Detective hypotheses (re-run after a cue / "none of these", e.g. Nominatim budget used up), else geocodes the Geographer's top `crew.region_top` region guesses (weight = prob, `crew.region_radius_m`); then drops hypotheses in `excluded_zones` (`_apply_exclusions`, code, not prompt). S5 `advocate.run` + `advocate.apply` (run skips itself unless `flags.advocate_enabled`). S6 `navigator.assess` logged; ASK_MCQ → `mcq_shown`, pause. |
 | `core/navigator.py` | (vova-navigator, PR #14) `assess`/`decide` (SPEC §4 rule; options = top clusters at least `far_m` apart, greedy), `build_mcq` (reverse geocode at `REVERSE_ZOOM` 14/10, hardcoded; LLM words the question and options, ids and cluster mapping fixed in code; code-built texts if the LLM fails), `apply_answer` (logs `mcq_answer`; chosen cluster → `q_trust`; "none of these" → excluded zones covering every member circle → S4). |
 | `agents/cue_guard.py` | Flash-Lite check via `prompts/cue_guard.md`; fails closed (flagged, override still possible). |
 | `agents/reader.py`, `geographer.py`, `detective.py` | Reader: 2 passes (views, then zoom crops). Geographer: one call over all views, cached on disk. Detective: AFC tool loop (geo tools + `sun_check` + `add_hypothesis` with R2 check: the point must lie near a coordinate in the cited result), lookup budget, soft deadline (`detective.soft_deadline_s`), writes `detective.json`. |
 | `agents/baseline.py` | One `llm.call` (overview LOW + h000…h315 MEDIUM + label/timestamp/image order) → `baseline.json`; top 3 places geocoded (model's country first, then pt,es,fr), results outside `regions.yaml` dropped, R2-validated Hypotheses (weight = confidence, radius 300 m / 8 km). Country-box fallback when nothing geocodes. |
+| `agents/advocate.py` | P2, S5 CRITIC. `run(state, force=False)`: without `flags.advocate_enabled` (or `force`) or without hypotheses it logs a `stage` skip and makes no LLM call. Hypotheses grouped by label; the top `advocate.top_n` groups by summed weight go to the model as H1…H3 (point, radius, why of the heaviest member; `weight_share`; sources; ≤6 evidence) with code-computed facts: `geo.reverse` at zoom 17 (road, neighbourhood, suburb … country_code) and `astrolabe.sun_check` (only with `state.sun` + timestamp); a failed fact is `null` + `error` event. One `llm.call` (overview + h000…h315); the text parts are the contract with `prompts/advocate.md` (reader/geographer JSON, baseline JSON only if both are missing, human input). `resolve` (no I/O) maps ids → labels, drops unknown refs (`error` event), keeps a multiplier only for a label with an objection, clamps to [`min_multiplier`, 1], drops 1.0 / non-finite → `advocate.json`. `apply` multiplies every member of a label and logs `advocate_apply` (group sums before/after); caller saves. Try it: `scripts/advocate_try.py <pano_id> [--sun]` (never saves the state). |
 | `core/export.py` | `validate` (R1), `to_text`, `to_json`, `to_csv`, `to_albatroz` (= JSON until confirmed). S7 writes `submission.json/.txt/.csv`. |
 | `core/exif.py` | S0 probe: EXIF tags, GPS, XMP (GPano). GPS only used with `flags.use_exif_gps`. The training panos carry no EXIF at all. |
 | `cli.py` | `check-llm`, `geo-check`, `solve` (prints country probs, places → coordinates, clues, errors, the 10 pairs), `batch` (labels CSV `file|filename,label`; optional `--truth eval/labels.csv` → distance + pseudo-score; summary CSV with git commit, mode and a hash over the mode's prompts in `runs/_batch/`); `solve --mode assisted` answers MCQs via numbered `input()`; crew runs print sun, Geographer probs, hypotheses, MCQs, cues. `learn` is P2. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, `navigator.md`, `cue_guard.md`, knowledge seed (Appendix A). |
 
-Stubbed (signatures + docstrings, raise `NotImplementedError`): `advocate.py`, `professor.py`, `astrolabe.band`,
+Stubbed (signatures + docstrings, raise `NotImplementedError`): `professor.py`, `astrolabe.band`,
 `ui/app.py`, `eval/compare.py`.
 
 **Detective contract**, relied on by `core/stages.py`: `detective.run(state)` reads `reader.json`, `geographer.json`,
@@ -87,6 +88,16 @@ so it re-derives everything after a cue.
   positives; if a team member sends a real place name, that may count as rule 8 (open question 5).
 - **`settings.yaml → baseline:`** (added): `top_places`, `geocode_limit`, `radius_m`. Rule 8 (×0.5 text location)
   is not applied to geocoded place names (open question 5).
+- **`settings.yaml → advocate:`** (added in P2, not in SPEC §6): `top_n` (3), `min_multiplier` (0.3).
+  `flags.advocate_enabled` stays `false` until S5 is wired; `scripts/advocate_try.py` passes `force=True`.
+- **Advocate.** `agents/advocate.py` is ~200 lines (SPEC §10: agents ~80): the safety limits, facts and the
+  text-part contract live in code. Its reverse lookups add up to `top_n` uncached Nominatim calls per pano
+  (counted in `max_geocode_calls_per_pano`, cached afterwards). `reverse` is `null` when the lookup failed and
+  `{}` when OSM has nothing at the point (open sea); `prompts/advocate.md` documents only `null`.
+- **Hidden `.pth` on macOS.** On 2026-10-10 the editable-install file
+  `.venv/lib/python3.13/site-packages/_editable_impl_navegador.pth` had the macOS `hidden` flag after a uv
+  re-sync. Python 3.13 skips hidden `.pth` files, so `import navegador` fails in `cli.py` and `scripts/` (pytest
+  still works through `pythonpath`). Fix: `chflags nohidden` on that file, or run with `PYTHONPATH=src`.
 - **Geo context.** SPEC §9.3 signatures have no `pano_id` (they are exposed to the model as tools), so the
   pano comes from the `geo.use_run(pano_id, actor)` context manager (contextvars; propagates through
   `asyncio.to_thread`, not through bare threads). Calling a geo tool outside it raises `RuntimeError`.

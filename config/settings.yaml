@@ -30,3 +30,23 @@ scoring:
   zero_distance_m: 10.0
   theta_scale_m: {urban: 100.0, non_urban: 10000.0}
   penalty_factors: {cue: 0.8, mcq: 0.95, text_location: 0.5}
+
+# Astrolábio (SPEC §9.2). Tune detection with scripts/sun_debug.py. The camera clock is unreliable,
+# so sun_check evaluates every entry of time_hypotheses ("local" = time zone at the candidate point).
+astrolabe:
+  detect_size: [1520, 760]
+  brightness_min: 250          # max(R,G,B) of a candidate pixel
+  saturation_max: 0.15         # (max-min)/max of a candidate pixel
+  min_pixels: 3
+  max_solid_angle_deg2: 100    # larger blobs are clipped sky, clouds or walls
+  max_extent_deg: 12           # angular width (x cos elev) or height
+  min_circularity: 0.5         # solid angle / (pi * (extent/2)^2)
+  ring_inner: 1.5              # contrast ring radii, multiples of the blob radius
+  ring_outer: 3.0
+  min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean
+  top_edge_max_span_deg: 10    # wider contact with the top row is rejected
+  ambiguity_ratio: 0.8         # runner-up score >= ratio * best -> no sun
+  min_confidence: 0.4
+  tilt_margin_deg: 3
+  time_hypotheses: [local, UTC, Europe/Lisbon]
+  consistency_falloff_deg: 3   # residual beyond the uncertainty at which consistency reaches 0

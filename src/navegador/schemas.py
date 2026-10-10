@@ -113,10 +113,12 @@ class View(BaseModel):
 
 
 class SunObs(BaseModel):
-    yaw: float
+    yaw: float  # image yaw (0 = centre column, + right), not compass
     elevation: float
-    area_px: int
+    area_px: int  # in the downscaled detection image
     confidence: Confidence
+    uncertainty_deg: float = Field(default=0, ge=0)  # blob angular radius + tilt margin
+    pixel_xy: tuple[float, float] | None = None  # full-resolution pano pixels
 
 
 # ---------------------------------------------------------------- agents (§10)

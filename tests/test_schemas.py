@@ -59,3 +59,22 @@ def test_agent_example_parses():
     BaselineResult.model_validate_json(
         '{"country_probs":{"pt":0.8,"es":0.2,"fr":0},'
         '"places":[{"query":"Monsaraz, Évora","country":"pt","confidence":0.4,"why":"whitewash"}],"clues":["x"]}')
+
+
+def test_zoom_request_corrects_out_of_range_numbers():
+    from navegador.schemas import ZoomRequest
+
+    z = ZoomRequest(yaw=270, pitch=100, fov=3)
+    assert (z.yaw, z.pitch, z.fov) == (-90.0, 90.0, 8.0)
+    z = ZoomRequest(yaw=-180, pitch=-120, fov=120)
+    assert (z.yaw, z.pitch, z.fov) == (180.0, -90.0, 90.0)
+    reader = ReaderResult.model_validate(
+        {"language_verdict": {}, "zoom_requests": [{"yaw": 400, "pitch": 10, "fov": 5, "why": "sign"}]})
+    assert reader.zoom_requests[0].fov == 8.0  # one bad number no longer fails the whole answer
+    for bad in ({"yaw": float("nan"), "pitch": 0, "fov": 20}, {"yaw": 0, "pitch": float("inf"), "fov": 20},
+                {"yaw": "left", "pitch": 0, "fov": 20}):
+        with pytest.raises(ValidationError):
+            ZoomRequest(**bad)
+    props = ZoomRequest.model_json_schema()["properties"]  # the model still sees the bounds
+    assert (props["fov"]["minimum"], props["fov"]["maximum"]) == (8, 90)
+    assert (props["pitch"]["minimum"], props["pitch"]["maximum"]) == (-90, 90)

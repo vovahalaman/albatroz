@@ -32,3 +32,7 @@ scoring:
   zero_distance_m: 10.0
   theta_scale_m: {urban: 100.0, non_urban: 10000.0}
   penalty_factors: {cue: 0.8, mcq: 0.95, text_location: 0.5}
+
+# Added in P0b (not in SPEC §6): magnifier render settings. Values are SPEC §9.1; u-views (up_pitch) are an addition.
+magnifier: {view_fov: 90, view_size: 1024, ground_pitch: -50, up_pitch: 50, overview_wh: [2048, 1024],
+            zoom_fov: [8, 90], zoom_size: [64, 2048], jpeg_quality: 90}

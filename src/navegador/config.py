@@ -47,6 +47,7 @@ class MCQSettings(BaseModel):
     top3_min: float = 0.7
     cluster_eps_m: PerLabel
     far_m: PerLabel
+    zone_zoom: PerLabel = Field(default_factory=lambda: PerLabel(urban=16, non_urban=10))  # reverse-geocode zoom
 
 
 class StrategistSettings(BaseModel):
@@ -84,6 +85,13 @@ class BaselineSettings(BaseModel):
     top_places: int = 3  # SPEC §10: geocode the top 3 places
     geocode_limit: int = 1  # Nominatim results kept per place
     radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=300, non_urban=8000))
+
+
+class CrewSettings(BaseModel):
+    """S4 fallback when the Detective yields nothing: geocode the Geographer's top region guesses."""
+
+    region_top: int = 3
+    region_radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=5000, non_urban=25000))
 
 
 class Flags(BaseModel):
@@ -151,6 +159,7 @@ class Settings(BaseModel):
     scoring: Scoring
     magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
     baseline: BaselineSettings = Field(default_factory=BaselineSettings)
+    crew: CrewSettings = Field(default_factory=CrewSettings)
     # SPEC §8 says response_json_schema; with images Gemini then wrote runaway floats (see CLAUDE.md).
     structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)

@@ -1,8 +1,9 @@
 """Pipeline: the public, synchronous API used by both the UI and the CLI (SPEC §4).
 
 Baseline mode (P0): S0 INGEST → S1 VIEWS → BASELINE (LLM + geocode) → S7 SUBMIT → S8 REPORT.
-TODO(P1 · A): S2–S6 crew stages, MCQ pause/resume, cues. Until then `autonomous`/`assisted` run the
-baseline stages (logged as a `stage` event).
+Crew modes (`autonomous`, `assisted`): S0 → S1 → S2 SUN → S3 PERCEIVE → S4 INVESTIGATE → S5 CRITIC →
+S6 DECIDE → S7 → S8 (stage functions in core/stages.py). S6 may pause the run (`awaiting_human`) with an
+MCQ; `answer_mcq` resumes at S6 (or S4 for "none of these"). `add_cue` re-enters at S4.
 Rules: every stage loads/saves `state.json`; a failing stage logs an `error` event and the run still
 produces a valid 10-pair submission via fallback (SPEC §16). R4: cues enter only via `add_cue`.
 R8: EXIF/XMP is read and logged at S0; GPS tags only used if `flags.use_exif_gps`.
@@ -16,16 +17,18 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from navegador.agents import baseline
+from navegador.agents import baseline, cue_guard
 from navegador.config import regions, settings
-from navegador.core import export, scribe
+from navegador.core import export, navigator, scribe, stages
 from navegador.core import state as st
 from navegador.core.exif import probe
 from navegador.core.state import State
-from navegador.schemas import CueResult, Hypothesis, Label, Mode
+from navegador.schemas import Cue, CueResult, Hypothesis, Label, Mode
 from navegador.tools import magnifier, strategist
 
-STALE_OUTPUTS = ("baseline.json", "submission.json", "submission.txt", "submission.csv", "log.json", "report.md")
+STALE_OUTPUTS = ("baseline.json", "reader.json", "geographer.json", "detective.json", "advocate.json",
+                 "submission.json", "submission.txt", "submission.csv", "log.json", "report.md")
+StageFn = Callable[[State], "str | None"]  # returns the next stage, or None for the mode's next one
 
 
 def views_dir(pano_id: str) -> Path:
@@ -57,26 +60,56 @@ def start_run(pano_path: Path, label: Label, special_one: bool, mode: Mode, time
 def advance(pano_id: str) -> State:
     """Run stages until `done` or `awaiting_human`."""
     state = st.load(pano_id)
-    if state.status in ("done", "awaiting_human"):
-        return state
-    if state.mode != "baseline" and state.stage == "S1":
-        scribe.log_event(pano_id, "stage", "pipeline",
-                         {"stage": "S1", "note": f"mode {state.mode}: crew stages not implemented, running baseline"},
-                         run_id=state.run_id)
-    order = [s for s, _ in STAGES]
-    for name, fn in STAGES[order.index(state.stage):] if state.stage in order else []:
-        state = _run_stage(state, name, fn)
+    fns = dict(_stages(state.mode))
+    while state.status == "running" and state.stage in fns:
+        state = _run_stage(state, state.stage, fns[state.stage])
     return state
 
 
 def answer_mcq(pano_id: str, option_id: str) -> State:
     """Apply an MCQ click (×0.95 penalty), then continue at S6 (or S4 for "none of these")."""
-    raise NotImplementedError("P1 · A")
+    state = st.load(pano_id)
+    mcq = state.pending_mcq
+    if state.status != "awaiting_human" or mcq is None:
+        raise ValueError(f"{pano_id}: no MCQ is waiting for an answer (status {state.status})")
+    state.stage = navigator.apply_answer(state, option_id)
+    option = next(o for o in mcq.options if o.id == option_id)
+    scribe.log_event(pano_id, "mcq_answer", "ui",
+                     {"mcq_id": mcq.mcq_id, "option_id": option_id, "text": option.text,
+                      "cluster_id": option.cluster_id, "next": state.stage,
+                      "excluded_zones": len(state.excluded_zones)}, run_id=state.run_id)
+    scribe.add_penalty(state, "mcq", mcq.mcq_id)
+    state.status = "running"
+    st.save(state)
+    return advance(pano_id)
 
 
 def add_cue(pano_id: str, text: str, override: bool = False) -> CueResult:
-    """R4: length check (≤1000), cue guard, log, ×0.8 penalty; re-enters at S4."""
-    raise NotImplementedError("P1 · A")
+    """R4: length check (≤1000), cue guard, log, ×0.8 penalty; re-enters at S4.
+    The caller then calls `advance(pano_id)`. Only in assisted mode, and not while an MCQ is pending."""
+    state = st.load(pano_id)
+    if state.mode != "assisted":
+        raise ValueError(f"cues are only allowed in assisted mode (run is {state.mode})")
+    if state.pending_mcq is not None:
+        raise ValueError("answer the pending MCQ before sending a cue")
+    text = text.strip()
+    if not text or len(text) > 1000:
+        return CueResult(accepted=False, guard_flag=False, why="a cue must be 1–1000 characters")
+    guard = asyncio.run(cue_guard.check(pano_id, text))
+    log = {"text": text, "guard_flag": guard.references_location, "why": guard.why}
+    if guard.references_location and not override:
+        scribe.log_event(pano_id, "cue_blocked", "ui", log, run_id=state.run_id)
+        return CueResult(accepted=False, guard_flag=True, why=guard.why)
+    cue = Cue(text=text, ts=st.utcnow(), guard_flag=guard.references_location, override=override)
+    state.cues.append(cue)
+    ref = f"cue-{len(state.cues)}"
+    if guard.references_location:
+        scribe.log_event(pano_id, "cue_override", "ui", {**log, "ref": ref}, run_id=state.run_id)
+    scribe.log_event(pano_id, "cue", "ui", {**log, "ref": ref, "override": override}, run_id=state.run_id)
+    scribe.add_penalty(state, "cue", ref)
+    state.stage, state.status = "S4", "running"
+    st.save(state)
+    return CueResult(accepted=True, guard_flag=guard.references_location, why=guard.why, cue=cue)
 
 
 def force_submit(pano_id: str) -> State:
@@ -94,21 +127,27 @@ def force_submit(pano_id: str) -> State:
 # ---------------------------------------------------------------- stages
 
 
-def _run_stage(state: State, name: str, fn: Callable[[State], None]) -> State:
+def _stages(mode: Mode) -> list[tuple[str, StageFn]]:
+    return BASELINE_STAGES if mode == "baseline" else CREW_STAGES
+
+
+def _run_stage(state: State, name: str, fn: StageFn) -> State:
     """Time, log and save one stage. On failure: `error` event, then continue (S7 has its own fallback)."""
     scribe.log_event(state.pano_id, "stage", "pipeline", {"stage": name, "status": "start"}, run_id=state.run_id)
     t0 = time.perf_counter()
+    nxt = None
     try:
-        fn(state)
+        nxt = fn(state)
         status: dict[str, Any] = {"status": "done"}
     except Exception as exc:  # noqa: BLE001 - SPEC §16: a failing stage must not stop the run
         status = {"status": "error", "error": f"{type(exc).__name__}: {exc}"}
         scribe.log_event(state.pano_id, "error", "pipeline", {"stage": name, **status}, run_id=state.run_id)
-    state.timings[name] = round(time.perf_counter() - t0, 3)
+    # A stage that runs again (S4 after a cue, S6 after an MCQ) adds to its time.
+    state.timings[name] = round(state.timings.get(name, 0) + time.perf_counter() - t0, 3)
     scribe.log_event(state.pano_id, "stage", "pipeline",
                      {"stage": name, **status, "seconds": state.timings[name]}, run_id=state.run_id)
-    order = [s for s, _ in STAGES]
-    state.stage = order[order.index(name) + 1] if name in order and name != order[-1] else "done"
+    order = [s for s, _ in _stages(state.mode)]
+    state.stage = nxt or (order[order.index(name) + 1] if name in order and name != order[-1] else "done")
     if name == "S8" or state.stage == "done":
         state.status = "done" if state.submission else "error"
     st.save(state)
@@ -128,7 +167,7 @@ def _baseline(state: State) -> None:
 
 
 def _s7_submit(state: State) -> None:
-    fallback = baseline.country_fallback(baseline.load_result(state))
+    fallback = baseline.country_fallback(baseline.load_result(state) or stages.load_geographer(state))
     try:
         sub = strategist.submit(state, fallback=fallback)
     except Exception as exc:  # noqa: BLE001 - R1: always produce 10 valid pairs
@@ -163,8 +202,12 @@ def _add_exif_hypothesis(state: State) -> None:
                                        provenance=call_id, source="exif"))
 
 
-STAGES: list[tuple[str, Callable[[State], None]]] = [
+BASELINE_STAGES: list[tuple[str, StageFn]] = [
     ("S1", _s1_views), ("BASELINE", _baseline), ("S7", _s7_submit), ("S8", _s8_report),
+]
+CREW_STAGES: list[tuple[str, StageFn]] = [
+    ("S1", _s1_views), ("S2", stages.s2_sun), ("S3", stages.s3_perceive), ("S4", stages.s4_investigate),
+    ("S5", stages.s5_critic), ("S6", stages.s6_decide), ("S7", _s7_submit), ("S8", _s8_report),
 ]
 
 

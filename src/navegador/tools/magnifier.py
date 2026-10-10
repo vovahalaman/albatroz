@@ -21,6 +21,7 @@ from navegador.schemas import View
 VIEW_FOV = 90.0
 VIEW_SIZE = 1024
 GROUND_PITCH = -50.0
+UP_PITCH = 50.0
 OVERVIEW_WH = (2048, 1024)
 OVERVIEW_FOV = 360.0
 ZOOM_FOV_MIN, ZOOM_FOV_MAX = 8.0, 90.0
@@ -70,15 +71,17 @@ def _save(arr: np.ndarray, path: Path) -> Path:
 
 
 def views(pano_path: Path, out_dir: Path) -> list[View]:
-    """h000…h315 (8 horizontal, FOV 90, 1024²), g000/g090/g180/g270 (pitch −50), overview.jpg (2048×1024).
+    """h000…h315 (8 horizontal), g000…g270 (pitch −50), u000…u270 (pitch +50), overview.jpg (2048×1024).
 
-    Returns 13 Views: 8 horizontal, 4 ground, then the overview (yaw 0, pitch 0, fov 360).
+    Perspective views are FOV 90, 1024². u-views are an addition to SPEC §9.1 so that the views cover
+    the full sphere. Returns 17 Views: 8 h, 4 g, 4 u, then the overview (yaw 0, pitch 0, fov 360).
     """
     img = _load(pano_path)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     specs = [(f"h{a:03d}", a, 0.0) for a in range(0, 360, 45)]
     specs += [(f"g{a:03d}", a, GROUND_PITCH) for a in range(0, 360, 90)]
+    specs += [(f"u{a:03d}", a, UP_PITCH) for a in range(0, 360, 90)]
     result: list[View] = []
     for name, angle, pitch in specs:
         yaw = wrap_yaw(float(angle))

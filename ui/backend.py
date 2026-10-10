@@ -1,8 +1,8 @@
 """UI backends. The UI renders a RunView (the real `State` + agent findings + events) from either:
 
-- MockBackend: in memory, deterministic, no API calls. Uses the real schemas and the real Strategist
-  maths (pure), so it behaves like the pipeline will.
-- LiveBackend: core/pipeline.py (step 3).
+- MockBackend (ui/mock.py): in memory, deterministic, no API calls; real schemas, navigator.assess and
+  Strategist maths, so it behaves like the pipeline will.
+- LiveBackend (ui/live.py): core/pipeline.py.
 
 Score helpers (multiplier, breakdown, expected-score preview) are pure and shared by both.
 """
@@ -10,15 +10,13 @@ Score helpers (multiplier, breakdown, expected-score preview) are pure and share
 from __future__ import annotations
 
 import csv
-import uuid
 from dataclasses import dataclass, field
-from datetime import timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from navegador.config import ROOT, settings
-from navegador.core.state import State, utcnow
-from navegador.schemas import MCQ, Hypothesis, MCQOption, Penalty, Submission
+from navegador.core.state import State
+from navegador.schemas import CueResult, Submission
 from navegador.tools import strategist
 
 # Stages as shown to the operator (SPEC §4).
@@ -101,68 +99,21 @@ def max_score(state: State) -> float:
     return m * (settings().scoring.special_one_multiplier if state.special_one else 1.0)
 
 
-# ---------------------------------------------------------------- mock data
+# ---------------------------------------------------------------- interface
 
 
-def _mock_hypotheses() -> list[Hypothesis]:
-    rows = [("Baixa, Lisboa", 38.7104, -9.1366, 0.42), ("Ribeira, Porto", 41.1407, -8.6131, 0.33),
-            ("Baixa, Coimbra", 40.2085, -8.4290, 0.17), ("Belém, Lisboa", 38.6970, -9.2060, 0.08)]
-    return [Hypothesis(lat=lat, lng=lng, radius_m=250, weight=w, label=lab, provenance="estimated",
-                       evidence=["calçada portuguesa g000", "azulejo façade h090"], why="mock", source="detective")
-            for lab, lat, lng, w in rows]
+class Backend(Protocol):
+    """What the UI needs. MockBackend (ui/mock.py) and LiveBackend (ui/live.py) implement it."""
 
+    name: str
+    can_answer_mcq: bool
+    can_add_cue: bool
 
-def _mock_findings() -> dict[str, Any]:
-    return {
-        "reader": {"texts": [{"text": "Farmácia", "view": "h090", "kind": "shop", "language": "pt", "confidence": 0.9},
-                             {"text": "Rua dos Fanqueiros", "view": "h180", "kind": "sign", "language": "pt",
-                              "confidence": 0.6}],
-                   "language_verdict": {"pt": 0.92, "es": 0.05, "fr": 0.0, "other": 0.03},
-                   "search_terms": ["Rua dos Fanqueiros"]},
-        "geographer": {"country_probs": {"pt": 0.9, "es": 0.08, "fr": 0.02},
-                       "region_guesses": [{"region": "Lisboa", "country": "pt", "prob": 0.55,
-                                           "why": "limestone calçada g000, azulejo h090"},
-                                          {"region": "Porto", "country": "pt", "prob": 0.3,
-                                           "why": "granite façades h270"}],
-                       "water_or_coast": {"present": False, "yaw": None, "type": None},
-                       "terrain": "hilly old town", "season": "winter, consistent with January"},
-        "detective": {"summary": "Portuguese street with calçada and azulejos. Lisboa Baixa or Porto Ribeira; "
-                                 "the street name is only partly legible."},
-        "advocate": {"objections": [{"hypothesis_label": "Ribeira, Porto", "issue": "No granite paving visible.",
-                                     "severity": "medium"},
-                                    {"hypothesis_label": "Baixa, Coimbra", "issue": "Terrain flatter than Coimbra.",
-                                     "severity": "low"}],
-                     "weight_multipliers": {"Ribeira, Porto": 0.7}},
-    }
-
-
-def _mock_mcq() -> MCQ:
-    opts = [MCQOption(id="A", text="Baixa, Lisboa", cluster_id="c0"),
-            MCQOption(id="B", text="Ribeira, Porto", cluster_id="c1"),
-            MCQOption(id="C", text="Baixa, Coimbra", cluster_id="c2"),
-            MCQOption(id="D", text="None of these areas", cluster_id=None)]
-    return MCQ(mcq_id="mcq1-demo", question="Which area does this panorama show?", options=opts, asked_at=utcnow())
-
-
-class MockBackend:
-    """In-memory backend for development and the demo. No API calls."""
-
-    name = "Mock"
-    can_answer_mcq = True
-    can_add_cue = True
-
-    def __init__(self) -> None:
-        self.runs: dict[str, RunView] = {}
-
-    def demo_view(self, item: QueueItem, special_one: bool) -> RunView:
-        """A run paused on a question, with one cue sent: every panel has content."""
-        state = State(pano_id=f"mock-{item.key}", run_id=uuid.uuid4().hex[:12], pano_path=item.path,
-                      label=item.label, mode="assisted", special_one=special_one, status="awaiting_human",
-                      stage="S6", timestamp=None)
-        state.hypotheses = _mock_hypotheses()
-        t0 = utcnow() - timedelta(seconds=95)
-        state.penalties = [Penalty(kind="cue", factor=penalty_factor("cue"), ts=t0, ref="cue1")]
-        state.mcqs = [_mock_mcq()]
-        events = [{"ts": t0.isoformat(), "event": "cue", "actor": "ui", "payload": {"text": "Steep street, tram"}}]
-        return RunView(state=state, findings=_mock_findings(), events=events,
-                       mcq_reason="Two far-apart areas; top area holds 42% (< 60%), top 3 hold 92% (> 70%).")
+    def start(self, pano_path: Path, label: str, special_one: bool, mode: str) -> str: ...
+    def has(self, pano_id: str | None) -> bool: ...
+    def view(self, pano_id: str) -> RunView: ...
+    def step(self, pano_id: str) -> RunView: ...
+    def answer_mcq(self, pano_id: str, option_id: str) -> RunView: ...
+    def add_cue(self, pano_id: str, text: str, override: bool = False) -> CueResult: ...
+    def force_submit(self, pano_id: str) -> RunView: ...
+    def log_json(self, pano_id: str) -> str: ...

@@ -34,17 +34,20 @@ def fmt_mmss(seconds: float) -> str:
 # ---------------------------------------------------------------- top bar
 
 
-def topbar(status: str, kind: str, timer_s: float, running: bool, backend_name: str) -> None:
-    """Brand, the 'what to do next' line, the session timer."""
-    warn = " warn" if timer_s <= 10 * 60 else ""
-    state = "running" if running else "not started"
+def topbar(status: str, kind: str) -> None:
+    """Brand and the 'what to do next' line (the timer is rendered by a fragment next to it)."""
     html(f"""
 <div class="nv-topbar">
   <div class="nv-brand">Navegador <span>· operator</span></div>
   <div class="nv-status {kind}"><span class="nv-next">Next</span><span>{escape(status)}</span></div>
-  <div class="nv-timer"><div class="nv-huge{warn}">{fmt_mmss(timer_s)}</div>
-    <div class="nv-muted">session {state} · {escape(backend_name)} backend</div></div>
 </div>""")
+
+
+def timer(seconds_left: float, running: bool, backend_name: str) -> None:
+    warn = " warn" if running and seconds_left <= 10 * 60 else ""
+    state = "running" if running else "not started"
+    html(f"""<div class="nv-timer"><div class="nv-huge{warn}">{fmt_mmss(seconds_left)}</div>
+<div class="nv-muted">session {state} · {escape(backend_name)} backend</div></div>""")
 
 
 # ---------------------------------------------------------------- run panels
@@ -205,8 +208,8 @@ def question_card(mcq: MCQ | None, state: State, enabled: bool, reason: str, not
     html(f'<p class="nv-question">{escape(mcq.question)}</p>')
     clicked = None
     for o in mcq.options:
-        kind = "secondary" if o.cluster_id is None else "primary"
-        if st.button(f"{o.id} · {o.text}", key=f"opt-{mcq.mcq_id}-{o.id}", type=kind, disabled=not enabled,
+        key = f"opt-{mcq.mcq_id}-{o.id}" + ("-none" if o.cluster_id is None else "")
+        if st.button(f"{o.id} · {o.text}", key=key, type="secondary", disabled=not enabled,
                      width="stretch"):
             clicked = o.id
     if any(o.cluster_id is None for o in mcq.options):
@@ -219,29 +222,36 @@ def question_card(mcq: MCQ | None, state: State, enabled: bool, reason: str, not
     return clicked
 
 
-def cue_box(state: State, enabled: bool, note: str = "") -> str | None:
-    """Text cue with counter. Returns the text when the operator asks to send it (confirm comes after)."""
-    label("Text cue")
-    text = st.text_area("Cue", key=f"cue-{state.pano_id}", max_chars=1000, height=96, label_visibility="collapsed",
-                        placeholder="Describe what you see. No place names or other location references.",
-                        disabled=not enabled)
+def cue_cost(state: State) -> None:
     pf = multiplier(state)
-    html(f'<p class="nv-cost">Cue costs ×{penalty_factor("cue")} · ×{pf:.3f} → ×{pf * penalty_factor("cue"):.3f}</p>')
-    if note:
-        html(f'<p class="nv-muted nv-warn">{escape(note)}</p>')
-    if st.button("Review cue", key=f"cue-send-{state.pano_id}", disabled=not enabled or not text.strip(),
-                 width="stretch"):
-        return text.strip()
-    return None
+    html(f'<p class="nv-cost">Cue costs ×{penalty_factor("cue")} on all candidates · ×{pf:.3f} → '
+         f'×{pf * penalty_factor("cue"):.3f}</p>')
 
 
-def result_card(sub: Submission, log_json: str, final: bool) -> None:
-    label("Submission" if final else "Submission preview (not final yet)")
+def quote(text: str) -> None:
+    html(f'<div class="nv-quote">{escape(text)}</div>')
+
+
+def result_card(sub: Submission, final: bool) -> None:
+    label("Submission · 10 coordinates" if final else "Submission preview · not final yet")
     st.code(to_text(sub), language=None)
-    html('<p class="nv-muted">Copy with the icon in the top-right corner of the box.</p>')
-    st.download_button("Download log.json", data=log_json, file_name=f"{sub.pano_id}_log.json",
-                       mime="application/json", width="stretch", disabled=not final,
-                       key=f"dl-log-{sub.pano_id}")
+    html('<p class="nv-muted">Copy: icon in the top-right corner of the box. One "lat, lng" per line.</p>')
+
+
+def downloads(pano_id: str, log_json: str, sub: Submission | None) -> None:
+    c1, c2 = st.columns(2)
+    c1.download_button("log.json", data=log_json, file_name=f"{pano_id}_log.json", mime="application/json",
+                       width="stretch", key=f"dl-log-{pano_id}")
+    c2.download_button("submission.json", data=sub.model_dump_json(indent=2) if sub else "", width="stretch",
+                       file_name=f"{pano_id}_submission.json", mime="application/json", disabled=sub is None,
+                       key=f"dl-sub-{pano_id}")
+
+
+def run_meta(view: RunView, elapsed_s: float) -> None:
+    s = view.state
+    words = {"awaiting_human": "waiting for you", "running": "agent working", "done": "submitted", "error": "error"}
+    html(f'<p class="nv-muted nv-mono">{escape(words.get(s.status, s.status))} · {fmt_mmss(elapsed_s)} on this '
+         f'panorama · mode {escape(s.mode)}</p>')
 
 
 def queue_pills(label_: str, status: str, special: bool) -> str:

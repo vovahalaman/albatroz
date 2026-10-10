@@ -86,8 +86,7 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-error {{ color: {c["error"]}; }}
 
 /* top bar */
-.nv-topbar {{ display: flex; align-items: center; gap: {s["xl"]}px; padding: {s["md"]}px {s["lg"]}px;
-  background: {c["panel"]}; border: 1px solid {c["border"]}; border-radius: {r}px; }}
+.nv-topbar {{ display: flex; align-items: center; gap: {s["xl"]}px; }}
 .nv-brand {{ font-weight: 700; font-size: {z["title"]}px; letter-spacing: .02em; }}
 .nv-brand span {{ color: {c["muted"]}; font-weight: 500; }}
 .nv-status {{ flex: 1; display: flex; align-items: center; gap: {s["md"]}px; padding: {s["sm"]}px {s["lg"]}px;
@@ -133,6 +132,17 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-bar > div {{ height: 100%; background: {c["accent"]}; }}
 .nv-sev-high {{ color: {c["error"]}; }} .nv-sev-medium {{ color: {c["warning"]}; }} .nv-sev-low {{ color: {c["muted"]}; }}
 
+.nv-quote {{ background: {c["panel_2"]}; border-left: 3px solid {c["accent"]}; border-radius: 6px;
+  padding: {s["sm"]}px {s["md"]}px; margin: 0 0 {s["sm"]}px 0; white-space: pre-wrap; }}
+.nv-guard {{ background: {c["warning_soft"]}; border: 1px solid {c["warning"]}; border-radius: {r}px;
+  padding: {s["sm"]}px {s["md"]}px; margin: 0 0 {s["sm"]}px 0; }}
+
+/* question card: answer options are one choice group (outlined accent), not several primary buttons */
+[class*="st-key-opt-"] button {{ background: {c["accent_soft"]} !important; border: 1px solid {c["accent"]} !important;
+  color: {c["text"]} !important; justify-content: flex-start; font-weight: 600; }}
+[class*="st-key-opt-"] button:hover {{ background: {c["accent"]} !important; color: {c["on_accent"]} !important; }}
+[class*="st-key-opt-"].st-key-none button, [class*="st-key-opt-"][class*="-none"] button {{
+  background: transparent !important; border-color: {c["border"]} !important; color: {c["muted"]} !important; }}
 /* question card */
 .nv-question, .stMarkdown p.nv-question {{ font-size: {z["title"]}px !important; font-weight: 600; line-height: 1.35; margin: 0 0 {s["md"]}px 0; }}
 .nv-cost, .stMarkdown p.nv-cost {{ font-family: {f["mono"]}; color: {c["warning"]}; font-size: {z["small"]}px !important; }}

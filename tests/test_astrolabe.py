@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -8,7 +8,7 @@ import pvlib
 import pytest
 from PIL import Image
 
-from navegador.tools.astrolabe import angles_to_pixel, detect, sun_check, wrap180
+from navegador.tools.astrolabe import angles_to_pixel, detect, max_sun_elev, sun_check, wrap180
 from navegador.tools.magnifier import pixel_to_angles
 
 LISBON = (38.7223, -9.1393)
@@ -109,19 +109,22 @@ def _save(img: np.ndarray, tmp_path: Path, name: str = "IMG_20261010_140000_00_0
     return path
 
 
+# Real sun cores on the training panoramas are 7.5–9° in radius (saturated glare), hence 8° discs.
+
+
 def test_detect_finds_disc_at_known_position(tmp_path: Path):
-    sun = detect(_save(_disc(_pano(), yaw=40.0, elev=35.0, radius_deg=2.0), tmp_path))
+    sun = detect(_save(_disc(_pano(), yaw=40.0, elev=35.0, radius_deg=8.0), tmp_path))
     assert sun is not None
     assert sun.yaw == pytest.approx(40.0, abs=1.0)
     assert sun.elevation == pytest.approx(35.0, abs=1.0)
-    assert sun.uncertainty_deg == pytest.approx(2.0 + 3.0, abs=0.5)
+    assert sun.uncertainty_deg == pytest.approx(8.0 + 3.0, abs=1.0)
     assert sun.confidence >= 0.4
     x, y = angles_to_pixel(40.0, 35.0, 3040, 1520)
     assert sun.pixel_xy == pytest.approx((x, y), abs=8)
 
 
 def test_detect_disc_across_the_seam(tmp_path: Path):
-    sun = detect(_save(_disc(_pano(), yaw=180.0, elev=20.0, radius_deg=2.0), tmp_path))
+    sun = detect(_save(_disc(_pano(), yaw=180.0, elev=20.0, radius_deg=8.0), tmp_path))
     assert sun is not None
     assert abs(wrap180(sun.yaw - 180.0)) < 1.0
     assert sun.elevation == pytest.approx(20.0, abs=1.0)
@@ -138,9 +141,25 @@ def test_detect_none_on_white_wall(tmp_path: Path):
 
 
 def test_detect_none_when_two_equal_suns(tmp_path: Path):
-    img = _disc(_disc(_pano(), -60.0, 30.0, 2.0), 90.0, 30.0, 2.0)
+    img = _disc(_disc(_pano(), -60.0, 30.0, 8.0), 90.0, 30.0, 8.0)
     assert detect(_save(img, tmp_path)) is None
 
 
 def test_detect_none_on_plain_sky(tmp_path: Path):
     assert detect(_save(_pano(), tmp_path)) is None
+
+
+def test_detect_none_on_small_disc(tmp_path: Path):
+    """A small saturated disc (window, sky gap) has too small a core: rejected by design."""
+    assert detect(_save(_disc(_pano(), 40.0, 35.0, 2.0), tmp_path)) is None
+
+
+def test_detect_none_above_date_ceiling(tmp_path: Path):
+    # 10 Oct at 27.5°N: noon sun ≈ 56°; a disc at 70° is impossible on that date.
+    assert max_sun_elev(date(2026, 10, 10)) == pytest.approx(55.8, abs=0.5)
+    assert detect(_save(_disc(_pano(), 40.0, 70.0, 8.0), tmp_path)) is None
+
+
+def test_max_sun_elev_solstices():
+    assert max_sun_elev(date(2026, 6, 21)) == pytest.approx(85.9, abs=0.3)
+    assert max_sun_elev(date(2026, 12, 21)) == pytest.approx(39.1, abs=0.3)

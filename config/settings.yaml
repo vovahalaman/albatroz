@@ -38,8 +38,8 @@ astrolabe:
   brightness_min: 250          # max(R,G,B) of a candidate pixel
   saturation_max: 0.15         # (max-min)/max of a candidate pixel
   min_pixels: 3
-  max_solid_angle_deg2: 100    # larger blobs are clipped sky, clouds or walls
-  max_extent_deg: 12           # angular width (x cos elev) or height
+  max_solid_angle_deg2: 800    # glare blob; larger is clipped sky, clouds or walls (real sun glare: 350-600)
+  max_extent_deg: 40           # glare angular width (x cos elev) or height
   min_circularity: 0.5         # solid angle / (pi * (extent/2)^2)
   ring_inner: 1.5              # contrast ring radii, multiples of the blob radius
   ring_outer: 3.0
@@ -48,5 +48,10 @@ astrolabe:
   ambiguity_ratio: 0.8         # runner-up score >= ratio * best -> no sun
   min_confidence: 0.4
   tilt_margin_deg: 3
+  core_min: 252                # min(R,G,B) of the saturated core that locates the sun (this camera clips at ~253)
+  min_core_radius_deg: 4       # real sun cores on training panos: 7.5-9 deg; false candidates: <= 3.4 deg
+  min_core_fraction: 0.3       # core pixels / glare pixels (real suns: 0.38-0.54, glare halo is not saturated)
+  min_elev_deg: 3              # sun core below this is a horizon object
+  ceiling_lat_deg: 27.5        # reject cores above the date's max noon sun at this latitude (+ tilt); 27.5 covers the Canaries
   time_hypotheses: [local, UTC, Europe/Lisbon]
   consistency_falloff_deg: 3   # residual beyond the uncertainty at which consistency reaches 0

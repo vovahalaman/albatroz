@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -23,7 +23,7 @@ from scipy import ndimage
 from timezonefinder import TimezoneFinder
 
 from navegador.config import AstrolabeSettings, settings
-from navegador.core.state import timestamp_dt
+from navegador.core.state import parse_timestamp, timestamp_dt
 from navegador.schemas import SunObs
 from navegador.tools.magnifier import pixel_to_angles
 
@@ -48,7 +48,8 @@ def angles_to_pixel(yaw: float, pitch: float, w: int, h: int) -> tuple[float, fl
 
 @dataclass
 class Blob:
-    """A bright connected component; x, y are centroid pixels in the downscaled detection image."""
+    """A bright glare component. Shape fields describe the whole glare; x, y, yaw, elev locate its
+    saturated core (min channel ≥ core_min) in the downscaled detection image."""
 
     x: float
     y: float
@@ -59,6 +60,8 @@ class Blob:
     extent_deg: float
     radius_deg: float
     circularity: float
+    core_px: int = 0
+    core_radius_deg: float = 0.0
     contrast: float = 0.0
     score: float = 0.0
     reject: str | None = None
@@ -72,6 +75,23 @@ def load_small(pano_path: Path) -> tuple[np.ndarray, tuple[int, int]]:
         im.draft("RGB", size)  # JPEG: decode directly at reduced scale
         rgb = im.convert("RGB").resize(size, Image.Resampling.BOX)
     return np.asarray(rgb), orig
+
+
+def pano_date(pano_path: Path) -> date | None:
+    """Capture date from the filename. The clock time is unreliable; the date is good enough here."""
+    ts = parse_timestamp(Path(pano_path).name)
+    return timestamp_dt(ts).date() if ts else None
+
+
+def max_sun_elev(day: date) -> float:
+    """Highest noon sun on this date at astrolabe.ceiling_lat_deg (higher further south)."""
+    decl = math.degrees(float(pvlib.solarposition.declination_spencer71(day.timetuple().tm_yday)))
+    return 90.0 - abs(_cfg().ceiling_lat_deg - decl)
+
+
+def _solid_angle(ys: np.ndarray, h: int, w: int) -> float:
+    """Σ pixel solid angles in deg² (pixel area shrinks with cos(elevation))."""
+    return float(np.cos(np.radians((0.5 - (ys + 0.5) / h) * 180.0)).sum()) * (360.0 / w) * (180.0 / h)
 
 
 def _merge_seam(labels: np.ndarray, n: int) -> np.ndarray:
@@ -106,33 +126,41 @@ def _ring_contrast(lum: np.ndarray, b: Blob, blob_mean: float) -> float:
     return (blob_mean - float(ring.mean())) / blob_mean if ring.size else 0.0
 
 
-def _measure(ys: np.ndarray, xs: np.ndarray, lum: np.ndarray) -> Blob:
+def _measure(ys: np.ndarray, xs: np.ndarray, lum: np.ndarray, mn: np.ndarray, ceiling: float | None) -> Blob:
     cfg, (h, w) = _cfg(), lum.shape
     dpx, dpy = 360.0 / w, 180.0 / h
     top_span = len(np.unique(xs[ys == 0])) * dpx
     if xs.min() == 0 and xs.max() == w - 1:  # straddles the seam: unwrap
         xs = np.where(xs < w // 2, xs + w, xs)
-    cx, cy = (float(xs.mean()) + 0.5) % w, float(ys.mean()) + 0.5
-    yaw, elev = pixel_to_angles(cx, cy, w, h)
-    cos_e = max(math.cos(math.radians(elev)), 0.05)
-    omega = float(np.cos(np.radians((0.5 - (ys + 0.5) / h) * 180.0)).sum()) * dpx * dpy
+    cos_e = max(math.cos(math.radians((0.5 - (float(ys.mean()) + 0.5) / h) * 180.0)), 0.05)
+    omega = _solid_angle(ys, h, w)
     extent = float(max((xs.max() - xs.min() + 1) * dpx * cos_e, (ys.max() - ys.min() + 1) * dpy))
     circ = min(1.0, omega / (math.pi * (extent / 2) ** 2))
-    b = Blob(cx, cy, len(xs), yaw, elev, omega, extent, math.sqrt(omega / math.pi), circ)
+    core = mn[ys, xs % w] >= cfg.core_min  # locate the sun from the saturated core, not the glare
+    cys, cxs = (ys[core], xs[core]) if core.any() else (ys, xs)
+    cx, cy = (float(cxs.mean()) + 0.5) % w, float(cys.mean()) + 0.5
+    yaw, elev = pixel_to_angles(cx, cy, w, h)
+    b = Blob(cx, cy, len(xs), yaw, elev, omega, extent, math.sqrt(omega / math.pi), circ,
+             int(core.sum()), math.sqrt(_solid_angle(ys[core], h, w) / math.pi))
     checks = (("too_small", b.n_px < cfg.min_pixels), ("top_edge", top_span > cfg.top_edge_max_span_deg),
               ("too_large", omega > cfg.max_solid_angle_deg2), ("too_extended", extent > cfg.max_extent_deg),
-              ("not_round", circ < cfg.min_circularity))
+              ("not_round", circ < cfg.min_circularity),
+              ("weak_core", b.core_radius_deg < cfg.min_core_radius_deg or core.mean() < cfg.min_core_fraction),
+              ("below_min_elev", elev < cfg.min_elev_deg),
+              ("above_ceiling", ceiling is not None and elev > ceiling + cfg.tilt_margin_deg))
     b.reject = next((name for name, bad in checks if bad), None)
     if b.reject is None:  # contrast only for blobs that pass the cheap geometric checks
         b.contrast = _ring_contrast(lum, b, float(lum[ys, xs % w].mean()))
         b.reject = "low_contrast" if b.contrast < cfg.min_contrast else None
     if b.reject is None:
-        b.score = circ * min(1.0, b.contrast / (2 * cfg.min_contrast)) * (1 - 0.5 * extent / cfg.max_extent_deg)
+        b.score = (circ * min(1.0, b.contrast / (2 * cfg.min_contrast))
+                   * min(1.0, b.core_radius_deg / (2 * cfg.min_core_radius_deg)))
     return b
 
 
-def find_blobs(rgb: np.ndarray) -> list[Blob]:
-    """All bright, low-saturation components in the upper half, measured and scored (best first)."""
+def find_blobs(rgb: np.ndarray, day: date | None = None) -> list[Blob]:
+    """All bright, low-saturation components in the upper half, measured and scored (best first).
+    With `day`, blobs above the highest possible sun for that date are rejected."""
     cfg, h = _cfg(), rgb.shape[0]
     f = rgb.astype(np.float32)
     v, mn = f.max(axis=2), f.min(axis=2)
@@ -147,7 +175,8 @@ def find_blobs(rgb: np.ndarray) -> list[Blob]:
     order = np.argsort(labels[ys, xs], kind="stable")
     ys, xs = ys[order], xs[order]
     cuts = np.flatnonzero(np.diff(labels[ys, xs])) + 1
-    blobs = [_measure(y, x, lum) for y, x in zip(np.split(ys, cuts), np.split(xs, cuts), strict=True)]
+    ceiling = max_sun_elev(day) if day else None
+    blobs = [_measure(y, x, lum, mn, ceiling) for y, x in zip(np.split(ys, cuts), np.split(xs, cuts), strict=True)]
     return sorted(blobs, key=lambda b: -b.score)
 
 
@@ -167,13 +196,13 @@ def choose(blobs: list[Blob]) -> tuple[Blob | None, str]:
 def detect(pano_path: Path) -> SunObs | None:
     """Sun position in image angles, or None. Conservative: a wrong sun is worse than no sun."""
     rgb, (w0, h0) = load_small(Path(pano_path))
-    best, _ = choose(find_blobs(rgb))
+    best, _ = choose(find_blobs(rgb, pano_date(pano_path)))
     if best is None:
         return None
     h, w = rgb.shape[:2]
     return SunObs(yaw=round(best.yaw, 2), elevation=round(best.elev, 2), area_px=best.n_px,
                   confidence=round(best.score, 3),
-                  uncertainty_deg=round(best.radius_deg + _cfg().tilt_margin_deg, 2),
+                  uncertainty_deg=round(best.core_radius_deg + _cfg().tilt_margin_deg, 2),
                   pixel_xy=(round(best.x * w0 / w, 1), round(best.y * h0 / h, 1)))
 
 

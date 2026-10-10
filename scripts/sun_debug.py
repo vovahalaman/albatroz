@@ -2,8 +2,9 @@
 
     uv run python scripts/sun_debug.py data/train1 [--out runs/sun_debug]
 
-Saves one PNG per panorama (downscaled): the chosen sun circled in green, rejected candidates
-in red with their reject reason (too_small blobs are only counted). Prints a summary table.
+Saves one PNG per panorama (downscaled): the chosen sun circled in green (inner circle = saturated
+core), rejected candidates in red with their reject reason (too_small blobs are only counted).
+Prints a summary table; `ceil` is the date's highest possible sun (+ tilt margin is allowed).
 Thresholds live in config/settings.yaml → astrolabe.
 """
 
@@ -16,7 +17,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from navegador.config import runs_dir, settings
-from navegador.tools.astrolabe import Blob, choose, find_blobs, load_small
+from navegador.tools.astrolabe import Blob, choose, find_blobs, load_small, max_sun_elev, pano_date
 
 GREEN, RED, YELLOW = (0, 255, 0), (255, 40, 40), (255, 220, 0)
 
@@ -37,6 +38,7 @@ def annotate(rgb: Image.Image, blobs: list[Blob], best: Blob | None) -> Image.Im
         draw.text((b.x + 6, b.y + 4), b.reject or f"pass {b.score:.2f}", fill=RED)
     if best is not None:
         _circle(draw, best, max(best.radius_deg * px_per_deg, 4) + 6, GREEN, 3)
+        _circle(draw, best, max(best.core_radius_deg * px_per_deg, 2), GREEN, 1)
         draw.text((best.x + 10, best.y - 18), f"SUN {best.score:.2f}", fill=GREEN)
     return img
 
@@ -53,23 +55,25 @@ def main() -> None:
         raise SystemExit(f"no .jpg files in {args.folder}")
 
     tilt = settings().astrolabe.tilt_margin_deg
-    header = f"{'file':<40} {'result':<15} {'yaw':>7} {'elev':>6} {'unc':>5} {'conf':>5} {'blobs':>6}  rejects"
+    header = f"{'file':<40} {'result':<15} {'yaw':>7} {'elev':>6} {'unc':>5} {'conf':>5} {'ceil':>5} {'blobs':>6}  rejects"
     print(header)
     print("-" * len(header))
     results: Counter[str] = Counter()
     for path in panos:
         rgb, _ = load_small(path)
-        blobs = find_blobs(rgb)
+        day = pano_date(path)
+        blobs = find_blobs(rgb, day)
         best, why = choose(blobs)
         results[why] += 1
         annotate(Image.fromarray(rgb), blobs, best).save(out / f"{path.stem}_sun.png")
         rejects = Counter(b.reject or "pass" for b in blobs)
         rej = ", ".join(f"{k}:{n}" for k, n in rejects.most_common())
         if best is not None:
-            nums = f"{best.yaw:7.1f} {best.elev:6.1f} {best.radius_deg + tilt:5.1f} {best.score:5.2f}"
+            nums = f"{best.yaw:7.1f} {best.elev:6.1f} {best.core_radius_deg + tilt:5.1f} {best.score:5.2f}"
         else:
             nums = f"{'-':>7} {'-':>6} {'-':>5} {'-':>5}"
-        print(f"{path.name[:40]:<40} {why:<15} {nums} {len(blobs):6d}  {rej}")
+        ceil = f"{max_sun_elev(day):5.1f}" if day else f"{'-':>5}"
+        print(f"{path.name[:40]:<40} {why:<15} {nums} {ceil} {len(blobs):6d}  {rej}")
     print("-" * len(header))
     print(", ".join(f"{k}: {n}" for k, n in results.most_common()), f"| PNGs in {out}")
 

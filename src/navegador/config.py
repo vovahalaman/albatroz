@@ -68,6 +68,17 @@ class GeoSettings(BaseModel):
     wiki_url: str = "https://{lang}.wikipedia.org/w/api.php"
 
 
+class MagnifierSettings(BaseModel):
+    view_fov: float = 90
+    view_size: int = 1024
+    ground_pitch: float = -50
+    up_pitch: float = 50
+    overview_wh: tuple[int, int] = (2048, 1024)
+    zoom_fov: tuple[float, float] = (8, 90)  # min, max
+    zoom_size: tuple[int, int] = (64, 2048)  # min, max px
+    jpeg_quality: int = 90
+
+
 class Flags(BaseModel):
     use_exif_gps: bool = False  # [CONFIRM] may EXIF GPS be used?
     timestamp_is_local: bool = True  # [CONFIRM] local time or UTC?
@@ -94,6 +105,7 @@ class Settings(BaseModel):
     geo: GeoSettings
     flags: Flags
     scoring: Scoring
+    magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
 
 
 class Regions(BaseModel):

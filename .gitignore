@@ -1,6 +1,5 @@
 .venv/
 .env
-data/
 logs/
 panos/
 runs/

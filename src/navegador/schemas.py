@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Literal
@@ -156,11 +157,40 @@ class LanguageVerdict(BaseModel):
     other: Confidence = 0
 
 
+def _clamp(v: object, lo: float, hi: float) -> object:
+    """Clamp finite numbers; leave anything else for normal validation to reject."""
+    if isinstance(v, (int, float)) and math.isfinite(v):
+        return min(max(float(v), lo), hi)
+    return v
+
+
 class ZoomRequest(BaseModel):
-    yaw: float
-    pitch: float
-    fov: float = Field(ge=8, le=90)
+    """Zoom target in image angles. A slightly-off number from the model is corrected (yaw wrapped,
+    pitch and FOV clamped) instead of failing the whole Reader answer. The bounds stay in the JSON
+    schema so the model still sees them. NaN/inf is rejected."""
+
+    yaw: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    pitch: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    fov: float = Field(ge=8, le=90, allow_inf_nan=False)
     why: str = ""
+
+    @field_validator("yaw", mode="before")
+    @classmethod
+    def _wrap_yaw(cls, v: object) -> object:
+        if isinstance(v, (int, float)) and math.isfinite(v):
+            y = (float(v) + 180.0) % 360.0 - 180.0
+            return 180.0 if y == -180.0 else y
+        return v
+
+    @field_validator("pitch", mode="before")
+    @classmethod
+    def _clamp_pitch(cls, v: object) -> object:
+        return _clamp(v, -90, 90)
+
+    @field_validator("fov", mode="before")
+    @classmethod
+    def _clamp_fov(cls, v: object) -> object:
+        return _clamp(v, 8, 90)
 
 
 class ReaderResult(BaseModel):

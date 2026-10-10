@@ -7,6 +7,7 @@ output or runs an automatic function-calling loop, retries 429/500/503 and logs 
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -16,6 +17,7 @@ from typing import Any
 
 import yaml
 from google import genai
+from google.auth.exceptions import GoogleAuthError
 from google.genai import errors, types
 from pydantic import BaseModel, ValidationError
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
@@ -25,6 +27,7 @@ from navegador.core import scribe
 
 ImageRef = tuple[str | Path, str]  # (path, "LOW"|"MEDIUM"|"HIGH" or a settings.media_resolution key)
 RETRY_CODES = {429, 500, 503}
+FALLBACK_ERRORS = (errors.APIError, GoogleAuthError, OSError)  # auth/permission/network → next client
 _RESOLUTIONS = {"LOW", "MEDIUM", "HIGH"}
 
 
@@ -203,7 +206,7 @@ async def _generate_with_fallback(model: str, contents: list[Any], config: types
     for name, client in clients():
         try:
             return await _generate(client, model, contents, config, sync), name
-        except (errors.APIError, LLMConfigError, OSError) as exc:  # auth/permission/network → next client
+        except FALLBACK_ERRORS as exc:
             last = exc
             if _retryable(exc):
                 raise
@@ -267,16 +270,25 @@ SMOKE_PANO_ID = "_check_llm"
 
 
 def list_gemini_models() -> list[str]:
-    client = clients()[0][1]
-    return sorted(m.name for m in client.models.list() if m.name and "gemini" in m.name)
+    last: Exception | None = None
+    for _, client in clients():
+        try:
+            return sorted(m.name for m in client.models.list() if m.name and "gemini" in m.name)
+        except FALLBACK_ERRORS as exc:
+            last = exc
+    assert last is not None
+    raise last
 
 
 def pick_flash(names: Sequence[str]) -> str | None:
-    """Heuristic default for the smoke test only: newest plain 'flash' model in the listing."""
-    skip = ("lite", "image", "tts", "audio", "live", "embedding", "preview-tts", "exp",
-            "omni", "translate", "transcribe", "nano", "preview")
-    flash = [n for n in names if "flash" in n and not any(s in n for s in skip)]
-    return (sorted(flash)[-1].split("/")[-1]) if flash else None
+    """Heuristic default for the smoke test only: highest-versioned plain `gemini-<version>-flash` model."""
+    versions = []
+    for name in names:
+        short = name.split("/")[-1]
+        m = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash", short)
+        if m:
+            versions.append((tuple(int(x) for x in m.group(1).split(".")), short))
+    return max(versions)[1] if versions else None
 
 
 async def smoke_test(model: str | None = None) -> dict[str, Any]:

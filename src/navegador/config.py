@@ -89,7 +89,7 @@ class AstrolabeSettings(BaseModel):
     min_contrast: float = 0.2
     top_edge_max_span_deg: float = 10
     ambiguity_ratio: float = 0.8
-    min_confidence: float = 0.4
+    min_confidence: float = 0.3
     tilt_margin_deg: float = 3
     core_min: int = 252
     min_core_radius_deg: float = 4

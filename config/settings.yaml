@@ -46,7 +46,7 @@ astrolabe:
   min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean, on luminance
   top_edge_max_span_deg: 10    # wider contact with the top row is rejected
   ambiguity_ratio: 0.8         # runner-up score >= ratio * best -> no sun
-  min_confidence: 0.4
+  min_confidence: 0.3
   tilt_margin_deg: 3
   core_min: 252                # min(R,G,B) of the saturated core that locates the sun (this camera clips at ~253)
   min_core_radius_deg: 4       # real sun cores on training panos: 7.5-9 deg; false candidates: <= 3.4 deg

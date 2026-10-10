@@ -100,7 +100,7 @@ class AstrolabeSettings(BaseModel):
     vlm_uncertainty_deg: float = 8
     vlm_confidence_cap: float = 0.3
     vlm_max_calls: int = 25
-    vlm_max_output_tokens: int = 200
+    vlm_max_output_tokens: int = 512
     vlm_timeout_s: float = 30
     vlm_max_attempts: int = 2
     vlm_media_resolution: str = "MEDIUM"

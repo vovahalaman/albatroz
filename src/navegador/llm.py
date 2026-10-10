@@ -7,6 +7,7 @@ output or runs an automatic function-calling loop, retries 429/500/503 and logs 
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -128,10 +129,17 @@ def model_for(role: str) -> str:
     return model
 
 
+def supports_thinking_level(model: str) -> bool:
+    """thinking_level exists from Gemini 3 on; 2.x models reject it (they use thinking_budget)."""
+    m = re.match(r"(?:.*/)?gemini-(\d+)", model)
+    return bool(m) and int(m.group(1)) >= 3
+
+
 def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | None,
                  tools: Sequence[Callable] | None, max_tool_calls: int | None, *,
                  max_output_tokens: int | None = None, timeout_s: float | None = None,
-                 thinking_level: str | None = None) -> types.GenerateContentConfig:
+                 thinking_level: str | None = None, model: str | None = None) -> types.GenerateContentConfig:
+    """`model`, when given, gates thinking_level (only sent to models that support it)."""
     kwargs: dict[str, Any] = {
         "http_options": types.HttpOptions(timeout=int((timeout_s or settings().budgets.llm_timeout_s) * 1000)),
     }
@@ -150,7 +158,7 @@ def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | Non
             maximum_remote_calls=max_tool_calls or settings().budgets.detective_max_tool_calls)
     levels = settings().thinking_level
     level = thinking_level or levels.get(role, levels.get("default"))
-    if level:
+    if level and (model is None or supports_thinking_level(model)):
         kwargs["thinking_config"] = types.ThinkingConfig(thinking_level=types.ThinkingLevel(level.upper()))
     return types.GenerateContentConfig(**kwargs)
 
@@ -230,7 +238,8 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
     model = model or model_for(role)
     prompt = load_prompt(prompt_file) if prompt_file else None
     config = build_config(prompt, role, schema, tools, max_tool_calls,
-                          max_output_tokens=max_output_tokens, timeout_s=timeout_s, thinking_level=thinking_level)
+                          max_output_tokens=max_output_tokens, timeout_s=timeout_s, thinking_level=thinking_level,
+                          model=model)
     img_parts, img_log = zip(*(image_part(p, lvl) for p, lvl in images)) if images else ((), ())
     contents: list[Any] = [*text_parts, *img_parts]
     log: dict[str, Any] = {

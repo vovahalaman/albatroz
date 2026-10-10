@@ -170,7 +170,7 @@ def test_request_limits_and_image_size(fake: FakeLLM, tmp_path: Path):
     detect(_save(_pano(), tmp_path))
     call = fake.calls[0]
     assert call["role"] == "perception"
-    assert (call["max_output_tokens"], call["timeout_s"], call["max_attempts"]) == (200, 30, 2)
+    assert (call["max_output_tokens"], call["timeout_s"], call["max_attempts"]) == (512, 30, 2)
     assert call["retry_invalid"] is False and call["thinking_level"] == "LOW"
     (img_path, _), = call["images"]
     with Image.open(img_path) as sent:
@@ -186,6 +186,15 @@ def test_vlm_disabled_makes_no_call(fake: FakeLLM, tmp_path: Path, monkeypatch):
 def test_llm_config_carries_limits():
     cfg = llm.build_config(None, "perception", None, None, None, max_output_tokens=200, timeout_s=30)
     assert cfg.max_output_tokens == 200 and cfg.http_options.timeout == 30_000
+
+
+@pytest.mark.parametrize(("model", "sent"), [
+    ("gemini-3.8-flash", True), ("publishers/google/models/gemini-3-flash", True),
+    ("gemini-2.5-flash", False), ("gemini-2.5-flash-lite", False), ("some-other-model", False),
+])
+def test_thinking_level_only_sent_to_supporting_models(model: str, sent: bool):
+    cfg = llm.build_config(None, "perception", None, None, None, thinking_level="LOW", model=model)
+    assert (cfg.thinking_config is not None) is sent
 
 
 def test_unmocked_llm_never_reaches_the_api(monkeypatch):

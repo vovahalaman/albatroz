@@ -58,11 +58,11 @@ astrolabe:
   vlm_uncertainty_deg: 8       # uncertainty of a VLM-located sun
   vlm_confidence_cap: 0.3
   vlm_max_calls: 25            # hard cap per process; responses are cached on disk by image hash
-  vlm_max_output_tokens: 200
+  vlm_max_output_tokens: 512   # includes thinking tokens (137-192 seen with gemini-3.8-flash at LOW)
   vlm_timeout_s: 30
   vlm_max_attempts: 2          # 1 retry
   vlm_media_resolution: MEDIUM # sky image is at most 1520x380
-  vlm_thinking_level: LOW      # thinking tokens count against vlm_max_output_tokens (192 of 200 at default); MINIMAL unsupported by gemini-3.8-flash
+  vlm_thinking_level: LOW      # only sent to Gemini 3+ models (llm.supports_thinking_level); MINIMAL unsupported by gemini-3.8-flash
   vlm_bright_radius_deg: 2     # VLM point must be locally bright: disc mean luminance ...
   vlm_ring_outer_deg: 8        # ... vs ring out to this radius
   vlm_min_lum: 200             # disc mean luminance >= this

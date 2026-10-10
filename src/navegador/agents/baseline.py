@@ -14,7 +14,7 @@ from navegador.config import regions, settings
 from navegador.core import scribe
 from navegador.core import state as st
 from navegador.core.state import State
-from navegador.schemas import BaselineResult, Hypothesis
+from navegador.schemas import BaselineResult, GeographerResult, Hypothesis
 from navegador.tools import geo, magnifier
 
 H_VIEWS = [f"h{a:03d}" for a in range(0, 360, 45)]
@@ -81,7 +81,7 @@ def to_hypotheses(state: State, result: BaselineResult) -> list[Hypothesis]:
     return hyps
 
 
-def country_fallback(result: BaselineResult | None) -> tuple[float, float] | None:
+def country_fallback(result: BaselineResult | GeographerResult | None) -> tuple[float, float] | None:
     """Centre of the top country's mainland box in regions.yaml, used when nothing geocoded."""
     if result is None:
         return None

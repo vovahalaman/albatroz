@@ -45,6 +45,9 @@ def geo_check(args: argparse.Namespace) -> int:
     return 0
 
 
+CREW_PROMPTS = ["reader.md", "geographer.md", "detective.md", "navigator.md", "sun_locate.md", "sun_verify.md"]
+
+
 def _ask_mcq(mcq) -> str:
     """Numbered input() prompt. No free text (R3)."""
     print(f"\nMCQ (costs ×0.95): {mcq.question}")
@@ -90,6 +93,8 @@ def _print_run(state) -> None:
             print(f"  {p.confidence:.2f}  {p.query!r} ({p.country}) → {where}\n        why: {p.why}")
         for c in result.clues[:8]:
             print(f"  · {c}")
+    if state.mode != "baseline":
+        _print_crew(state)
     for err in _errors(state):
         print(f"  ERROR {err}")
     sub = state.submission
@@ -98,6 +103,24 @@ def _print_run(state) -> None:
               f"hypotheses {len(state.hypotheses)} · tokens {state.token_usage.get('total_token_count', '?')}")
         print("\n" + export.to_text(sub))
     print(f"files: {runs_dir() / state.pano_id}  (submission.*, log.json, report.md)")
+
+
+def _print_crew(state) -> None:
+    from navegador.core import stages
+
+    if state.sun:
+        print(f"sun: yaw {state.sun.yaw:.0f}°, elevation {state.sun.elevation:.0f}°, conf {state.sun.confidence:.2f}")
+    geo_result = stages.load_geographer(state)
+    if geo_result:
+        cp = geo_result.country_probs
+        print(f"geographer: pt {cp.pt:.2f} · es {cp.es:.2f} · fr {cp.fr:.2f} · "
+              + "; ".join(f"{g.region} ({g.country}) {g.prob:.2f}" for g in geo_result.region_guesses[:3]))
+    for h in sorted(state.hypotheses, key=lambda h: -h.weight)[:8]:
+        print(f"  {h.weight:.2f}  {h.label!r} -> {h.lat:.5f}, {h.lng:.5f} r={h.radius_m:.0f} m [{h.source}]")
+    for m in state.mcqs:
+        print(f"  MCQ {m.question} -> {m.answer}")
+    for c in state.cues:
+        print(f"  cue {c.text!r}")
 
 
 def solve(args: argparse.Namespace) -> int:
@@ -135,6 +158,9 @@ def batch(args: argparse.Namespace) -> int:
         print(f"no labelled .jpg under {args.folder} (labels from {args.labels})", file=sys.stderr)
         return 1
     meta = scribe.metadata()
+    # One hash over the prompts this mode uses, so summary CSVs of different prompt versions can be told apart.
+    used = ["baseline.md"] if args.mode == "baseline" else CREW_PROMPTS
+    prompt_hash = scribe.short_hash(*(meta["prompt_hashes"].get(p, "") for p in used))
     rows: list[dict] = []
     for i, pano in enumerate(panos, 1):
         t0 = time.perf_counter()
@@ -151,7 +177,7 @@ def batch(args: argparse.Namespace) -> int:
                "top_place": top.label if top else "", "top_weight": top.weight if top else "",
                "errors": len(_errors(state)), "seconds": round(time.perf_counter() - t0, 1),
                "tokens": state.token_usage.get("total_token_count", ""), "git_commit": meta["git_commit"],
-               "prompt_hash": meta["prompt_hashes"].get("baseline.md", ""), "pano_id": state.pano_id}
+               "mode": args.mode, "prompt_hash": prompt_hash, "pano_id": state.pano_id}
         if sub and pano.name in truth:
             cands = [(c.lat, c.lng) for c in sub.candidates]
             row["distance_m"] = round(strategist.haversine_m(cands[0], truth[pano.name]))
@@ -168,7 +194,7 @@ def batch(args: argparse.Namespace) -> int:
         writer.writerows(rows)
     done = [r for r in rows if r["status"] == "done"]
     scored = [r for r in done if "score" in r]
-    print(f"\n{len(done)}/{len(rows)} done · prompt baseline.md {meta['prompt_hashes'].get('baseline.md')} · {out}")
+    print(f"\n{len(done)}/{len(rows)} done · mode {args.mode} · prompts {prompt_hash} · {out}")
     if scored:
         print(f"pseudo-score mean {statistics.mean(r['score'] for r in scored):.0f} · median distance "
               f"{statistics.median(r['distance_m'] for r in scored):.0f} m ({len(scored)} with labels)")

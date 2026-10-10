@@ -152,13 +152,6 @@ def test_force_submit_without_advance(pano, fake_llm, fake_geo):
     assert pipeline.advance(pano_id).status == "done"  # idempotent after done
 
 
-def test_other_modes_run_baseline_for_now(pano, fake_llm, fake_geo):
-    state = pipeline.advance(pipeline.start_run(pano, "urban", True, "autonomous"))
-    assert state.status == "done" and state.submission.special_one
-    notes = [e["payload"].get("note", "") for e in scribe.read_events(state.pano_id) if e["event"] == "stage"]
-    assert any("crew stages not implemented" in n for n in notes)
-
-
 def test_missing_pano_is_rejected(tmp_path):
     with pytest.raises(FileNotFoundError):
         pipeline.start_run(tmp_path / "nope.jpg", "urban", False, "baseline")

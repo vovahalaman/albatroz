@@ -1,4 +1,4 @@
-verified: false — team to confirm on training panoramas
+ verified: false — team to confirm on training panoramas
 
 # Lessons
 

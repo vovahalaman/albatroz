@@ -2,7 +2,7 @@ import pytest
 
 from navegador.core.state import new_state
 from navegador.schemas import Hypothesis, Penalty
-from navegador.tools import estratega as E
+from navegador.tools import strategist as E
 
 LISBOA, PORTO = (38.7223, -9.1393), (41.1579, -8.6291)
 DISTANCES = [5, 100, 500, 1_000, 5_000, 10_000, 50_000]
@@ -65,11 +65,11 @@ def test_best_point_in_heavier_cluster():
 def test_expected_score_matches_spec_examples():
     hyps = [hyp(*LISBOA, 0.6), hyp(*PORTO, 0.4)]
     assert E.submit(state_with(hyps)).expected_score == pytest.approx(9_630, abs=5)
-    E.settings().estratega.mode = "hedge"
+    E.settings().strategist.mode = "hedge"
     try:
         assert E.submit(state_with(hyps)).expected_score == pytest.approx(8_230, abs=5)
     finally:
-        E.settings().estratega.mode = "ev"
+        E.settings().strategist.mode = "ev"
 
 
 def test_penalties_and_special_one_scale_expected_score():

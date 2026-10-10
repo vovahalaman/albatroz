@@ -1,4 +1,4 @@
-"""Astrolábio: sun detection, sun-position checks, north offset (SPEC §9.2). TODO(P0b · B).
+"""Astrolabe: sun detection, sun-position checks, north offset (SPEC §9.2). TODO(P0b · B).
 
 Uses pvlib.solarposition.get_solarposition and timezonefinder.TimezoneFinder.
 """

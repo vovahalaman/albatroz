@@ -1,4 +1,4 @@
-"""Escrivão: JSON event log, tool-call registry, penalty ledger, exports (SPEC §11).
+"""Scribe: JSON event log, tool-call registry, penalty ledger, exports (SPEC §11).
 
 `runs/<pano_id>/log.jsonl` is append-only, one event per line. `export()` writes
 `log.json` (events + metadata) and `report.md` (readable deduction trace).
@@ -153,7 +153,7 @@ def add_penalty(state: st.State, kind: Literal["cue", "mcq", "text_location"], r
     factor = settings().scoring.penalty_factors[kind]
     penalty = Penalty(kind=kind, factor=factor, ts=st.utcnow(), ref=ref)
     state.penalties.append(penalty)
-    log_event(state.pano_id, "penalty", "escrivao",
+    log_event(state.pano_id, "penalty", "scribe",
               {"kind": kind, "factor": factor, "ref": ref, "total_factor": penalty_factor(state)},
               run_id=state.run_id)
     return penalty
@@ -199,7 +199,7 @@ def render_report(state: st.State, events: list[dict[str, Any]]) -> str:
              f"- status **{state.status}** at stage {state.stage} · git `{git_commit()}`", ""]
 
     lines += ["## Clues", ""]
-    for agent in ("baseline", "leitor", "geografo", "detetive", "advogado"):
+    for agent in ("baseline", "reader", "geographer", "detective", "advocate"):
         path = out / f"{agent}.json"
         if path.exists():
             lines += [f"<details><summary>{agent}.json</summary>", "", "```json",

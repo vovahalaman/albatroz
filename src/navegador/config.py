@@ -34,7 +34,7 @@ class PerLabel(BaseModel):
 
 
 class Budgets(BaseModel):
-    detetive_max_tool_calls: int = 12
+    detective_max_tool_calls: int = 12
     llm_timeout_s: float = 120
     pano_soft_budget_s: float = 420
 
@@ -48,7 +48,7 @@ class MCQSettings(BaseModel):
     far_m: PerLabel
 
 
-class EstrategaSettings(BaseModel):
+class StrategistSettings(BaseModel):
     mode: Literal["ev", "hedge"] = "ev"
     mc_samples: int = 4000
     grid_step_m: PerLabel
@@ -65,7 +65,7 @@ class Flags(BaseModel):
     use_exif_gps: bool = False  # [CONFIRM] may EXIF GPS be used?
     timestamp_is_local: bool = True  # [CONFIRM] local time or UTC?
     commit_then_ask: bool = False
-    advogado_enabled: bool = False
+    advocate_enabled: bool = False
 
 
 class Scoring(BaseModel):
@@ -83,7 +83,7 @@ class Settings(BaseModel):
     thinking_level: dict[str, str | None] = Field(default_factory=dict)
     budgets: Budgets
     mcq: MCQSettings
-    estratega: EstrategaSettings
+    strategist: StrategistSettings
     geo: GeoSettings
     flags: Flags
     scoring: Scoring

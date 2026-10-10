@@ -26,10 +26,10 @@ def test_build_config_schema_and_tools_exclusive():
         """doc"""
         return a
 
-    cfg = llm.build_config(None, "detetive", None, [tool], 3)
+    cfg = llm.build_config(None, "detective", None, [tool], 3)
     assert cfg.automatic_function_calling.maximum_remote_calls == 3
     with pytest.raises(ValueError):
-        llm.build_config(None, "detetive", Out, [tool], 3)
+        llm.build_config(None, "detective", Out, [tool], 3)
 
 
 def test_image_part_logs_hash_not_bytes(tmp_path):

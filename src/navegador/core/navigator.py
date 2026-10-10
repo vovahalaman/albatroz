@@ -1,6 +1,6 @@
-"""Navegador: merges agent outputs, decides SUBMIT | ASK_MCQ by rule, phrases MCQs by LLM (SPEC §4).
+"""Navigator: merges agent outputs, decides SUBMIT | ASK_MCQ by rule, phrases MCQs by LLM (SPEC §4).
 
-TODO(P1 · A). Use `tools.estratega.clusters` for clustering; thresholds from `settings().mcq`.
+TODO(P1 · A). Use `tools.strategist.clusters` for clustering; thresholds from `settings().mcq`.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def decide(state: State) -> Decision:
 
 
 async def build_mcq(state: State) -> MCQ:
-    """Top ≤3 clusters (reverse-geocoded zone names) + "none of these"; phrased via prompts/navegador.md."""
+    """Top ≤3 clusters (reverse-geocoded zone names) + "none of these"; phrased via prompts/navigator.md."""
     raise NotImplementedError("P1 · A")
 
 

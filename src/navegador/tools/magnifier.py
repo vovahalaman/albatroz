@@ -1,4 +1,4 @@
-"""Lupa: cuts the panorama into perspective views and zoom crops (SPEC §9.1). TODO(P0b · B).
+"""Magnifier: cuts the panorama into perspective views and zoom crops (SPEC §9.1). TODO(P0b · B).
 
 py360convert.e2p(img, fov_deg, u_deg, v_deg, out_hw): u_deg > 0 looks right, v_deg > 0 looks up.
 Image yaw: 0 = centre column, positive to the right, range (−180, 180]. NOT compass north.

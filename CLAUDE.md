@@ -3,6 +3,25 @@
 Read [SPEC.md](SPEC.md) first; it is the source of truth. This file tracks status only.
 Working rules: SPEC §2 (hard rules) and §16. Update this file after every phase.
 
+## Name mapping (SPEC.md → code)
+
+SPEC.md uses Portuguese crew names; the code uses English file, class and config-key names.
+When SPEC mentions a name on the left, edit the file on the right.
+
+| SPEC name | Code |
+|---|---|
+| Navegador (orchestrator) | `core/navigator.py`, `prompts/navigator.md`, `models.navigator` |
+| Escrivão | `core/scribe.py` |
+| Estratega | `tools/strategist.py`, `settings.yaml → strategist:` |
+| Lupa | `tools/magnifier.py` |
+| Astrolábio | `tools/astrolabe.py` |
+| Leitor | `agents/reader.py`, `prompts/reader.md`, `ReaderResult` |
+| Geógrafo | `agents/geographer.py`, `prompts/geographer.md`, `GeographerResult` |
+| Detetive | `agents/detective.py`, `prompts/detective.md`, `models.detective`, `budgets.detective_max_tool_calls` |
+| Advogado | `agents/advocate.py`, `prompts/advocate.md`, `AdvocateResult`, `flags.advocate_enabled` |
+
+The package and project name `navegador` is unchanged.
+
 ## Status
 
 **Phase: P0a scaffold — done, except the live `check-llm` run (needs GCP credentials).**
@@ -12,18 +31,18 @@ Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
 | Module | What works |
 |---|---|
 | `config.py` | Loads `.env`, `settings.yaml`, `regions.yaml` into validated Pydantic models. `Regions.contains/clamp`. `NAVEGADOR_RUNS_DIR` / `NAVEGADOR_CACHE_DIR` overrides. |
-| `schemas.py` | All §5 contracts + §10 agent outputs (`BaselineResult`, `LeitorResult`, `GeografoResult`, `MCQPhrasing`, `CueGuardResult`, `AdvogadoResult`) + `View`, `SunObs`, `CueResult`, `ExcludedZone`. R2: `Hypothesis.model_validate(data, context={"registry": ids})` rejects unregistered provenance; `"estimated"` is allowed. |
+| `schemas.py` | All §5 contracts + §10 agent outputs (`BaselineResult`, `ReaderResult`, `GeographerResult`, `MCQPhrasing`, `CueGuardResult`, `AdvocateResult`) + `View`, `SunObs`, `CueResult`, `ExcludedZone`. R2: `Hypothesis.model_validate(data, context={"registry": ids})` rejects unregistered provenance; `"estimated"` is allowed. |
 | `core/state.py` | `State` model, `new_state/load/save` (atomic write), `parse_timestamp`, `pano_id_for`, `run_dir`. |
-| `core/escrivao.py` | `log_event` (append-only `log.jsonl`, event names enforced, bytes logged as sha256), `register_tool_call` → `call_id` + `tool_registry` (R2), `add_penalty` / `penalty_factor`, `export` → `log.json` (with git commit, prompt hashes, knowledge hash, models) + `report.md`. |
+| `core/scribe.py` | `log_event` (append-only `log.jsonl`, event names enforced, bytes logged as sha256), `register_tool_call` → `call_id` + `tool_registry` (R2), `add_penalty` / `penalty_factor`, `export` → `log.json` (with git commit, prompt hashes, knowledge hash, models) + `report.md`. |
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
-| `tools/estratega.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
+| `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
 | `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
-Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navegador.py`,
-`core/export.py`, all `agents/*`, `tools/lupa.py` (except `pixel_to_angles`), `tools/astrolabio.py`,
+Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
+`core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`), `tools/astrolabe.py`,
 `tools/geo.py`, `tools/cache.py`, `ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
-`tests/test_lupa.py`, `test_astrolabio.py`, `test_pipeline_baseline.py` are skipped placeholders.
+`tests/test_magnifier.py`, `test_astrolabe.py`, `test_pipeline_baseline.py` are skipped placeholders.
 
 ## Known issues
 
@@ -36,11 +55,11 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   `data/panoramas.csv` from `make_csv.py`), not in `panos/` as in SPEC §7. Both are git-ignored.
 - **Additions to SPEC §6 `settings.yaml`:** a `scoring:` block (rank decay, special-one ×3,
   10 m zero distance, θ scales, penalty factors ×0.8/×0.95/×0.5), so no Python hardcodes them.
-- `estratega.submit(state, fallback=None)`: the pipeline passes the geocoded Geógrafo top-region
-  centroid as `fallback`, so Estratega stays I/O-free.
+- `strategist.submit(state, fallback=None)`: the pipeline passes the geocoded Geographer top-region
+  centroid as `fallback`, so Strategist stays I/O-free.
 - `llm.call` has an extra keyword `model=` (overrides `settings.models[role]`). Only the smoke test uses it.
 - `llm.py` is ~300 lines (soft limit ~250) because the smoke test lives there; R5 keeps SDK calls in this file.
-- Estratega MC samples are allocated by weight (stratified) rather than drawn. This removes mixture
+- Strategist MC samples are allocated by weight (stratified) rather than drawn. This removes mixture
   noise; with random draws the 9 630 example came out at 9 737.
 - Legacy `requirements.txt` (adds geopy, astral, geoclip) and `make_csv.py` remain from before the
   scaffold. Dependencies are now managed by `pyproject.toml` + uv.
@@ -69,6 +88,6 @@ Team questions:
    Put the chosen model IDs into `config/settings.yaml`.
 2. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
-   - B: `lupa.py` + `astrolabio.py` + tests
+   - B: `magnifier.py` + `astrolabe.py` + tests
    - C: `geo.py` + `cache.py` + `agents/baseline.py`
    - D: `ui/app.py` + `export.py`

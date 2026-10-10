@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from navegador.core import escrivao, state
+from navegador.core import scribe, state
 
 
 def test_parse_timestamp():
@@ -22,24 +22,24 @@ def test_state_roundtrip():
 
 def test_log_event_and_registry():
     s = state.new_state("panos/a.jpg", label="urban", mode="baseline")
-    escrivao.log_event(s.pano_id, "run_start", "pipeline", {"img": b"\x00\x01"})
-    cid = escrivao.register_tool_call(s.pano_id, "detetive", "geocode", {"query": "Évora"}, [{"lat": 38.5}])
-    events = escrivao.read_events(s.pano_id)
+    scribe.log_event(s.pano_id, "run_start", "pipeline", {"img": b"\x00\x01"})
+    cid = scribe.register_tool_call(s.pano_id, "detective", "geocode", {"query": "Évora"}, [{"lat": 38.5}])
+    events = scribe.read_events(s.pano_id)
     assert [e["event"] for e in events] == ["run_start", "tool_call"]
     assert events[0]["run_id"] == s.run_id
     assert "sha256" in events[0]["payload"]["img"]  # bytes never logged raw / base64
-    assert escrivao.tool_registry(s.pano_id) == {cid}
+    assert scribe.tool_registry(s.pano_id) == {cid}
     with pytest.raises(ValueError):
-        escrivao.log_event(s.pano_id, "nonsense", "x")  # type: ignore[arg-type]
+        scribe.log_event(s.pano_id, "nonsense", "x")  # type: ignore[arg-type]
 
 
 def test_penalties_and_export():
     s = state.new_state("panos/b.jpg", label="non_urban", mode="assisted")
-    escrivao.add_penalty(s, "mcq", "m1")
-    escrivao.add_penalty(s, "cue", "c1")
-    assert escrivao.penalty_factor(s) == pytest.approx(0.95 * 0.8)
+    scribe.add_penalty(s, "mcq", "m1")
+    scribe.add_penalty(s, "cue", "c1")
+    assert scribe.penalty_factor(s) == pytest.approx(0.95 * 0.8)
     state.save(s)
-    log_json, report = escrivao.export(s.pano_id)
+    log_json, report = scribe.export(s.pano_id)
     data = json.loads(log_json.read_text())
     assert {"git_commit", "prompt_hashes", "knowledge_hash", "models"} <= data["metadata"].keys()
     assert sum(e["event"] == "penalty" for e in data["events"]) == 2

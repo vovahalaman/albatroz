@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from navegador.schemas import (MCQ, BaselineResult, Candidate, Cue, GeografoResult, Hypothesis, LeitorResult,
+from navegador.schemas import (MCQ, BaselineResult, Candidate, Cue, GeographerResult, Hypothesis, ReaderResult,
                                MCQOption, Submission)
 
 NOW = datetime.now(timezone.utc)
-H = dict(lat=38.7, lng=-9.1, radius_m=100, weight=0.5, label="x", source="detetive")
+H = dict(lat=38.7, lng=-9.1, radius_m=100, weight=0.5, label="x", source="detective")
 
 
 def test_hypothesis_provenance_registry_r2():
@@ -49,7 +49,7 @@ def test_submission_exactly_ten():
         Submission(**base, candidates=cands[:9])
 
 
-@pytest.mark.parametrize("schema", [BaselineResult, LeitorResult, GeografoResult])
+@pytest.mark.parametrize("schema", [BaselineResult, ReaderResult, GeographerResult])
 def test_agent_schemas_produce_json_schema(schema):
     js = schema.model_json_schema()
     assert js["type"] == "object"

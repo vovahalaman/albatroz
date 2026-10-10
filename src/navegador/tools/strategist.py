@@ -1,4 +1,4 @@
-"""Estratega: scoring math, best point under uncertainty, and the 10-slot submission (SPEC §1, §9.4).
+"""Strategist: scoring math, best point under uncertainty, and the 10-slot submission (SPEC §1, §9.4).
 
 Pure functions, no I/O. Repeating the single best point 10× maximises expected score (`ev` mode).
 """
@@ -108,7 +108,7 @@ def _expected_theta_many(points: np.ndarray, truth: tuple[np.ndarray, np.ndarray
 def expected_theta(point: LatLng, hypotheses: Sequence[Hypothesis], label: Label, samples: int | None = None) -> float:
     if not hypotheses:
         return 0.0
-    truth = sample_truth(hypotheses, samples or settings().estratega.mc_samples)
+    truth = sample_truth(hypotheses, samples or settings().strategist.mc_samples)
     return float(_expected_theta_many(np.array([point], dtype=float), truth, label)[0])
 
 
@@ -124,7 +124,7 @@ def best_point(hypotheses: Sequence[Hypothesis], label: Label) -> tuple[float, f
     """Argmax of E[θ] over hypothesis centres + a local grid around the top 3. Deterministic (fixed seed)."""
     if not hypotheses:
         return None
-    est = settings().estratega
+    est = settings().strategist
     truth = sample_truth(hypotheses, est.mc_samples)
     top3 = sorted(hypotheses, key=lambda h: -h.weight)[:3]
     cands = [np.array([[h.lat, h.lng] for h in hypotheses])]
@@ -193,10 +193,10 @@ def clusters(hypotheses: Sequence[Hypothesis], eps_m: float) -> list[Cluster]:
 def submit(state, fallback: LatLng | None = None) -> Submission:  # state: navegador.core.state.State
     """Fill exactly 10 valid slots (R1).
 
-    `fallback` is the geocoded centroid of the Geógrafo's top region, supplied by the pipeline
-    (Estratega stays I/O-free); used only when there are no hypotheses. Else `fallback_point`.
+    `fallback` is the geocoded centroid of the Geographer's top region, supplied by the pipeline
+    (Strategist stays I/O-free); used only when there are no hypotheses. Else `fallback_point`.
     """
-    sc, est = settings().scoring, settings().estratega
+    sc, est = settings().scoring, settings().strategist
     hyps, label = state.hypotheses, state.label
     best = best_point(hyps, label)
     if best is None:

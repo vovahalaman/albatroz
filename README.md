@@ -52,9 +52,9 @@ prompts/     one .md per agent; YAML front-matter `knowledge: [...]`
 knowledge/   regional cues, confusion pairs, lessons (appended to prompts)
 src/navegador/
   config.py schemas.py llm.py
-  core/      state.py pipeline.py navegador.py escrivao.py export.py
-  agents/    baseline leitor geografo detetive advogado professor cue_guard
-  tools/     lupa astrolabio geo estratega cache
+  core/      state.py pipeline.py navigator.py scribe.py export.py
+  agents/    baseline reader geographer detective advocate professor cue_guard
+  tools/     magnifier astrolabe geo strategist cache
 ui/app.py    Streamlit shell        cli.py   CLI shell
 eval/        labels.csv run_batch.py compare.py
 tests/

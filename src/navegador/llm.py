@@ -21,7 +21,7 @@ from pydantic import BaseModel, ValidationError
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
 
 from navegador.config import KNOWLEDGE_DIR, PROMPTS_DIR, env, settings
-from navegador.core import escrivao
+from navegador.core import scribe
 
 ImageRef = tuple[str | Path, str]  # (path, "LOW"|"MEDIUM"|"HIGH" or a settings.media_resolution key)
 RETRY_CODES = {429, 500, 503}
@@ -98,7 +98,7 @@ def load_prompt(prompt_file: str) -> Prompt:
     sections = [text.strip()]
     for name in knowledge:
         sections.append(f"# Knowledge file: {name}\n\n{(KNOWLEDGE_DIR / name).read_text(encoding='utf-8').strip()}")
-    return Prompt(path, "\n\n---\n\n".join(sections), knowledge, escrivao.git_file_hash(path))
+    return Prompt(path, "\n\n---\n\n".join(sections), knowledge, scribe.git_file_hash(path))
 
 
 # ---------------------------------------------------------------- request building
@@ -118,7 +118,7 @@ def image_part(path: str | Path, level: str) -> tuple[types.Part, dict[str, Any]
         data=data, mime_type="image/jpeg",
         media_resolution=types.PartMediaResolution(level=types.PartMediaResolutionLevel(f"MEDIA_RESOLUTION_{res}")),
     )
-    return part, {"path": str(path), "sha256": escrivao.sha256_file(Path(path)), "media_resolution": res}
+    return part, {"path": str(path), "sha256": scribe.sha256_file(Path(path)), "media_resolution": res}
 
 
 def model_for(role: str) -> str:
@@ -143,7 +143,7 @@ def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | Non
     if tools:
         kwargs["tools"] = list(tools)
         kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
-            maximum_remote_calls=max_tool_calls or settings().budgets.detetive_max_tool_calls)
+            maximum_remote_calls=max_tool_calls or settings().budgets.detective_max_tool_calls)
     levels = settings().thinking_level
     level = levels.get(role, levels.get("default"))
     if level:
@@ -244,15 +244,15 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
                 parsed = schema.model_validate_json(text)
     except Exception as exc:
         log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}")
-        escrivao.log_event(pano_id, "llm_call", role, log)
-        escrivao.log_event(pano_id, "error", role, {"where": "llm.call", "error": log["error"]})
+        scribe.log_event(pano_id, "llm_call", role, log)
+        scribe.log_event(pano_id, "error", role, {"where": "llm.call", "error": log["error"]})
         raise
     latency = time.perf_counter() - t0
     tool_calls = extract_tool_calls(resp)
     merged_usage = usage[-1] if len(usage) == 1 else {"attempts": usage}
     log.update(backend=backend, latency_s=round(latency, 3), response_text=attempts if len(attempts) > 1 else text,
                parsed=parsed.model_dump(mode="json") if parsed else None, tool_calls=tool_calls, usage=merged_usage)
-    escrivao.log_event(pano_id, "llm_call", role, log)
+    scribe.log_event(pano_id, "llm_call", role, log)
     return LLMResult(text, parsed, tool_calls, merged_usage, latency, model, raw=resp)
 
 

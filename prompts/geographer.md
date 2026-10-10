@@ -14,7 +14,7 @@ TODO
 Separate observation from inference. Give confidence 0–1. Never invent.
 
 ## Output
-GeografoResult (SPEC §10)
+GeographerResult (SPEC §10)
 
 ## Example
 TODO

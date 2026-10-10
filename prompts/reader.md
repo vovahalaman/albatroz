@@ -1,7 +1,7 @@
 ---
-knowledge: [confusion_pairs.md]
+knowledge: [regional_cues.md]
 ---
-<!-- TODO(P2): write this prompt. Required sections (SPEC §10): role · procedure ·
+<!-- TODO(P1 · all): write this prompt. Required sections (SPEC §10): role · procedure ·
 "separate observation from inference; confidence 0–1; never invent" · output description · one short example. -->
 
 ## Role
@@ -14,7 +14,7 @@ TODO
 Separate observation from inference. Give confidence 0–1. Never invent.
 
 ## Output
-AdvogadoResult (SPEC §10)
+ReaderResult (SPEC §10)
 
 ## Example
 TODO

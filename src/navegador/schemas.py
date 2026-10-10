@@ -141,7 +141,7 @@ class BaselineResult(BaseModel):
     clues: list[str] = []
 
 
-class LeitorText(BaseModel):
+class ReaderText(BaseModel):
     text: str
     view: str
     kind: Literal["sign", "shop", "plate_format", "phone", "domain", "other"]
@@ -163,14 +163,14 @@ class ZoomRequest(BaseModel):
     why: str = ""
 
 
-class LeitorResult(BaseModel):
-    texts: list[LeitorText] = []
+class ReaderResult(BaseModel):
+    texts: list[ReaderText] = []
     language_verdict: LanguageVerdict
     search_terms: list[str] = []
     zoom_requests: Annotated[list[ZoomRequest], Field(max_length=6)] = []
 
 
-class GeografoObservation(BaseModel):
+class GeographerObservation(BaseModel):
     cue: str
     value: str
     view: str
@@ -191,8 +191,8 @@ class WaterOrCoast(BaseModel):
     type: str | None = None
 
 
-class GeografoResult(BaseModel):
-    observations: list[GeografoObservation] = []
+class GeographerResult(BaseModel):
+    observations: list[GeographerObservation] = []
     country_probs: CountryProbs
     region_guesses: list[RegionGuess] = []
     water_or_coast: WaterOrCoast = WaterOrCoast()
@@ -216,6 +216,6 @@ class Objection(BaseModel):
     severity: Literal["low", "medium", "high"]
 
 
-class AdvogadoResult(BaseModel):
+class AdvocateResult(BaseModel):
     objections: list[Objection] = []
     weight_multipliers: dict[str, float] = {}

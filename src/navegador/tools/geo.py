@@ -1,6 +1,6 @@
-"""Geo tools for the Detetive: typed, docstrings, disk-cached, logged (SPEC §9.3). TODO(P0b · C).
+"""Geo tools for the Detective: typed, docstrings, disk-cached, logged (SPEC §9.3). TODO(P0b · C).
 
-Every result dict includes a `call_id` from `escrivao.register_tool_call`, which enters the run's
+Every result dict includes a `call_id` from `scribe.register_tool_call`, which enters the run's
 tool registry (R2). Nominatim policy: ≤1 req/s for the whole team, custom User-Agent
 (settings().geo.user_agent), cache everything, no bulk/grid queries, no autocomplete.
 """

@@ -20,14 +20,13 @@ When SPEC mentions a name on the left, edit the file on the right.
 | Detetive | `agents/detective.py`, `prompts/detective.md`, `models.detective`, `budgets.detective_max_tool_calls` |
 | Advogado | `agents/advocate.py`, `prompts/advocate.md`, `AdvocateResult`, `flags.advocate_enabled` |
 
-`baseline`, `professor` and `cue_guard` are unchanged. The package and project name `navegador` is unchanged.
+The package and project name `navegador` is unchanged.
 
 ## Status
 
 **Phase: P0a scaffold — done. `check-llm` passes on Vertex AI.**
-**P0b · B Astrolábio (`tools/astrolabe.py`) — done, tuned on the 20 training panoramas. Deliberately conservative, low recall.**
 
-Implemented and tested (`uv run pytest` → 145 passed, 1 skipped):
+Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
 
 | Module | What works |
 |---|---|
@@ -37,30 +36,20 @@ Implemented and tested (`uv run pytest` → 145 passed, 1 skipped):
 | `core/scribe.py` | `log_event` (append-only `log.jsonl`, event names enforced, bytes logged as sha256), `register_tool_call` → `call_id` + `tool_registry` (R2), `add_penalty` / `penalty_factor`, `export` → `log.json` (with git commit, prompt hashes, knowledge hash, models) + `report.md`. |
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
 | `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
-| `tools/astrolabe.py` | `detect(pano)` → `SunObs | None`, **conservative / low recall: a wrong sun is worse than no sun.** Bright low-saturation glare blobs in the upper half (seam-aware); the sun is located from the saturated core (min(R,G,B) ≥ 252), uncertainty = core radius + tilt margin. Rejected if too small/large/extended, core not round (circularity of the saturated core < 0.4), weak core (radius < 4° or < 30% of glare), below 3° elevation, above the date's max noon sun at 27.5°N (+ tilt), low ring contrast, or touching the top edge; `None` when unsure (score < 0.3) or ambiguous. Training set, blob detection only (`--no-vlm`): **4/12 suns, 0 false**. With the Gemini fallback/verifier (`tools/astrolabe_vlm.py`, `models.perception`, `astrolabe.vlm_fallback`): detected suns are verified ("no" vetoes), otherwise the VLM may point at the sun; the point must be locally bright and within min elevation/date ceiling; result `source=vlm`, confidence 0.3, uncertainty 8°. **10/12 suns (clear 6/7, cloud 4/5), 0 false, max residual 9.2° (194, 683: VLM points on bright cloud near the glare)**. Cost safeguards: disk cache by image hash (invalid answers too), ≤25 calls/process, sky image ≤1520×380, 512 output tokens (incl. thinking), 30 s, 1 retry, refuses `pro` models; `thinking_level` is only sent to Gemini 3+ models. `tools/astrolabe_summary.py`: `sun_summary()` for the agent (clock hypotheses, compass with image yaw per N…NW, compass uncertainty, plain note). Labels for evaluation: `eval/sun_labels.csv`; `sun_debug` prints suns found x/12, false suns, residual flags, VLM calls/tokens. `sun_check(lat, lng, ts, sun_yaw, sun_elev)`: evaluates **all** clock hypotheses (`astrolabe.time_hypotheses`: local tz, UTC, Europe/Lisbon), per-hypothesis expected elev/azimuth (pvlib), residual, `north_yaw_deg`; best fit, consistency 0–1, `ambiguous`. Matches the §9.2 reference table. `scripts/sun_debug.py <folder>` writes annotated PNGs + a table for tuning. `band()` is P2. |
-| `tools/cache.py` | `lookup` (hit/miss, a cached `None` is a hit), `get`, `put` (atomic), `@cached(ns)`. `cache/<ns>/<sha256>.json`, no expiry. |
-| `tools/geo.py` | §9.3: `geocode`, `reverse` (Nominatim), `overpass_near`, `overpass_named`, `wiki_coords`. Every call: disk cache → policy check → HTTP with timeout + tenacity retry (429/5xx/connection) → `scribe.register_tool_call` (`call_id` on every result, `cached` flag). Failures log an `error` event and raise `GeoError`; errors are never cached. Nominatim: 1.1 s process-wide throttle (cache hits skip it), User-Agent from settings, `max_geocode_calls_per_pano` counted from the run's log. Calls must run inside `geo.use_run(pano_id, actor)`. Tests: `tests/test_geo.py` (mocked HTTP, fake clock). |
-| `cli.py` | `check-llm` and `geo-check` work; `solve`, `batch`, `learn` are stubs. |
+| `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
+| `tools/magnifier.py` | `views()` → 17 Views: 8 horizontal (h) + 4 ground (g) + 4 up (u), + `overview` (fov 360). Sizes, FOV, pitches and JPEG quality come from `settings.yaml → magnifier:` (SPEC §9.1 values). u-views deviate from SPEC §9.1 (added for full-sphere coverage; pipeline may filter them by name). `views()` writes `views.json` and reuses existing views when pano content + settings are unchanged (15.9 s → 0.01 s on a real pano). `zoom()` normalises model input via `zoom_params` (FOV 8–90, pitch ±90, size 64–2048, non-finite → `ValueError`), cached in `cache_dir()/zoom/` keyed by pano **content hash** + normalised params (survives moving/copying the pano). Files written via a per-thread temp file (safe with concurrent Streamlit runs). Pano decoded once per run (`lru_cache`). §9.1 tests pass. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
-`core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`),
-`ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
-`tests/test_magnifier.py`, `test_pipeline_baseline.py` are skipped placeholders.
+`core/export.py`, all `agents/*`, `tools/astrolabe.py`,
+`tools/geo.py`, `tools/cache.py`, `ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
+`tests/test_astrolabe.py`, `test_pipeline_baseline.py` are skipped placeholders.
 
 ## Known issues
 
-- **Geo context.** SPEC §9.3 signatures have no `pano_id` (they are exposed to the model as tools), so the
-  pano comes from the `geo.use_run(pano_id, actor)` context manager (contextvars; propagates through
-  `asyncio.to_thread`, not through bare threads). Calling a geo tool outside it raises `RuntimeError`.
-- **Nominatim throttle is per process.** It cannot coordinate the four laptops; the shared policy relies on
-  the cache and `max_geocode_calls_per_pano`. Geo refuses network calls while the User-Agent has no contact
-  address (`TEAM_EMAIL` in `.env`).
-- **Additions to SPEC §6 `geo:`** `http_timeout_s`, `overpass_timeout_s`, `overpass_max_results`, `retries`
-  and the three endpoint URLs (defaults in `GeoSettings`). `overpass_named` without `bbox` searches the
-  `regions.yaml` boxes, not the whole planet. `geo.py` is ~260 lines (soft limit ~250).
-- **`check-llm` not yet run against GCP.** `.env` is empty and no ADC credentials exist on this laptop.
-  The `settings.yaml` model IDs are still placeholders; any role call raises `LLMConfigError` until set.
+- **`check-llm` passes on Vertex AI (2026-10-10).** Models chosen: `gemini-3.8-flash` (perception, detective,
+  baseline, advocate) and `gemini-3.5-flash-lite` (navigator, cue_guard). `gemini-2.5-flash` returns 404
+  ("no longer available to new users"). The AI Studio key fallback works but its prepaid credits are depleted.
 - **Timestamp regex vs. real filenames.** SPEC §1 says `(\d{14})`, but the training files are named
   `IMG_YYYYMMDD_hhmmss_00_NNN.jpg`, which that does not match. `state.parse_timestamp` tries `(\d{14})`
   first and then `(\d{8})_(\d{6})`.
@@ -77,32 +66,6 @@ Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.p
   noise; with random draws the 9 630 example came out at 9 737.
 - Legacy `requirements.txt` (adds geopy, astral, geoclip) and `make_csv.py` remain from before the
   scaffold. Dependencies are now managed by `pyproject.toml` + uv.
-- **Python version:** uv defaults to Python 3.15 if installed, where `h5py` (a pvlib dependency) has no wheel and
-  fails to build. Use 3.13 (SPEC): `export UV_PYTHON=3.13` before `uv sync`. Consider committing `.python-version`.
-- **Astrolábio ignores `flags.timestamp_is_local`.** The camera clock is unreliable (local, UTC or Lisbon time,
-  even in ES/FR), so `sun_check` always evaluates every clock in `astrolabe.time_hypotheses`. Clocks that give
-  the same instant are merged (e.g. local = Lisbon in PT). The azimuth cannot separate clocks (unknown heading),
-  so several may fit → `ambiguous: true`.
-- **Additions for Astrolábio:** `astrolabe:` block in `settings.yaml` + `AstrolabeSettings` in `config.py`;
-  `SunObs` gained `uncertainty_deg` and `pixel_xy` (full-res pixels); `scipy` is now a direct dependency.
-- **Astrolábio recall is low by design** (4 of ~6 visible suns on the training set, 0 false positives). With
-  `min_confidence: 0.3` and core circularity ≥ 0.4 the margin is thin: the highest non-sun candidate scores 0.24
-  (064, a gap between pillars), the weakest real sun 0.31 (695); 685's real sun passes the checks but scores 0.27.
-  If a false sun ever appears, raise `min_confidence` (0.4 keeps only 749 and 754). Re-check with
-  `scripts/sun_debug.py` when new panoramas arrive. Ring contrast is on luminance. This camera clips white at ~253, not 255 (`core_min`).
-  `astrolabe.py` is ~330 lines (soft limit ~250); VLM and summary code live in `astrolabe_vlm.py` / `astrolabe_summary.py`.
-- **VLM token cap:** `gemini-3.8-flash` thinks 137–192 tokens even at `thinking_level: LOW` (`MINIMAL` is rejected,
-  `thinking_budget` is ignored); at 200 tokens 7/20 answers were cut off, at 512 only 1 (218) failed.
-- **`gemini-2.5-flash` image calls failed on 10 Oct**: Vertex refused them (cause not logged at the time) and the
-  API-key fallback answered 404 "no longer available to new users"; 2.5 text calls worked on Vertex. Models are now
-  `gemini-3.8-flash` (master). `llm.call` now logs each client's error as `fallback_errors`, so re-check there if 2.x
-  is ever used again. If VLM calls fail, detection falls back to blob-only (errors are not cached).
-- **`llm.py` additions (backward compatible):** `call(..., max_output_tokens, timeout_s, max_attempts, retry_invalid,
-  thinking_level)`; `retry_invalid=False` returns `parsed=None` instead of raising; `thinking_level` is only sent to
-  Gemini 3+ (`supports_thinking_level`); every client error before a fallback is logged in `llm_call.fallback_errors`.
-  `call_sync` reuses one event loop (with `asyncio.run` per call the cached genai client failed from the 2nd call on
-  with "Event loop is closed").
-- `tests/conftest.py` blocks real LLM requests in every test (`llm._generate` raises).
 - `.env` was tracked in git (empty). Now untracked via `git rm --cached`, as SPEC §15 requires.
 
 ## Open questions
@@ -152,12 +115,8 @@ Team questions:
 
 1. Fill `.env`, run `gcloud auth application-default login`, then `uv run python cli.py check-llm`.
    Put the chosen model IDs into `config/settings.yaml`.
-2. Merge `feature/geo-tools`. P1 · C: `detective.py` wraps the geo tools inside `geo.use_run(...)` and turns
-   `GeoError` into a tool error message for the model.
-3. Commit, push to `main`, then start P0b in parallel (SPEC §15):
+2. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
-   - B: `magnifier.py` + tests (`astrolabe.py` done; re-tune with `scripts/sun_debug.py data/train1` on new data)
-   - C: ~~`geo.py` + `cache.py`~~ (done) + `agents/baseline.py`
+   - B: `magnifier.py` + `astrolabe.py` + tests
+   - C: `geo.py` + `cache.py` + `agents/baseline.py`
    - D: `ui/app.py` + `export.py`
-3. Pipeline S2 stores `astrolabe.detect()` in `state.sun`; the Detective gets `sun_check` as a tool and passes
-   `state.sun.yaw/elevation/uncertainty_deg`.

@@ -8,11 +8,18 @@ import pvlib
 import pytest
 from PIL import Image
 
+from navegador.config import settings
 from navegador.tools.astrolabe import angles_to_pixel, detect, max_sun_elev, sun_check, wrap180
 from navegador.tools.magnifier import pixel_to_angles
 
 LISBON = (38.7223, -9.1393)
 TS = "20261010140000"
+
+
+@pytest.fixture(autouse=True)
+def _no_vlm(monkeypatch):
+    """Pure detection tests: the Gemini fallback/verifier is tested in test_astrolabe_vlm.py."""
+    monkeypatch.setattr(settings().astrolabe, "vlm_fallback", False)
 
 
 def _by_clock(result: dict, name: str) -> dict:

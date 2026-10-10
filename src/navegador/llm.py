@@ -129,10 +129,14 @@ def model_for(role: str) -> str:
 
 
 def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | None,
-                 tools: Sequence[Callable] | None, max_tool_calls: int | None) -> types.GenerateContentConfig:
+                 tools: Sequence[Callable] | None, max_tool_calls: int | None, *,
+                 max_output_tokens: int | None = None, timeout_s: float | None = None,
+                 thinking_level: str | None = None) -> types.GenerateContentConfig:
     kwargs: dict[str, Any] = {
-        "http_options": types.HttpOptions(timeout=int(settings().budgets.llm_timeout_s * 1000)),
+        "http_options": types.HttpOptions(timeout=int((timeout_s or settings().budgets.llm_timeout_s) * 1000)),
     }
+    if max_output_tokens is not None:
+        kwargs["max_output_tokens"] = max_output_tokens
     if prompt is not None:
         kwargs["system_instruction"] = prompt.system
     if schema is not None and tools:
@@ -145,7 +149,7 @@ def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | Non
         kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
             maximum_remote_calls=max_tool_calls or settings().budgets.detective_max_tool_calls)
     levels = settings().thinking_level
-    level = levels.get(role, levels.get("default"))
+    level = thinking_level or levels.get(role, levels.get("default"))
     if level:
         kwargs["thinking_config"] = types.ThinkingConfig(thinking_level=types.ThinkingLevel(level.upper()))
     return types.GenerateContentConfig(**kwargs)
@@ -184,25 +188,27 @@ def _retryable(exc: BaseException) -> bool:
     return isinstance(exc, errors.APIError) and exc.code in RETRY_CODES
 
 
-async def _generate(client: genai.Client, model: str, contents: list[Any],
-                    config: types.GenerateContentConfig, sync: bool) -> types.GenerateContentResponse:
-    async for attempt in AsyncRetrying(retry=retry_if_exception(_retryable), stop=stop_after_attempt(4),
+async def _generate(client: genai.Client, model: str, contents: list[Any], config: types.GenerateContentConfig,
+                    sync: bool, timeout_s: float, max_attempts: int) -> types.GenerateContentResponse:
+    async for attempt in AsyncRetrying(retry=retry_if_exception(_retryable), stop=stop_after_attempt(max_attempts),
                                        wait=wait_exponential(multiplier=2, max=30), reraise=True):
         with attempt:
             if sync:  # tool loop: the verified sync AFC path, off the event loop
                 coro = asyncio.to_thread(client.models.generate_content, model=model, contents=contents, config=config)
             else:
                 coro = client.aio.models.generate_content(model=model, contents=contents, config=config)
-            return await asyncio.wait_for(coro, timeout=settings().budgets.llm_timeout_s)
+            return await asyncio.wait_for(coro, timeout=timeout_s)
     raise AssertionError("unreachable")
 
 
 async def _generate_with_fallback(model: str, contents: list[Any], config: types.GenerateContentConfig,
-                                  sync: bool) -> tuple[types.GenerateContentResponse, str]:
+                                  sync: bool, timeout_s: float | None = None,
+                                  max_attempts: int = 4) -> tuple[types.GenerateContentResponse, str]:
     last: Exception | None = None
+    timeout = timeout_s or settings().budgets.llm_timeout_s
     for name, client in clients():
         try:
-            return await _generate(client, model, contents, config, sync), name
+            return await _generate(client, model, contents, config, sync, timeout, max_attempts), name
         except (errors.APIError, LLMConfigError, OSError) as exc:  # auth/permission/network → next client
             last = exc
             if _retryable(exc):
@@ -214,34 +220,44 @@ async def _generate_with_fallback(model: str, contents: list[Any], config: types
 async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: Sequence[str] = (),
                images: Sequence[ImageRef] = (), schema: type[BaseModel] | None = None,
                tools: Sequence[Callable] | None = None, max_tool_calls: int | None = None,
-               model: str | None = None) -> LLMResult:
-    """One logged LLM call. `model` overrides `settings.models[role]` (used by the smoke test only)."""
+               model: str | None = None, max_output_tokens: int | None = None, timeout_s: float | None = None,
+               max_attempts: int = 4, retry_invalid: bool = True, thinking_level: str | None = None) -> LLMResult:
+    """One logged LLM call. `model` overrides `settings.models[role]` (used by the smoke test only).
+    Cost limits for cheap tool calls: `max_output_tokens`, `timeout_s` (else budgets.llm_timeout_s),
+    `max_attempts` (transport retries on 429/500/503), `retry_invalid=False` skips the JSON-repair call and
+    returns parsed=None on invalid JSON,
+    `thinking_level` overrides settings.thinking_level (thinking tokens count against max_output_tokens)."""
     model = model or model_for(role)
     prompt = load_prompt(prompt_file) if prompt_file else None
-    config = build_config(prompt, role, schema, tools, max_tool_calls)
+    config = build_config(prompt, role, schema, tools, max_tool_calls,
+                          max_output_tokens=max_output_tokens, timeout_s=timeout_s, thinking_level=thinking_level)
     img_parts, img_log = zip(*(image_part(p, lvl) for p, lvl in images)) if images else ((), ())
     contents: list[Any] = [*text_parts, *img_parts]
     log: dict[str, Any] = {
         "role": role, "model": model, "prompt_file": str(prompt.path.name) if prompt else None,
         "prompt_version": prompt.version if prompt else None, "knowledge": list(prompt.knowledge) if prompt else [],
         "text_parts": list(text_parts), "images": list(img_log), "schema": schema.__name__ if schema else None,
-        "tools": [t.__name__ for t in tools or ()],
+        "tools": [t.__name__ for t in tools or ()], "max_output_tokens": max_output_tokens,
     }
     t0 = time.perf_counter()
     try:
-        resp, backend = await _generate_with_fallback(model, contents, config, sync=bool(tools))
+        resp, backend = await _generate_with_fallback(model, contents, config, bool(tools), timeout_s, max_attempts)
         text, parsed, attempts = _response_text(resp), None, [_response_text(resp)]
         usage = [usage_dict(resp)]
         if schema is not None:
             try:
                 parsed = schema.model_validate_json(text)
-            except ValidationError as exc:  # retry once with the error appended
-                retry_contents = [*contents, f"Your previous JSON failed validation:\n{exc}\nReturn corrected JSON only."]
-                resp, backend = await _generate_with_fallback(model, retry_contents, config, sync=False)
-                text = _response_text(resp)
-                attempts.append(text)
-                usage.append(usage_dict(resp))
-                parsed = schema.model_validate_json(text)
+            except ValidationError as exc:
+                if not retry_invalid:  # caller handles parsed=None; usage and raw text are kept
+                    log["validation_error"] = str(exc)[:500]
+                else:  # retry once with the error appended
+                    retry_contents = [*contents, f"Your previous JSON failed validation:\n{exc}\nReturn corrected JSON only."]
+                    resp, backend = await _generate_with_fallback(model, retry_contents, config, False, timeout_s,
+                                                                  max_attempts)
+                    text = _response_text(resp)
+                    attempts.append(text)
+                    usage.append(usage_dict(resp))
+                    parsed = schema.model_validate_json(text)
     except Exception as exc:
         log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}")
         scribe.log_event(pano_id, "llm_call", role, log)
@@ -256,9 +272,18 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
     return LLMResult(text, parsed, tool_calls, merged_usage, latency, model, raw=resp)
 
 
+_sync_loop: asyncio.AbstractEventLoop | None = None
+
+
 def call_sync(*args: Any, **kwargs: Any) -> LLMResult:
-    """Blocking wrapper for code that is not inside an event loop."""
-    return asyncio.run(call(*args, **kwargs))
+    """Blocking wrapper for code that is not inside an event loop.
+
+    Uses one persistent loop: the cached genai client binds its aio session to the first loop it runs on,
+    so asyncio.run() per call fails from the second call on with "Event loop is closed"."""
+    global _sync_loop
+    if _sync_loop is None or _sync_loop.is_closed():
+        _sync_loop = asyncio.new_event_loop()
+    return _sync_loop.run_until_complete(call(*args, **kwargs))
 
 
 # ---------------------------------------------------------------- smoke test (`cli.py check-llm`)

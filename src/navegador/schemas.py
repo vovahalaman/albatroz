@@ -122,6 +122,21 @@ class SunObs(BaseModel):
     source: Literal["detect", "vlm"] = "detect"  # vlm = Gemini fallback (low confidence)
 
 
+class SunLocateResult(BaseModel):
+    """Astrolabe VLM fallback (prompts/sun_locate.md); x, y in 0–1000 of the sent sky image."""
+
+    sun_visible: bool
+    x: int | None = Field(default=None, ge=0, le=1000)
+    y: int | None = Field(default=None, ge=0, le=1000)
+    kind: Literal["disc", "behind_cloud", "behind_object"] | None = None
+
+
+class SunVerifyResult(BaseModel):
+    """Astrolabe VLM verifier (prompts/sun_verify.md)."""
+
+    sun_at_point: bool
+
+
 # ---------------------------------------------------------------- agents (§10)
 
 

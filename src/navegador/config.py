@@ -96,6 +96,19 @@ class AstrolabeSettings(BaseModel):
     min_core_fraction: float = 0.3
     min_elev_deg: float = 3
     ceiling_lat_deg: float = 27.5
+    vlm_fallback: bool = True
+    vlm_uncertainty_deg: float = 8
+    vlm_confidence_cap: float = 0.3
+    vlm_max_calls: int = 25
+    vlm_max_output_tokens: int = 200
+    vlm_timeout_s: float = 30
+    vlm_max_attempts: int = 2
+    vlm_media_resolution: str = "MEDIUM"
+    vlm_thinking_level: str | None = "LOW"
+    vlm_bright_radius_deg: float = 2
+    vlm_ring_outer_deg: float = 8
+    vlm_min_lum: float = 200
+    vlm_min_ring_delta: float = 10
     time_hypotheses: list[str] = Field(default_factory=lambda: ["local", "UTC", "Europe/Lisbon"])
     consistency_falloff_deg: float = 3
 

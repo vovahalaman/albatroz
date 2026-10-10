@@ -23,7 +23,7 @@ from scipy import ndimage
 from timezonefinder import TimezoneFinder
 
 from navegador.config import AstrolabeSettings, settings
-from navegador.core.state import parse_timestamp, timestamp_dt
+from navegador.core.state import pano_id_for, parse_timestamp, timestamp_dt
 from navegador.schemas import SunObs
 from navegador.tools.magnifier import pixel_to_angles
 
@@ -111,19 +111,29 @@ def _merge_seam(labels: np.ndarray, n: int) -> np.ndarray:
     return np.array([find(i) for i in range(n + 1)])[labels]
 
 
-def _ring_contrast(lum: np.ndarray, b: Blob, blob_mean: float) -> float:
-    """(blob − ring) / blob mean luminance; the ring is an angular annulus (x stretch corrected)."""
-    cfg, (h, w) = _cfg(), lum.shape
+def luminance(rgb: np.ndarray) -> np.ndarray:
+    return rgb.astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+
+
+def annulus_mean(lum: np.ndarray, x: float, y: float, elev: float, r0: float, r1: float) -> float | None:
+    """Mean luminance at angular distance [r0, r1) degrees from pixel (x, y), x stretch corrected."""
+    h, w = lum.shape
     dpx, dpy = 360.0 / w, 180.0 / h
-    r_in, r_out = (k * max(b.radius_deg, dpy) for k in (cfg.ring_inner, cfg.ring_outer))
-    cos_e = max(math.cos(math.radians(b.elev)), 0.05)
-    ry, rx = math.ceil(r_out / dpy), min(math.ceil(r_out / (dpx * cos_e)), w // 2)
-    rows = np.arange(int(b.y) - ry, int(b.y) + ry + 1)
+    cos_e = max(math.cos(math.radians(elev)), 0.05)
+    ry, rx = math.ceil(r1 / dpy), min(math.ceil(r1 / (dpx * cos_e)), w // 2)
+    rows = np.arange(int(y) - ry, int(y) + ry + 1)
     rows = rows[(rows >= 0) & (rows < h)]
-    cols = np.arange(int(b.x) - rx, int(b.x) + rx + 1)
-    d = np.hypot(((cols + 0.5 - b.x) * dpx * cos_e)[None, :], ((rows + 0.5 - b.y) * dpy)[:, None])
-    ring = lum[np.ix_(rows, cols % w)][(d >= r_in) & (d < r_out)]
-    return (blob_mean - float(ring.mean())) / blob_mean if ring.size else 0.0
+    cols = np.arange(int(x) - rx, int(x) + rx + 1)
+    d = np.hypot(((cols + 0.5 - x) * dpx * cos_e)[None, :], ((rows + 0.5 - y) * dpy)[:, None])
+    vals = lum[np.ix_(rows, cols % w)][(d >= r0) & (d < r1)]
+    return float(vals.mean()) if vals.size else None
+
+
+def _ring_contrast(lum: np.ndarray, b: Blob, blob_mean: float) -> float:
+    """(blob − ring) / blob mean luminance; ring radii are multiples of the glare radius."""
+    cfg, r = _cfg(), max(b.radius_deg, 180.0 / lum.shape[0])
+    ring = annulus_mean(lum, b.x, b.y, b.elev, cfg.ring_inner * r, cfg.ring_outer * r)
+    return (blob_mean - ring) / blob_mean if ring is not None else 0.0
 
 
 def _measure(ys: np.ndarray, xs: np.ndarray, lum: np.ndarray, mn: np.ndarray, ceiling: float | None) -> Blob:
@@ -166,7 +176,7 @@ def find_blobs(rgb: np.ndarray, day: date | None = None) -> list[Blob]:
     cfg, h = _cfg(), rgb.shape[0]
     f = rgb.astype(np.float32)
     v, mn = f.max(axis=2), f.min(axis=2)
-    lum = f @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    lum = luminance(rgb)
     mask = (v >= cfg.brightness_min) & ((v - mn) / np.maximum(v, 1.0) <= cfg.saturation_max)
     mask[h // 2:] = False
     labels, n = ndimage.label(mask, structure=np.ones((3, 3), dtype=int))
@@ -204,11 +214,35 @@ def to_sun_obs(best: Blob, shape: tuple[int, ...], orig: tuple[int, int]) -> Sun
                   pixel_xy=(round(best.x * orig[0] / w, 1), round(best.y * orig[1] / h, 1)))
 
 
-def detect(pano_path: Path) -> SunObs | None:
-    """Sun position in image angles, or None. Conservative: a wrong sun is worse than no sun."""
+@dataclass
+class Analysis:
+    """Everything detect() saw: used by scripts/sun_debug.py."""
+
+    rgb: np.ndarray
+    orig: tuple[int, int]
+    blobs: list[Blob]
+    best: Blob | None
+    why: str  # choose() reason, or a vlm_* reason when the VLM changed the outcome
+    obs: SunObs | None
+
+
+def analyse(pano_path: Path, vlm: bool | None = None) -> Analysis:
+    """Blob detection, then (astrolabe.vlm_fallback) Gemini verification or fallback."""
     rgb, orig = load_small(Path(pano_path))
-    best, _ = choose(find_blobs(rgb, pano_date(pano_path)))
-    return to_sun_obs(best, rgb.shape, orig) if best is not None else None
+    day = pano_date(pano_path)
+    blobs = find_blobs(rgb, day)
+    best, why = choose(blobs)
+    obs = to_sun_obs(best, rgb.shape, orig) if best is not None else None
+    if _cfg().vlm_fallback if vlm is None else vlm:
+        from navegador.tools import astrolabe_vlm  # lazy: astrolabe_vlm imports this module
+
+        obs, why = astrolabe_vlm.review(rgb, orig, day, best, obs, why, pano_id_for(Path(pano_path)))
+    return Analysis(rgb, orig, blobs, best, why, obs)
+
+
+def detect(pano_path: Path, vlm: bool | None = None) -> SunObs | None:
+    """Sun position in image angles, or None. Conservative: a wrong sun is worse than no sun."""
+    return analyse(pano_path, vlm).obs
 
 
 # ---------------------------------------------------------------- sun position

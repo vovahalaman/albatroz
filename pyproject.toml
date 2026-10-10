@@ -20,6 +20,7 @@ dependencies = [
     "streamlit>=1.40",
     "streamlit-folium>=0.27",
     "folium",
+    "scipy>=1.18.1",
 ]
 
 [dependency-groups]

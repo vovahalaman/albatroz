@@ -138,12 +138,23 @@ def model_for(role: str) -> str:
     return model
 
 
+def supports_thinking_level(model: str) -> bool:
+    """thinking_level exists from Gemini 3 on; 2.x models reject it (they use thinking_budget)."""
+    m = re.match(r"(?:.*/)?gemini-(\d+)", model)
+    return bool(m) and int(m.group(1)) >= 3
+
+
 def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | None,
-                 tools: Sequence[Callable] | None, max_tool_calls: int | None) -> types.GenerateContentConfig:
+                 tools: Sequence[Callable] | None, max_tool_calls: int | None, *,
+                 max_output_tokens: int | None = None, timeout_s: float | None = None,
+                 thinking_level: str | None = None, model: str | None = None) -> types.GenerateContentConfig:
+    """`model`, when given, gates thinking_level (only sent to models that support it)."""
     kwargs: dict[str, Any] = {
-        "http_options": types.HttpOptions(timeout=int(settings().budgets.llm_timeout_s * 1000)),
+        "http_options": types.HttpOptions(timeout=int((timeout_s or settings().budgets.llm_timeout_s) * 1000)),
         "max_output_tokens": settings().budgets.llm_max_output_tokens,  # stops runaway (degenerate) JSON early
     }
+    if max_output_tokens is not None:  # per-call override of the budget default
+        kwargs["max_output_tokens"] = max_output_tokens
     if prompt is not None:
         kwargs["system_instruction"] = prompt.system
     if schema is not None and tools:
@@ -163,8 +174,8 @@ def build_config(prompt: Prompt | None, role: str, schema: type[BaseModel] | Non
         kwargs["automatic_function_calling"] = types.AutomaticFunctionCallingConfig(
             maximum_remote_calls=max_tool_calls or settings().budgets.detective_max_tool_calls)
     levels = settings().thinking_level
-    level = levels.get(role, levels.get("default"))
-    if level:
+    level = thinking_level or levels.get(role, levels.get("default"))
+    if level and (model is None or supports_thinking_level(model)):
         kwargs["thinking_config"] = types.ThinkingConfig(thinking_level=types.ThinkingLevel(level.upper()))
     return types.GenerateContentConfig(**kwargs)
 
@@ -202,33 +213,40 @@ def _retryable(exc: BaseException) -> bool:
     return isinstance(exc, errors.APIError) and exc.code in RETRY_CODES
 
 
-async def _generate(client: genai.Client, model: str, contents: list[Any],
-                    config: types.GenerateContentConfig, sync: bool) -> types.GenerateContentResponse:
-    async for attempt in AsyncRetrying(retry=retry_if_exception(_retryable), stop=stop_after_attempt(4),
+async def _generate(client: genai.Client, model: str, contents: list[Any], config: types.GenerateContentConfig,
+                    sync: bool, timeout_s: float, max_attempts: int) -> types.GenerateContentResponse:
+    async for attempt in AsyncRetrying(retry=retry_if_exception(_retryable), stop=stop_after_attempt(max_attempts),
                                        wait=wait_exponential(multiplier=2, max=30), reraise=True):
         with attempt:
             if sync:  # tool loop: the verified sync AFC path, off the event loop
                 coro = asyncio.to_thread(client.models.generate_content, model=model, contents=contents, config=config)
             else:
                 coro = client.aio.models.generate_content(model=model, contents=contents, config=config)
-            return await asyncio.wait_for(coro, timeout=settings().budgets.llm_timeout_s)
+            return await asyncio.wait_for(coro, timeout=timeout_s)
     raise AssertionError("unreachable")
 
 
 async def _generate_with_fallback(model: str, contents: list[Any], config: types.GenerateContentConfig,
-                                  sync: bool) -> tuple[types.GenerateContentResponse, str]:
-    failures: list[tuple[str, Exception]] = []
+                                  sync: bool, timeout_s: float | None = None, max_attempts: int = 4,
+                                  failures: list[str] | None = None) -> tuple[types.GenerateContentResponse, str]:
+    """Try Vertex, then the API key. Each client's error is appended to `failures` (so a Vertex error is not
+    hidden behind the fallback's error in the log). If every client fails, the primary backend's error is
+    raised, with the fallbacks' errors attached as notes."""
+    timeout = timeout_s or settings().budgets.llm_timeout_s
+    errs: list[tuple[str, Exception]] = []
     for name, client in clients():
         try:
-            return await _generate(client, model, contents, config, sync), name
+            return await _generate(client, model, contents, config, sync, timeout, max_attempts), name
         except FALLBACK_ERRORS as exc:
-            failures.append((name, exc))
+            errs.append((name, exc))
+            if failures is not None:
+                failures.append(f"{name}: {type(exc).__name__}: {exc}"[:500])
             if _retryable(exc):
                 raise
-    assert failures
+    assert errs
     # Raise the primary backend's error: the fallback's (e.g. "402 credits depleted") would hide the real cause.
-    primary = failures[0][1]
-    for name, exc in failures[1:]:
+    primary = errs[0][1]
+    for name, exc in errs[1:]:
         primary.add_note(f"fallback {name} also failed: {type(exc).__name__}: {str(exc)[:300]}")
     raise primary
 
@@ -236,11 +254,18 @@ async def _generate_with_fallback(model: str, contents: list[Any], config: types
 async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: Sequence[str] = (),
                images: Sequence[ImageRef] = (), schema: type[BaseModel] | None = None,
                tools: Sequence[Callable] | None = None, max_tool_calls: int | None = None,
-               model: str | None = None) -> LLMResult:
-    """One logged LLM call. `model` overrides `settings.models[role]` (used by the smoke test only)."""
+               model: str | None = None, max_output_tokens: int | None = None, timeout_s: float | None = None,
+               max_attempts: int = 4, retry_invalid: bool = True, thinking_level: str | None = None) -> LLMResult:
+    """One logged LLM call. `model` overrides `settings.models[role]` (used by the smoke test only).
+    Cost limits for cheap tool calls: `max_output_tokens`, `timeout_s` (else budgets.llm_timeout_s),
+    `max_attempts` (transport retries on 429/500/503), `retry_invalid=False` skips the JSON-repair call and
+    returns parsed=None on invalid JSON,
+    `thinking_level` overrides settings.thinking_level (thinking tokens count against max_output_tokens)."""
     model = model or model_for(role)
     prompt = load_prompt(prompt_file) if prompt_file else None
-    config = build_config(prompt, role, schema, tools, max_tool_calls)
+    config = build_config(prompt, role, schema, tools, max_tool_calls,
+                          max_output_tokens=max_output_tokens, timeout_s=timeout_s, thinking_level=thinking_level,
+                          model=model)
     img_parts, img_log = zip(*(image_part(p, lvl) for p, lvl in images)) if images else ((), ())
     if schema is not None and settings().structured_output == "json_mode":
         text_parts = [*text_parts, schema_instruction(schema)]
@@ -249,40 +274,58 @@ async def call(role: str, prompt_file: str | None, *, pano_id: str, text_parts: 
         "role": role, "model": model, "prompt_file": str(prompt.path.name) if prompt else None,
         "prompt_version": prompt.version if prompt else None, "knowledge": list(prompt.knowledge) if prompt else [],
         "text_parts": list(text_parts), "images": list(img_log), "schema": schema.__name__ if schema else None,
-        "tools": [t.__name__ for t in tools or ()],
+        "tools": [t.__name__ for t in tools or ()], "max_output_tokens": max_output_tokens,
     }
     t0 = time.perf_counter()
+    failures: list[str] = []
     try:
-        resp, backend = await _generate_with_fallback(model, contents, config, sync=bool(tools))
+        resp, backend = await _generate_with_fallback(model, contents, config, bool(tools), timeout_s, max_attempts,
+                                                      failures)
         text, parsed, attempts = _response_text(resp), None, [_response_text(resp)]
         usage = [usage_dict(resp)]
         if schema is not None:
             try:
                 parsed = schema.model_validate_json(text)
-            except ValidationError as exc:  # retry once with the error appended
-                retry_contents = [*contents, f"Your previous JSON failed validation:\n{exc}\nReturn corrected JSON only."]
-                resp, backend = await _generate_with_fallback(model, retry_contents, config, sync=False)
-                text = _response_text(resp)
-                attempts.append(text)
-                usage.append(usage_dict(resp))
-                parsed = schema.model_validate_json(text)
+            except ValidationError as exc:
+                if not retry_invalid:  # caller handles parsed=None; usage and raw text are kept
+                    log["validation_error"] = str(exc)[:500]
+                else:  # retry once with the error appended
+                    retry_contents = [*contents, f"Your previous JSON failed validation:\n{exc}\nReturn corrected JSON only."]
+                    resp, backend = await _generate_with_fallback(model, retry_contents, config, False, timeout_s,
+                                                                  max_attempts, failures)
+                    text = _response_text(resp)
+                    attempts.append(text)
+                    usage.append(usage_dict(resp))
+                    parsed = schema.model_validate_json(text)
     except Exception as exc:
-        log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}")
+        log.update(latency_s=round(time.perf_counter() - t0, 3), error=f"{type(exc).__name__}: {exc}",
+                   fallback_errors=failures)
         scribe.log_event(pano_id, "llm_call", role, log)
         scribe.log_event(pano_id, "error", role, {"where": "llm.call", "error": log["error"]})
         raise
     latency = time.perf_counter() - t0
     tool_calls = extract_tool_calls(resp)
     merged_usage = usage[-1] if len(usage) == 1 else {"attempts": usage}
+    if failures:
+        log["fallback_errors"] = failures
     log.update(backend=backend, latency_s=round(latency, 3), response_text=attempts if len(attempts) > 1 else text,
                parsed=parsed.model_dump(mode="json") if parsed else None, tool_calls=tool_calls, usage=merged_usage)
     scribe.log_event(pano_id, "llm_call", role, log)
     return LLMResult(text, parsed, tool_calls, merged_usage, latency, model, raw=resp)
 
 
+_sync_loop: asyncio.AbstractEventLoop | None = None
+
+
 def call_sync(*args: Any, **kwargs: Any) -> LLMResult:
-    """Blocking wrapper for code that is not inside an event loop."""
-    return asyncio.run(call(*args, **kwargs))
+    """Blocking wrapper for code that is not inside an event loop.
+
+    Uses one persistent loop: the cached genai client binds its aio session to the first loop it runs on,
+    so asyncio.run() per call fails from the second call on with "Event loop is closed"."""
+    global _sync_loop
+    if _sync_loop is None or _sync_loop.is_closed():
+        _sync_loop = asyncio.new_event_loop()
+    return _sync_loop.run_until_complete(call(*args, **kwargs))
 
 
 # ---------------------------------------------------------------- smoke test (`cli.py check-llm`)

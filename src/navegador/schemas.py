@@ -114,10 +114,28 @@ class View(BaseModel):
 
 
 class SunObs(BaseModel):
-    yaw: float
+    yaw: float  # image yaw (0 = centre column, + right), not compass
     elevation: float
-    area_px: int
+    area_px: int  # in the downscaled detection image
     confidence: Confidence
+    uncertainty_deg: float = Field(default=0, ge=0)  # blob angular radius + tilt margin
+    pixel_xy: tuple[float, float] | None = None  # full-resolution pano pixels
+    source: Literal["detect", "vlm"] = "detect"  # vlm = Gemini fallback (low confidence)
+
+
+class SunLocateResult(BaseModel):
+    """Astrolabe VLM fallback (prompts/sun_locate.md); x, y in 0–1000 of the sent sky image."""
+
+    sun_visible: bool
+    x: int | None = Field(default=None, ge=0, le=1000)
+    y: int | None = Field(default=None, ge=0, le=1000)
+    kind: Literal["disc", "behind_cloud", "behind_object"] | None = None
+
+
+class SunVerifyResult(BaseModel):
+    """Astrolabe VLM verifier (prompts/sun_verify.md)."""
+
+    sun_at_point: bool
 
 
 # ---------------------------------------------------------------- agents (§10)

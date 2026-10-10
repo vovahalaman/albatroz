@@ -20,7 +20,7 @@ When SPEC mentions a name on the left, edit the file on the right.
 | Detetive | `agents/detective.py`, `prompts/detective.md`, `models.detective`, `budgets.detective_max_tool_calls` |
 | Advogado | `agents/advocate.py`, `prompts/advocate.md`, `AdvocateResult`, `flags.advocate_enabled` |
 
-`baseline`, `professor` and `cue_guard` are unchanged. The package and project name `navegador` is unchanged.
+The package and project name `navegador` is unchanged.
 
 ## Status
 
@@ -150,5 +150,5 @@ Team questions:
 3. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
    - B: `magnifier.py` + `astrolabe.py` + tests
-   - C: ~~`geo.py` + `cache.py`~~ (done) + `agents/baseline.py`
+   - C: `geo.py` + `cache.py` + `agents/baseline.py`
    - D: `ui/app.py` + `export.py`

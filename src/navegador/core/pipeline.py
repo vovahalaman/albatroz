@@ -28,6 +28,10 @@ from navegador.tools import magnifier, strategist
 STALE_OUTPUTS = ("baseline.json", "submission.json", "submission.txt", "submission.csv", "log.json", "report.md")
 
 
+def views_dir(pano_id: str) -> Path:
+    return st.run_dir(pano_id) / "views"
+
+
 def start_run(pano_path: Path, label: Label, special_one: bool, mode: Mode, timestamp: str | None = None) -> str:
     """Create the run state (S0 INGEST), log `run_start`; return pano_id. `timestamp` overrides the filename."""
     pano_path = Path(pano_path)
@@ -39,8 +43,9 @@ def start_run(pano_path: Path, label: Label, special_one: bool, mode: Mode, time
         (out / name).unlink(missing_ok=True)
     state.exif = probe(pano_path)
     scribe.log_event(state.pano_id, "run_start", "pipeline",
-                     {"pano_path": pano_path, "label": label, "mode": mode, "special_one": special_one,
-                      "timestamp": state.timestamp, "exif": state.exif, "git_commit": scribe.git_commit()},
+                     {"pano_path": str(pano_path), "pano_sha256": scribe.sha256_file(pano_path), "label": label,
+                      "mode": mode, "special_one": special_one, "timestamp": state.timestamp,
+                      "exif": state.exif, "git_commit": scribe.git_commit()},
                      run_id=state.run_id)
     if settings().flags.use_exif_gps and state.exif.get("gps"):
         _add_exif_hypothesis(state)
@@ -111,7 +116,9 @@ def _run_stage(state: State, name: str, fn: Callable[[State], None]) -> State:
 
 
 def _s1_views(state: State) -> None:
-    magnifier.views(state.pano_path, st.run_dir(state.pano_id) / "views")
+    views = magnifier.views(state.pano_path, views_dir(state.pano_id))
+    scribe.log_event(state.pano_id, "stage", "magnifier",
+                     {"stage": "S1", "views": [v.name for v in views]}, run_id=state.run_id)
 
 
 def _baseline(state: State) -> None:
@@ -159,3 +166,16 @@ def _add_exif_hypothesis(state: State) -> None:
 STAGES: list[tuple[str, Callable[[State], None]]] = [
     ("S1", _s1_views), ("BASELINE", _baseline), ("S7", _s7_submit), ("S8", _s8_report),
 ]
+
+
+# ---------------------------------------------------------------- CLI / UI helpers
+
+
+def summary(state: State) -> dict[str, Any]:
+    """Compact result for the CLI / UI."""
+    sub = state.submission
+    return {"pano_id": state.pano_id, "status": state.status, "stage": state.stage,
+            "candidates": [[c.lat, c.lng] for c in sub.candidates] if sub else [],
+            "expected_score": round(sub.expected_score, 1) if sub else None,
+            "hypotheses": len(state.hypotheses), "timings": state.timings,
+            "run_dir": str(st.run_dir(state.pano_id))}

@@ -37,12 +37,13 @@ Implemented and tested (`uv run pytest` → 35 passed, 3 skipped):
 | `llm.py` | `call()` per §8: prompt + knowledge front-matter, per-part `media_resolution`, structured output with one validation retry, AFC tool loop (sync path in a thread), thinking level, tenacity retries on 429/500/503, timeout, Vertex → API-key fallback, one `llm_call` event per call. `smoke_test()` behind `cli.py check-llm`. |
 | `tools/strategist.py` | `haversine_m`, `theta`, `score`, `expected_theta` (MC), `best_point` (centres + grid around top 3, fixed seed), `clusters` (single linkage), `submit` (`ev` / `hedge`, region clamping, fallback). Matches all §1 test vectors and the 9 630 / 8 230 examples. |
 | `cli.py` | `check-llm` works; `solve`, `batch`, `learn` are stubs. |
+| `tools/magnifier.py` | `views()` → 17 Views: 8 horizontal (h) + 4 ground (g, pitch −50) + 4 up (u, pitch +50), all 1024² JPG q90, + `overview` (2048×1024, fov 360). u-views deviate from SPEC §9.1 (added for full-sphere coverage; pipeline may filter them by name); `zoom()` with FOV clamp 8–90, cached in `cache_dir()/zoom/` (key: path + mtime + size + params); pano decoded once per run (`lru_cache`). §9.1 tests pass. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/pipeline.py`, `core/navigator.py`,
-`core/export.py`, all `agents/*`, `tools/magnifier.py` (except `pixel_to_angles`), `tools/astrolabe.py`,
+`core/export.py`, all `agents/*`, `tools/astrolabe.py`,
 `tools/geo.py`, `tools/cache.py`, `ui/app.py`, `eval/*`. Agent prompts other than baseline are skeletons.
-`tests/test_magnifier.py`, `test_astrolabe.py`, `test_pipeline_baseline.py` are skipped placeholders.
+`tests/test_astrolabe.py`, `test_pipeline_baseline.py` are skipped placeholders.
 
 ## Known issues
 

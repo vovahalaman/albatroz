@@ -27,7 +27,7 @@ The package and project name `navegador` is unchanged.
 **Phase: P0b baseline path — done (branch `feature/baseline-pipeline`). `cli.py solve` / `batch` solve real
 training panoramas end to end in baseline mode (Gemini on Vertex + Nominatim). UI still a stub.**
 
-Implemented and tested (`uv run pytest` → 94 passed, 1 skipped):
+Implemented and tested (`uv run pytest` → 167 passed):
 
 | Module | What works |
 |---|---|
@@ -42,14 +42,15 @@ Implemented and tested (`uv run pytest` → 94 passed, 1 skipped):
 | `tools/magnifier.py` | §9.1 `views()` (8 h + 4 g + 4 u + overview; reused via `views.json` when pano + settings unchanged), `zoom()` (input clamped, cached by pano content hash). Settings in `settings.yaml → magnifier:`. |
 | `core/pipeline.py` | Baseline mode: `start_run` (S0: state, EXIF/XMP probe, `run_start`), `advance` (S1 views → BASELINE → S7 submit → S8 report; every stage timed, logged, saved; a failing stage logs `error` and the run still submits), `force_submit`. `autonomous`/`assisted` run the baseline stages for now (logged). `answer_mcq`, `add_cue` still P1 stubs. |
 | `agents/baseline.py` | One `llm.call` (overview LOW + h000…h315 MEDIUM + label/timestamp/image order) → `baseline.json`; top 3 places geocoded (model's country first, then pt,es,fr), results outside `regions.yaml` dropped, R2-validated Hypotheses (weight = confidence, radius 300 m / 8 km). Country-box fallback when nothing geocodes. |
+| `agents/advocate.py` | P2, S5 CRITIC. `run(state, force=False)`: without `flags.advocate_enabled` (or `force`) or without hypotheses it logs a `stage` skip and makes no LLM call. Hypotheses grouped by label; the top `advocate.top_n` groups by summed weight go to the model as H1…H3 (point, radius, why of the heaviest member; `weight_share`; sources; ≤6 evidence) with code-computed facts: `geo.reverse` at zoom 17 (road, neighbourhood, suburb … country_code) and `astrolabe.sun_check` (only with `state.sun` + timestamp); a failed fact is `null` + `error` event. One `llm.call` (overview + h000…h315); the text parts are the contract with `prompts/advocate.md` (reader/geographer JSON, baseline JSON only if both are missing, human input). `resolve` (no I/O) maps ids → labels, drops unknown refs (`error` event), keeps a multiplier only for a label with an objection, clamps to [`min_multiplier`, 1], drops 1.0 / non-finite → `advocate.json`. `apply` multiplies every member of a label and logs `advocate_apply` (group sums before/after); caller saves. Try it: `scripts/advocate_try.py <pano_id> [--sun]` (never saves the state). |
 | `core/export.py` | `validate` (R1), `to_text`, `to_json`, `to_csv`, `to_albatroz` (= JSON until confirmed). S7 writes `submission.json/.txt/.csv`. |
 | `core/exif.py` | S0 probe: EXIF tags, GPS, XMP (GPano). GPS only used with `flags.use_exif_gps`. The training panos carry no EXIF at all. |
 | `cli.py` | `check-llm`, `geo-check`, `solve` (prints country probs, places → coordinates, clues, errors, the 10 pairs), `batch` (labels CSV `file|filename,label`; optional `--truth eval/labels.csv` → distance + pseudo-score; summary CSV with git commit + `baseline.md` hash in `runs/_batch/`). `learn` is P2. |
 | Content | `prompts/baseline.md` (Appendix B), `prompts/check_llm.md`, knowledge seed (Appendix A). |
 
 Stubbed (signatures + docstrings, raise `NotImplementedError`): `core/navigator.py`, `pipeline.answer_mcq/add_cue`,
-all agents except baseline, `tools/astrolabe.py` (on `aatu-sundetection`, not merged), `ui/app.py`, `eval/*`.
-Agent prompts other than baseline are skeletons. `test_astrolabe.py` is a skipped placeholder.
+agents `geographer` (implementation on `aatu-geographer`), `detective`, `cue_guard`, `professor`, `astrolabe.band`,
+`ui/app.py`, `eval/compare.py`, `eval/run_batch.py`. Skeleton prompts: `cue_guard.md`, `navigator.md`, `professor.md`.
 
 ## Known issues
 
@@ -68,6 +69,16 @@ Agent prompts other than baseline are skeletons. `test_astrolabe.py` is a skippe
 - **Baseline latency:** ~25–45 s per pano (default thinking), ~12 k tokens. `batch` is sequential.
 - **`settings.yaml → baseline:`** (added): `top_places`, `geocode_limit`, `radius_m`. Rule 8 (×0.5 text location)
   is not applied to geocoded place names (open question 5).
+- **`settings.yaml → advocate:`** (added in P2, not in SPEC §6): `top_n` (3), `min_multiplier` (0.3).
+  `flags.advocate_enabled` stays `false` until S5 is wired; `scripts/advocate_try.py` passes `force=True`.
+- **Advocate.** `agents/advocate.py` is ~200 lines (SPEC §10: agents ~80): the safety limits, facts and the
+  text-part contract live in code. Its reverse lookups add up to `top_n` uncached Nominatim calls per pano
+  (counted in `max_geocode_calls_per_pano`, cached afterwards). `reverse` is `null` when the lookup failed and
+  `{}` when OSM has nothing at the point (open sea); `prompts/advocate.md` documents only `null`.
+- **Hidden `.pth` on macOS.** On 2026-10-10 the editable-install file
+  `.venv/lib/python3.13/site-packages/_editable_impl_navegador.pth` had the macOS `hidden` flag after a uv
+  re-sync. Python 3.13 skips hidden `.pth` files, so `import navegador` fails in `cli.py` and `scripts/` (pytest
+  still works through `pythonpath`). Fix: `chflags nohidden` on that file, or run with `PYTHONPATH=src`.
 - **Geo context.** SPEC §9.3 signatures have no `pano_id` (they are exposed to the model as tools), so the
   pano comes from the `geo.use_run(pano_id, actor)` context manager (contextvars; propagates through
   `asyncio.to_thread`, not through bare threads). Calling a geo tool outside it raises `RuntimeError`.
@@ -147,7 +158,10 @@ Team questions:
    pseudo-scores and distances.
 2. Merge `feature/geo-tools`. P1 · C: `detective.py` wraps the geo tools inside `geo.use_run(...)` and turns
    `GeoError` into a tool error message for the model.
-3. Commit, push to `main`, then start P0b in parallel (SPEC §15):
+3. S5 wiring (pipeline): `res = await advocate.run(state); advocate.apply(state, res)` after the Detective, then save.
+   Also add `reader.json`, `geographer.json`, `detective.json` and `advocate.json` to `pipeline.STALE_OUTPUTS`;
+   otherwise a re-run's Advocate reads the previous run's crew results.
+4. Commit, push to `main`, then start P0b in parallel (SPEC §15):
    - A: `pipeline.py` (baseline) + `cli.py solve/batch`
    - B: `magnifier.py` + `astrolabe.py` + tests
    - C: `geo.py` + `cache.py` + `agents/baseline.py`

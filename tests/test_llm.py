@@ -59,7 +59,7 @@ def test_pick_flash():
 def test_fallback_reports_primary_error(monkeypatch):
     import asyncio
 
-    async def fail(client, model, contents, config, sync):
+    async def fail(client, model, contents, config, sync, timeout, attempts):
         raise client
 
     monkeypatch.setattr(llm, "clients", lambda: [("vertex", TimeoutError("vertex slow")),

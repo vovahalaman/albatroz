@@ -24,7 +24,7 @@ from navegador.core import navigator, scribe
 from navegador.core import state as st
 from navegador.core.state import State
 from navegador.schemas import GeographerResult, Hypothesis
-from navegador.tools import astrolabe, geo
+from navegador.tools import astrolabe, geo, strategist
 from navegador.tools.astrolabe_summary import summarise
 
 KEEP_SOURCES = {"exif"}  # hypotheses that survive a new S4 pass
@@ -88,6 +88,16 @@ def region_hypotheses(state: State) -> list[Hypothesis]:
     return [Hypothesis.model_validate(h, context={"registry": registry}) for h in raw]
 
 
+def _apply_exclusions(state: State) -> int:
+    """Drop hypotheses whose centre lies in an excluded zone (enforced in code). Returns how many."""
+    def excluded(h: Hypothesis) -> bool:
+        return any(strategist.haversine_m((h.lat, h.lng), (z.lat, z.lng)) <= z.radius_m for z in state.excluded_zones)
+
+    before = len(state.hypotheses)
+    state.hypotheses = [h for h in state.hypotheses if not excluded(h)]
+    return before - len(state.hypotheses)
+
+
 def s4_investigate(state: State) -> None:
     previous = [h for h in state.hypotheses if h.source == "detective"]
     state.hypotheses = [h for h in state.hypotheses if h.source in KEEP_SOURCES]
@@ -107,13 +117,13 @@ def s4_investigate(state: State) -> None:
         # (geo.max_geocode_calls_per_pano, shared by all passes) ran out. Keep the earlier pass's hypotheses
         # outside the excluded zones rather than falling back to coarse regions.
         state.hypotheses += previous
-        navigator.apply_exclusions(state)
+        _apply_exclusions(state)
         kept = sum(h.source == "detective" for h in state.hypotheses)
     if from_detective == 0 and kept == 0:
         regional = region_hypotheses(state)
         state.hypotheses += regional
         fallback = len(regional)
-    dropped = navigator.apply_exclusions(state)
+    dropped = _apply_exclusions(state)
     _log(state, "pipeline", {"stage": "S4", "detective": from_detective, "kept_previous": kept,
                              "geographer_fallback": fallback, "excluded_dropped": dropped,
                              "hypotheses": len(state.hypotheses)})
@@ -130,7 +140,7 @@ def s5_critic(state: State) -> None:
 
 def s6_decide(state: State) -> str | None:
     """SUBMIT → continue to S7. ASK_MCQ → store the MCQ, pause at S6 (`awaiting_human`)."""
-    facts = navigator.evaluate(state)
+    facts = navigator.assess(state)
     _log(state, "navigator", {"stage": "S6", **facts})
     if facts["decision"] == "SUBMIT":
         return None

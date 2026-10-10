@@ -47,7 +47,6 @@ class MCQSettings(BaseModel):
     top3_min: float = 0.7
     cluster_eps_m: PerLabel
     far_m: PerLabel
-    zone_zoom: PerLabel = Field(default_factory=lambda: PerLabel(urban=16, non_urban=10))  # reverse-geocode zoom
 
 
 class StrategistSettings(BaseModel):

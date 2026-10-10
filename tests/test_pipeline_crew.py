@@ -192,7 +192,7 @@ def test_autonomous_never_asks(pano, crew):
     crew["detective"] = [SPLIT]
     state = run(pano)
     assert state.status == "done" and state.mcqs == []
-    assert navigator.evaluate(state)["checks"]["assisted"] is False
+    assert navigator.assess(state)["checks"]["assisted"] is False
 
 
 def test_assisted_mcq_round_trip(pano, crew):
@@ -211,7 +211,7 @@ def test_assisted_mcq_round_trip(pano, crew):
     assert porto == pytest.approx(settings().mcq.q_trust)
     assert state.submission.penalty_factor == pytest.approx(0.95)
     events = [e["event"] for e in scribe.read_events(state.pano_id)]
-    assert {"mcq_shown", "mcq_answer", "penalty"} <= set(events)
+    assert {"mcq_shown", "mcq_answer", "penalty"} <= set(events) and events.count("mcq_answer") == 1
     with pytest.raises(ValueError):
         pipeline.answer_mcq(state.pano_id, "A")  # nothing pending any more
 
@@ -220,7 +220,7 @@ def test_mcq_template_when_phrasing_fails_or_changes_options(pano, crew):
     crew["detective"] = [SPLIT]
     crew["llm"]["navigator.md"] = {"question": "Q?", "options": [{"id": "A", "text": "x"}, {"id": "B", "text": "y"}]}
     mcq = run(pano, "assisted").pending_mcq  # 2 options for 2 clusters + none → rejected
-    assert [o.text for o in mcq.options] == ["Lisboa, Portugal", "Porto, Portugal", navigator.NONE_TEXT]
+    assert [o.text for o in mcq.options] == ["Alfama", "Ribeira", navigator.NONE_TEXT]  # display_name, else member label
 
 
 def test_none_of_these_excludes_zones_and_reinvestigates(pano, crew):

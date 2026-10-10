@@ -72,12 +72,7 @@ def answer_mcq(pano_id: str, option_id: str) -> State:
     mcq = state.pending_mcq
     if state.status != "awaiting_human" or mcq is None:
         raise ValueError(f"{pano_id}: no MCQ is waiting for an answer (status {state.status})")
-    state.stage = navigator.apply_answer(state, option_id)
-    option = next(o for o in mcq.options if o.id == option_id)
-    scribe.log_event(pano_id, "mcq_answer", "ui",
-                     {"mcq_id": mcq.mcq_id, "option_id": option_id, "text": option.text,
-                      "cluster_id": option.cluster_id, "next": state.stage,
-                      "excluded_zones": len(state.excluded_zones)}, run_id=state.run_id)
+    state.stage = navigator.apply_answer(state, option_id)  # also logs `mcq_answer`
     scribe.add_penalty(state, "mcq", mcq.mcq_id)
     state.status = "running"
     st.save(state)

@@ -43,7 +43,7 @@ astrolabe:
   min_circularity: 0.5         # solid angle / (pi * (extent/2)^2)
   ring_inner: 1.5              # contrast ring radii, multiples of the blob radius
   ring_outer: 3.0
-  min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean
+  min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean, on luminance
   top_edge_max_span_deg: 10    # wider contact with the top row is rejected
   ambiguity_ratio: 0.8         # runner-up score >= ratio * best -> no sun
   min_confidence: 0.4

@@ -40,7 +40,7 @@ astrolabe:
   min_pixels: 3
   max_solid_angle_deg2: 800    # glare blob; larger is clipped sky, clouds or walls (real sun glare: 350-600)
   max_extent_deg: 40           # glare angular width (x cos elev) or height
-  min_circularity: 0.5         # solid angle / (pi * (extent/2)^2)
+  min_circularity: 0.4         # of the saturated core: solid angle / (pi * (extent/2)^2)
   ring_inner: 1.5              # contrast ring radii, multiples of the blob radius
   ring_outer: 3.0
   min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean, on luminance

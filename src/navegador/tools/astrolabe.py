@@ -135,9 +135,11 @@ def _measure(ys: np.ndarray, xs: np.ndarray, lum: np.ndarray, mn: np.ndarray, ce
     cos_e = max(math.cos(math.radians((0.5 - (float(ys.mean()) + 0.5) / h) * 180.0)), 0.05)
     omega = _solid_angle(ys, h, w)
     extent = float(max((xs.max() - xs.min() + 1) * dpx * cos_e, (ys.max() - ys.min() + 1) * dpy))
-    circ = min(1.0, omega / (math.pi * (extent / 2) ** 2))
     core = mn[ys, xs % w] >= cfg.core_min  # locate the sun from the saturated core, not the glare
     cys, cxs = (ys[core], xs[core]) if core.any() else (ys, xs)
+    core_cos = max(math.cos(math.radians((0.5 - (float(cys.mean()) + 0.5) / h) * 180.0)), 0.05)
+    core_ext = float(max((cxs.max() - cxs.min() + 1) * dpx * core_cos, (cys.max() - cys.min() + 1) * dpy))
+    circ = min(1.0, _solid_angle(cys, h, w) / (math.pi * (core_ext / 2) ** 2)) if core.any() else 0.0  # core shape
     cx, cy = (float(cxs.mean()) + 0.5) % w, float(cys.mean()) + 0.5
     yaw, elev = pixel_to_angles(cx, cy, w, h)
     b = Blob(cx, cy, len(xs), yaw, elev, omega, extent, math.sqrt(omega / math.pi), circ,

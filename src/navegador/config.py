@@ -83,7 +83,7 @@ class AstrolabeSettings(BaseModel):
     min_pixels: int = 3
     max_solid_angle_deg2: float = 800
     max_extent_deg: float = 40
-    min_circularity: float = 0.5
+    min_circularity: float = 0.4
     ring_inner: float = 1.5
     ring_outer: float = 3.0
     min_contrast: float = 0.2

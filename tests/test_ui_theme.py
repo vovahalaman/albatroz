@@ -20,7 +20,7 @@ def test_streamlit_config_mirrors_theme_colours():
 
 
 def test_no_hard_coded_colours_outside_theme():
-    for name in ("app.py", "components.py", "backend.py"):
+    for name in ("app.py", "components.py", "runner.py"):
         assert not HEX.findall((ROOT / "ui" / name).read_text()), f"colour literal in ui/{name}"
 
 

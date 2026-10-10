@@ -63,7 +63,7 @@ html, body, [class*="css"], .stApp, .stMarkdown, button, input, textarea {{
 }}
 .stApp {{ background: {c["bg"]}; }}
 header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ display: none !important; }}
-.block-container {{ padding: {s["lg"]}px {s["xl"]}px {s["xl"]}px {s["xl"]}px !important; max-width: 100% !important; }}
+.block-container {{ padding: {s["lg"]}px {s["xl"]}px {s["xl"]}px {s["xl"]}px !important; max-width: 1480px !important; }}
 [data-testid="stVerticalBlock"] {{ gap: {s["md"]}px; }}
 
 /* panels = bordered containers */
@@ -91,7 +91,9 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-brand span {{ color: {c["muted"]}; font-weight: 500; }}
 .nv-status {{ flex: 1; display: flex; align-items: center; gap: {s["md"]}px; padding: {s["sm"]}px {s["lg"]}px;
   border-radius: {r}px; background: {c["accent_soft"]}; border: 1px solid {c["accent"]}; font-weight: 500; }}
+.nv-status {{ font-size: {z["title"]}px; }}
 .nv-status.warn {{ background: {c["warning_soft"]}; border-color: {c["warning"]}; }}
+.nv-status.done {{ background: {c["accent"]}; border-color: {c["accent"]}; color: {c["on_accent"]}; }}
 .nv-status.error {{ background: {c["error_soft"]}; border-color: {c["error"]}; }}
 .nv-status .nv-next {{ font-size: {z["label"]}px; letter-spacing: .08em; text-transform: uppercase;
   color: {c["muted"]}; font-weight: 600; }}
@@ -137,9 +139,17 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-guard {{ background: {c["warning_soft"]}; border: 1px solid {c["warning"]}; border-radius: {r}px;
   padding: {s["sm"]}px {s["md"]}px; margin: 0 0 {s["sm"]}px 0; }}
 
+/* the one big Start button */
+.st-key-start button {{ min-height: 64px !important; font-size: {z["title"]}px !important; }}
+[data-testid="stFileUploaderDropzone"] {{ background: {c["panel_2"]}; border: 1px dashed {c["border"]};
+  border-radius: {r}px; }}
+[data-testid="stExpander"] details {{ background: {c["panel"]}; border: 1px solid {c["border"]};
+  border-radius: {r}px; }}
+[data-testid="stExpander"] summary p {{ font-weight: 600; }}
+
 /* question card: answer options are one choice group (outlined accent), not several primary buttons */
 [class*="st-key-opt-"] button {{ background: {c["accent_soft"]} !important; border: 1px solid {c["accent"]} !important;
-  color: {c["text"]} !important; justify-content: flex-start; font-weight: 600; }}
+  color: {c["text"]} !important; font-weight: 600; min-height: 52px; font-size: {z["base"] + 2}px !important; }}
 [class*="st-key-opt-"] button:hover {{ background: {c["accent"]} !important; color: {c["on_accent"]} !important; }}
 [class*="st-key-opt-"].st-key-none button, [class*="st-key-opt-"][class*="-none"] button {{
   background: transparent !important; border-color: {c["border"]} !important; color: {c["muted"]} !important; }}

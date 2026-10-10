@@ -1,15 +1,22 @@
-"""Headless runs of the Streamlit app with the mock backend (no API calls; conftest blocks real LLM requests)."""
+"""Headless runs of the Streamlit app with a fake pipeline (no API calls)."""
 
 from html import unescape
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
+from tests.ui_fakes import install, make_pano
+
 APP = str(Path(__file__).resolve().parents[1] / "ui" / "app.py")
+REMOVED = ["Special One", "60:00", "Penalty multiplier", "Expected score", "NEXT", "assisted", "autonomous",
+           "baseline", "Panoramas ·", "Mock"]
 
 
-def _app() -> AppTest:
-    return AppTest.from_file(APP, default_timeout=60).run()
+@pytest.fixture
+def calls(monkeypatch):
+    monkeypatch.setenv("NAVEGADOR_UI_INLINE", "1")  # Runner runs pipeline tasks synchronously
+    return install(monkeypatch)
 
 
 def _text(at: AppTest) -> str:
@@ -21,96 +28,66 @@ def _click(at: AppTest, label: str) -> AppTest:
     return btn.click().run()
 
 
-def _run_until_stop(at: AppTest) -> AppTest:
-    """Advance the mock agent the way the 1-second ticker does."""
-    backend, pid = at.session_state["backend"], at.session_state["queue"][at.session_state["selected"]].pano_id
-    for _ in range(20):
-        if backend.step(pid).state.status != "running":
-            break
-    return at.run()
+def _started(tmp_path: Path) -> AppTest:
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.session_state["image_path"] = str(make_pano(tmp_path))
+    at = at.segmented_control(key="label-0").set_value("non_urban").run()
+    return _click(at, "Start")
 
 
-def _started() -> AppTest:
-    at = _click(_app(), "Start session")
-    return _run_until_stop(_click(at, "Start agent"))
-
-
-def test_start_screen():
-    at = _app()
+def test_setup_screen_has_upload_label_and_start_only(calls):
+    at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
     text = _text(at)
-    assert "Navegador" in text and "60:00" in text
-    assert "Mark each panorama urban or non-urban" in text
-    assert [b.label for b in at.button if b.label in ("Start session", "Start agent")] == ["Start session", "Start agent"]
+    assert "Upload a panorama, choose urban or non-urban" in text
+    assert [b.label for b in at.button] == ["Start"] and at.button[0].disabled  # no image, no label yet
+    assert at.segmented_control(key="label-0").options == ["urban", "non_urban"]
+    for word in REMOVED:
+        assert word not in text, word
 
 
-def test_agent_asks_question_with_costs_and_breakdown():
-    at = _started()
+def test_start_runs_the_pipeline_and_shows_the_question(calls, tmp_path):
+    at = _started(tmp_path)
     assert not at.exception
+    assert calls == ["start_run:non_urban:assisted", "advance"]
     text = _text(at)
-    assert "Which area does this panorama show?" in text and "Answer the agent's question" in text
-    labels = [b.label for b in at.button]
-    assert any(lbl.startswith("A · ") for lbl in labels) and any("None of these areas" in lbl for lbl in labels)
-    assert "Answer costs ×0.95" in text and "Manual points" in text and "Answer the question first" in text
+    assert "The agent has a question for you." in text and "Which area does this panorama show?" in text
+    assert [b.label for b in at.button if b.label[:1] in "ABC" and " · " in b.label] == [
+        "A · Baixa, Lisboa", "B · Ribeira, Porto", "C · None of these areas"]
+    assert "Answer the question first." in text  # cue section explains why it is closed
+    assert not at.code  # no result yet
 
 
-def test_answer_reaches_final_submission_and_log():
-    at = _started()
-    option_a = next(b for b in at.button if b.label.startswith("A · "))
-    at = _run_until_stop(option_a.click().run())
-    assert not at.exception
-    state = at.session_state["backend"].view(at.session_state["queue"][0].pano_id).state
-    assert state.status == "done" and abs(state.submission.penalty_factor - 0.95) < 1e-9
+def test_answer_shows_result_copy_downloads_and_findings(calls, tmp_path):
+    at = _started(tmp_path)
+    at = _click(at, "A · Baixa, Lisboa")
+    assert not at.exception and calls[-1] == "answer:A"
     text = _text(at)
-    assert "Submission · 10 coordinates" in text and "Copy the 10 coordinates" in text
+    assert "Done. Copy the 10 coordinates." in text and "Result · 10 coordinates" in text
     (code,) = list(at.code)
     lines = code.value.strip().splitlines()
     assert len(lines) == 10 and all(", " in ln for ln in lines)
-    events = [e["event"] for e in at.session_state["backend"].runs[state.pano_id].events]
-    assert {"run_start", "mcq_shown", "mcq_answer", "penalty", "submission"} <= set(events)
+    assert "Old town with calçada." in text and "Baixa, Lisboa" in text  # Findings: Detective tab
+    assert [t.label for t in at.tabs] == ["Detective", "Geographer", "Reader", "Critic"]
+    for word in REMOVED:
+        assert word not in text, word
 
 
-def _done() -> AppTest:
-    at = _started()
-    option_a = next(b for b in at.button if b.label.startswith("A · "))
-    return _run_until_stop(option_a.click().run())
-
-
-def test_cue_is_closed_while_question_pending():
-    at = _started()
-    assert "Answer the question first" in _text(at)
-    assert not [b for b in at.button if b.label == "Review cue"]
-
-
-def test_cue_after_result_needs_confirmation_and_guard_can_be_overridden():
-    at = _done()
-    pid = at.session_state["queue"][0].pano_id
-    at = at.text_area(key=f"cue-{pid}").input("Tram tracks and a steep street near Lisboa").run()
-    at = _click(at, "Review cue")
-    assert "Confirm or edit the cue" in _text(at)
-    at = _click(at, "Send cue · ×0.8")
-    assert "Cue guard" in _text(at)  # blocked: no cue penalty yet
-    state = at.session_state["backend"].view(pid).state
-    assert [p.kind for p in state.penalties] == ["mcq"]
+def test_cue_after_result_needs_confirmation_and_guard_override(calls, tmp_path):
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
+    pid = at.session_state["pano_id"]
+    at = _click(at.text_area(key=f"cue-{pid}").input("Steep street near Lisboa").run(), "Review cue")
+    assert "Send this cue to the agent?" in _text(at)
+    at = _click(at, "Send cue")
+    assert "names a place. Cues must not refer to a location" in _text(at) and calls[-1] == "cue:False"
     at = _click(at, "Send anyway")
-    state = at.session_state["backend"].view(pid).state
-    assert [p.kind for p in state.penalties] == ["mcq", "cue"] and state.cues[0].override
-    events = [e["event"] for e in at.session_state["backend"].runs[pid].events]
-    assert events.count("cue_blocked") == 1 and events.count("cue_override") == 1
-    assert state.stage != "done" or state.submission is not None  # agent re-investigated from S4
+    assert calls[-2:] == ["cue:True", "advance"]
+    assert "The agent has a question for you." in _text(at)  # the agent investigated again and asks anew
 
 
-def test_clean_cue_after_result_is_sent():
-    at = _done()
-    pid = at.session_state["queue"][0].pano_id
-    at = _click(at.text_area(key=f"cue-{pid}").input("Steep cobbled street with tram tracks").run(), "Review cue")
-    at = _click(at, "Send cue · ×0.8")
-    state = at.session_state["backend"].view(pid).state
-    assert [p.kind for p in state.penalties] == ["mcq", "cue"] and not state.cues[0].guard_flag
-
-
-def test_live_backend_can_be_chosen_before_session():
-    at = _app()
-    at = at.segmented_control(key="backend-select").set_value("Live").run()
-    assert at.session_state["backend"].name == "Live"
-    assert "Live runs the real agent" in _text(at)
+def test_new_image_clears_everything(calls, tmp_path):
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
+    at = _click(at, "New image")
+    assert at.session_state["pano_id"] is None and at.session_state["image_path"] is None
+    assert [b.label for b in at.button] == ["Start"]
+    assert at.segmented_control(key="label-1").value is None  # a fresh label choice

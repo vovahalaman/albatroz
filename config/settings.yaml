@@ -36,3 +36,42 @@ scoring:
 # Added in P0b (not in SPEC §6): magnifier render settings. Values are SPEC §9.1; u-views (up_pitch) are an addition.
 magnifier: {view_fov: 90, view_size: 1024, ground_pitch: -50, up_pitch: 50, overview_wh: [2048, 1024],
             zoom_fov: [8, 90], zoom_size: [64, 2048], jpeg_quality: 90}
+
+# Astrolábio (SPEC §9.2). Tune detection with scripts/sun_debug.py. The camera clock is unreliable,
+# so sun_check evaluates every entry of time_hypotheses ("local" = time zone at the candidate point).
+astrolabe:
+  detect_size: [1520, 760]
+  brightness_min: 250          # max(R,G,B) of a candidate pixel
+  saturation_max: 0.15         # (max-min)/max of a candidate pixel
+  min_pixels: 3
+  max_solid_angle_deg2: 800    # glare blob; larger is clipped sky, clouds or walls (real sun glare: 350-600)
+  max_extent_deg: 40           # glare angular width (x cos elev) or height
+  min_circularity: 0.4         # of the saturated core: solid angle / (pi * (extent/2)^2)
+  ring_inner: 1.5              # contrast ring radii, multiples of the blob radius
+  ring_outer: 3.0
+  min_contrast: 0.2            # (blob_mean - ring_mean) / blob_mean, on luminance
+  top_edge_max_span_deg: 10    # wider contact with the top row is rejected
+  ambiguity_ratio: 0.8         # runner-up score >= ratio * best -> no sun
+  min_confidence: 0.3
+  tilt_margin_deg: 3
+  core_min: 252                # min(R,G,B) of the saturated core that locates the sun (this camera clips at ~253)
+  min_core_radius_deg: 4       # real sun cores on training panos: 7.5-9 deg; false candidates: <= 3.4 deg
+  min_core_fraction: 0.3       # core pixels / glare pixels (real suns: 0.38-0.54, glare halo is not saturated)
+  min_elev_deg: 3              # sun core below this is a horizon object
+  ceiling_lat_deg: 27.5        # reject cores above the date's max noon sun at this latitude (+ tilt); 27.5 covers the Canaries
+  # Gemini (models.perception) fallback when detect finds nothing, and verifier when it finds a sun.
+  vlm_fallback: true
+  vlm_uncertainty_deg: 8       # uncertainty of a VLM-located sun
+  vlm_confidence_cap: 0.3
+  vlm_max_calls: 25            # hard cap per process; responses are cached on disk by image hash
+  vlm_max_output_tokens: 512   # includes thinking tokens (137-192 seen with gemini-3.8-flash at LOW)
+  vlm_timeout_s: 30
+  vlm_max_attempts: 2          # 1 retry
+  vlm_media_resolution: MEDIUM # sky image is at most 1520x380
+  vlm_thinking_level: LOW      # only sent to Gemini 3+ models (llm.supports_thinking_level); MINIMAL unsupported by gemini-3.8-flash
+  vlm_bright_radius_deg: 2     # VLM point must be locally bright: disc mean luminance ...
+  vlm_ring_outer_deg: 8        # ... vs ring out to this radius
+  vlm_min_lum: 200             # disc mean luminance >= this
+  vlm_min_ring_delta: 10       # disc mean - ring mean >= this, unless the disc is saturated (>= core_min)
+  time_hypotheses: [local, UTC, Europe/Lisbon]
+  consistency_falloff_deg: 3   # residual beyond the uncertainty at which consistency reaches 0

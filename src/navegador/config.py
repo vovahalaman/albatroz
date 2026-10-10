@@ -94,6 +94,43 @@ class Scoring(BaseModel):
     penalty_factors: dict[Literal["cue", "mcq", "text_location"], float]
 
 
+class AstrolabeSettings(BaseModel):
+    detect_size: tuple[int, int] = (1520, 760)
+    brightness_min: int = 250
+    saturation_max: float = 0.15
+    min_pixels: int = 3
+    max_solid_angle_deg2: float = 800
+    max_extent_deg: float = 40
+    min_circularity: float = 0.4
+    ring_inner: float = 1.5
+    ring_outer: float = 3.0
+    min_contrast: float = 0.2
+    top_edge_max_span_deg: float = 10
+    ambiguity_ratio: float = 0.8
+    min_confidence: float = 0.3
+    tilt_margin_deg: float = 3
+    core_min: int = 252
+    min_core_radius_deg: float = 4
+    min_core_fraction: float = 0.3
+    min_elev_deg: float = 3
+    ceiling_lat_deg: float = 27.5
+    vlm_fallback: bool = True
+    vlm_uncertainty_deg: float = 8
+    vlm_confidence_cap: float = 0.3
+    vlm_max_calls: int = 25
+    vlm_max_output_tokens: int = 512
+    vlm_timeout_s: float = 30
+    vlm_max_attempts: int = 2
+    vlm_media_resolution: str = "MEDIUM"
+    vlm_thinking_level: str | None = "LOW"
+    vlm_bright_radius_deg: float = 2
+    vlm_ring_outer_deg: float = 8
+    vlm_min_lum: float = 200
+    vlm_min_ring_delta: float = 10
+    time_hypotheses: list[str] = Field(default_factory=lambda: ["local", "UTC", "Europe/Lisbon"])
+    consistency_falloff_deg: float = 3
+
+
 class Settings(BaseModel):
     gcp: dict[str, str] = Field(default_factory=dict)
     models: dict[str, str]
@@ -106,6 +143,7 @@ class Settings(BaseModel):
     flags: Flags
     scoring: Scoring
     magnifier: MagnifierSettings = Field(default_factory=MagnifierSettings)
+    astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)
 
 
 class Regions(BaseModel):

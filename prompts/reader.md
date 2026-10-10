@@ -37,8 +37,10 @@ coordinates or guess the location yourself.
    6. Phone numbers (record the landline prefix, see knowledge), web domains (.pt/.es/.fr), e-mail addresses.
    7. Licence plates: record the FORMAT and band colours only (e.g. "AA-00-AA, yellow band right"),
       never the characters.
-3. Chain brands (supermarkets, fuel stations, banks, fashion chains, fast food) exist everywhere.
-   Record them with kind `shop` and low confidence (≤0.3) unless a branch or street name is visible.
+3. Chain brands (supermarkets, fuel stations, banks, fashion chains, fast food) exist in many places.
+   Record them like any other text (kind `shop`, confidence = how clearly you can read it) and add
+   `(chain)` after the name, e.g. "Pingo Doce (chain)". Alone they say little, but every branch is on
+   the map, so the Detective uses them as a filter together with other clues.
 4. Determine the language of each text from its letters and words (see knowledge):
    ç ã õ "lh" "nh" "-ção" → pt; ñ → es or gl; "Rúa", "Concello" → gl; à è ò "l·l" "Carrer" → ca;
    many k / tx / tz, "kalea" → eu; "Rue", "Mairie" → fr.
@@ -47,7 +49,7 @@ coordinates or guess the location yourself.
    pt/es/fr/other equal low values instead of guessing.
 6. Write `search_terms`: most specific first, at most 8. Combine names with each other or with a town
    when the panorama shows it (e.g. "Pastelaria Alfa, Rua do Sol", "Junta de Freguesia de Arroios").
-   Do not include chain brands without a branch name. Do not include words that are only generic
+   Put chain brands last, as the plain brand name (e.g. "Pingo Doce"). Do not include words that are only generic
    ("Farmácia", "Restaurante") without a name.
 7. Write `zoom_requests` (at most 6) only where text is visible but not readable. Most valuable first,
    using the order of step 2.
@@ -65,7 +67,7 @@ coordinates or guess the location yourself.
 ## Rules
 - Separate observation from inference: `texts` contain only what is actually written; inference
   belongs in `language_verdict` and `search_terms` only.
-- Confidence 0–1: 0.9+ = every letter clearly readable; 0.5 = mostly readable; ≤0.3 = guess or chain brand.
+- Confidence 0–1 = how sure you are of the reading: 0.9+ = every letter clearly readable; 0.5 = mostly readable; ≤0.3 = guess.
 - Never invent text. An empty list is better than a wrong name.
 - Never output coordinates and never name a location that is not written in the panorama.
 - Plates: format and colours only.
@@ -89,10 +91,10 @@ coordinates or guess the location yourself.
     {"text": "Pastelaria Estrela d'Ouro", "view": "h090", "kind": "shop", "language": "pt", "confidence": 0.8},
     {"text": "Câmara Municipal de …", "view": "g180", "kind": "other", "language": "pt", "confidence": 0.5},
     {"text": "AA-00-AA, no yellow band", "view": "h270", "kind": "plate_format", "language": "other", "confidence": 0.6},
-    {"text": "Pingo Doce", "view": "h315", "kind": "shop", "language": "pt", "confidence": 0.2}
+    {"text": "Pingo Doce (chain)", "view": "h315", "kind": "shop", "language": "pt", "confidence": 0.9}
   ],
   "language_verdict": {"pt": 0.9, "es": 0.05, "fr": 0.0, "other": 0.05},
-  "search_terms": ["Pastelaria Estrela d'Ouro, Rua das Flores", "Rua das Flores"],
+  "search_terms": ["Pastelaria Estrela d'Ouro, Rua das Flores", "Rua das Flores", "Pingo Doce"],
   "zoom_requests": [
     {"yaw": 175, "pitch": -35, "fov": 20, "why": "municipality name on bin, partly unreadable"}
   ]

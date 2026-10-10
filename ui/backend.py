@@ -19,9 +19,15 @@ from navegador.core.state import State
 from navegador.schemas import CueResult, Submission
 from navegador.tools import strategist
 
-# Stages as shown to the operator (SPEC §4).
+MODES = ["assisted", "autonomous", "baseline"]  # assisted: questions + cues; baseline: one-call fallback
+# Stages as shown to the operator (SPEC §4); baseline mode runs S1, BASELINE, S7, S8.
 CREW_STAGES = [("S0", "Ingest"), ("S1", "Views"), ("S2", "Sun"), ("S3", "Perceive"), ("S4", "Investigate"),
                ("S5", "Critic"), ("S6", "Decide"), ("S7", "Submit"), ("S8", "Report")]
+BASELINE_STAGES = [("S0", "Ingest"), ("S1", "Views"), ("BASELINE", "Baseline"), ("S7", "Submit"), ("S8", "Report")]
+
+
+def stages_for(mode: str) -> list[tuple[str, str]]:
+    return list(BASELINE_STAGES if mode == "baseline" else CREW_STAGES)
 PENALTY_NAMES = {"cue": "Cues", "mcq": "Questions", "text_location": "Manual points"}
 
 
@@ -94,6 +100,38 @@ def expected_score(state: State) -> float:
     return preview_submission(state).expected_score
 
 
+def assess_reason(a: dict[str, Any]) -> str:
+    """Plain-language version of navigator.assess (why the agent asks, or why not)."""
+    w, c = a["cluster_weights"], a["checks"]
+    if a["decision"] == "ASK_MCQ":
+        return (f"{len(a['far_clusters'])} far-apart areas; the top one holds {w[0]:.0%} (below 60%) "
+                f"and the top three {sum(w[:3]):.0%}.")
+    if not c["assisted"]:
+        return "Only assisted mode asks questions."
+    if not w:
+        return "No candidates yet."
+    if not c["mcqs_left"]:
+        return "The question limit for this panorama is reached."
+    if not c["two_far_clusters"]:
+        return "All candidates are in one area."
+    if not c["top_uncertain"]:
+        return f"The top area is already likely enough ({w[0]:.0%})."
+    return f"The candidates are too spread out for a useful question (top three {sum(w[:3]):.0%})."
+
+
+def cue_block_reason(state: State, busy: bool) -> str | None:
+    """Why a cue cannot be sent right now, or None. pipeline.add_cue: assisted mode only, not while a
+    question is pending; the agent only stops at a question or the result, so cues come after a result
+    (they send it back to S4 and a new submission follows)."""
+    if state.mode != "assisted":
+        return "Cues are only allowed in assisted mode."
+    if state.pending_mcq is not None:
+        return "Answer the question first; cues open again after it."
+    if busy or state.status == "running":
+        return "The agent is working. Cues open when it stops at a question or a result."
+    return None
+
+
 def max_score(state: State) -> float:
     m = 1000 * sum(strategist.rank_weights()) * 2.0  # θ(0) = 2
     return m * (settings().scoring.special_one_multiplier if state.special_one else 1.0)
@@ -109,6 +147,8 @@ class Backend(Protocol):
     can_answer_mcq: bool
     can_add_cue: bool
 
+    def busy(self, pano_id: str | None) -> bool: ...  # agent work in flight (Live: worker thread)
+    def error(self, pano_id: str | None) -> str | None: ...
     def start(self, pano_path: Path, label: str, special_one: bool, mode: str) -> str: ...
     def has(self, pano_id: str | None) -> bool: ...
     def view(self, pano_id: str) -> RunView: ...

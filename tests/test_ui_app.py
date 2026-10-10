@@ -51,7 +51,7 @@ def test_agent_asks_question_with_costs_and_breakdown():
     assert "Which area does this panorama show?" in text and "Answer the agent's question" in text
     labels = [b.label for b in at.button]
     assert any(lbl.startswith("A · ") for lbl in labels) and any("None of these areas" in lbl for lbl in labels)
-    assert "Answer costs ×0.95" in text and "Cue costs ×0.8" in text and "Manual points" in text
+    assert "Answer costs ×0.95" in text and "Manual points" in text and "Answer the question first" in text
 
 
 def test_answer_reaches_final_submission_and_log():
@@ -70,30 +70,47 @@ def test_answer_reaches_final_submission_and_log():
     assert {"run_start", "mcq_shown", "mcq_answer", "penalty", "submission"} <= set(events)
 
 
-def test_cue_needs_confirmation_and_guard_can_be_overridden():
+def _done() -> AppTest:
     at = _started()
+    option_a = next(b for b in at.button if b.label.startswith("A · "))
+    return _run_until_stop(option_a.click().run())
+
+
+def test_cue_is_closed_while_question_pending():
+    at = _started()
+    assert "Answer the question first" in _text(at)
+    assert not [b for b in at.button if b.label == "Review cue"]
+
+
+def test_cue_after_result_needs_confirmation_and_guard_can_be_overridden():
+    at = _done()
     pid = at.session_state["queue"][0].pano_id
     at = at.text_area(key=f"cue-{pid}").input("Tram tracks and a steep street near Lisboa").run()
     at = _click(at, "Review cue")
     assert "Confirm or edit the cue" in _text(at)
     at = _click(at, "Send cue · ×0.8")
-    assert "Cue guard" in _text(at)  # blocked: no penalty yet
+    assert "Cue guard" in _text(at)  # blocked: no cue penalty yet
     state = at.session_state["backend"].view(pid).state
-    assert not state.penalties
-    first_mcq = state.pending_mcq.mcq_id
+    assert [p.kind for p in state.penalties] == ["mcq"]
     at = _click(at, "Send anyway")
     state = at.session_state["backend"].view(pid).state
-    assert [p.kind for p in state.penalties] == ["cue"] and state.cues[0].override
-    # the open question was withdrawn; the agent searched again (the ticker keeps stepping) and may ask anew
-    assert first_mcq not in [m.mcq_id for m in state.mcqs]
+    assert [p.kind for p in state.penalties] == ["mcq", "cue"] and state.cues[0].override
     events = [e["event"] for e in at.session_state["backend"].runs[pid].events]
     assert events.count("cue_blocked") == 1 and events.count("cue_override") == 1
+    assert state.stage != "done" or state.submission is not None  # agent re-investigated from S4
 
 
-def test_clean_cue_is_sent_after_confirmation():
-    at = _started()
+def test_clean_cue_after_result_is_sent():
+    at = _done()
     pid = at.session_state["queue"][0].pano_id
     at = _click(at.text_area(key=f"cue-{pid}").input("Steep cobbled street with tram tracks").run(), "Review cue")
     at = _click(at, "Send cue · ×0.8")
     state = at.session_state["backend"].view(pid).state
-    assert [p.kind for p in state.penalties] == ["cue"] and not state.cues[0].guard_flag
+    assert [p.kind for p in state.penalties] == ["mcq", "cue"] and not state.cues[0].guard_flag
+
+
+def test_live_backend_can_be_chosen_before_session():
+    at = _app()
+    at = at.segmented_control(key="backend-select").set_value("Live").run()
+    assert at.session_state["backend"].name == "Live"
+    assert "Live runs the real agent" in _text(at)

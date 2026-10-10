@@ -18,9 +18,8 @@ from navegador.core import navigator
 from navegador.core.state import State, utcnow
 from navegador.schemas import MCQ, Cue, CueResult, ExcludedZone, Hypothesis, MCQOption, Penalty, SunObs
 from navegador.tools import strategist
-from ui.backend import RunView, penalty_factor
+from ui.backend import RunView, assess_reason, penalty_factor, stages_for
 
-ORDER = ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"]
 NONE_TEXT = "None of these areas"
 
 # Two rounds per label: round 2 is used after "none of these".
@@ -109,7 +108,7 @@ class MockBackend:
         pano_id = f"mock-{Path(pano_path).stem}"
         state = State(pano_id=pano_id, run_id=uuid.uuid4().hex[:12], pano_path=Path(pano_path), label=label,
                       mode=mode, special_one=special_one, stage="S1")
-        view = RunView(state=state)
+        view = RunView(state=state, stages=stages_for(mode))
         self.runs[pano_id], self.rounds[pano_id] = view, 0
         self._log(view, "run_start", "pipeline", {"pano_path": str(pano_path), "label": label, "mode": mode,
                                                   "special_one": special_one, "backend": "mock"})
@@ -117,6 +116,12 @@ class MockBackend:
 
     def has(self, pano_id: str | None) -> bool:
         return pano_id in self.runs
+
+    def busy(self, pano_id: str | None) -> bool:
+        return False  # the UI ticker drives the mock one stage at a time
+
+    def error(self, pano_id: str | None) -> str | None:
+        return None
 
     def view(self, pano_id: str) -> RunView:
         return self.runs[pano_id]
@@ -127,11 +132,11 @@ class MockBackend:
         s = view.state
         if s.status != "running":
             return view
-        stage = s.stage
+        stage, order = s.stage, [c for c, _ in view.stages if c != "S0"]
         getattr(self, f"_{stage.lower()}")(view)
         self._log(view, "stage", "pipeline", {"stage": stage, "status": "done"})
         if s.status == "running" and s.stage == stage:  # the stage did not redirect
-            s.stage = ORDER[ORDER.index(stage) + 1] if stage != ORDER[-1] else "done"
+            s.stage = order[order.index(stage) + 1] if stage != order[-1] else "done"
         if s.stage == "done":
             s.status = "done"
         return view
@@ -169,8 +174,13 @@ class MockBackend:
         return view
 
     def add_cue(self, pano_id: str, text: str, override: bool = False) -> CueResult:
+        """Same rules as pipeline.add_cue: assisted mode only, not while a question is pending."""
         view = self.runs[pano_id]
         s = view.state
+        if s.mode != "assisted":
+            raise ValueError(f"cues are only allowed in assisted mode (run is {s.mode})")
+        if s.pending_mcq is not None:
+            raise ValueError("answer the pending MCQ before sending a cue")
         text = text.strip()
         if not text or len(text) > 1000:
             return CueResult(accepted=False, guard_flag=False, why="A cue must be 1–1000 characters.")
@@ -182,10 +192,7 @@ class MockBackend:
         s.cues.append(cue)
         self._log(view, "cue_override" if cue.override else "cue", "ui", {"text": text, "guard_flag": flagged,
                                                                           "why": why})
-        self._penalty(view, "cue", f"cue{len(s.cues)}")
-        if (pending := s.pending_mcq) is not None:  # the cue changes the evidence: withdraw the open question
-            s.mcqs.remove(pending)
-            self._log(view, "stage", "navigator", {"stage": "S6", "note": f"{pending.mcq_id} withdrawn after a cue"})
+        self._penalty(view, "cue", f"cue-{len(s.cues)}")
         s.stage, s.status = "S4", "running"
         return CueResult(accepted=True, guard_flag=flagged, why=why, cue=cue)
 
@@ -238,7 +245,7 @@ class MockBackend:
     def _s6(self, view: RunView) -> None:
         s = view.state
         a = navigator.assess(s)
-        view.mcq_reason = _reason(a)
+        view.mcq_reason = assess_reason(a)
         if a["decision"] != "ASK_MCQ":
             return
         cls = strategist.clusters(s.hypotheses, settings().mcq.cluster_eps_m.get(s.label))
@@ -252,6 +259,11 @@ class MockBackend:
         self._log(view, "mcq_shown", "navigator", {"mcq_id": mcq.mcq_id, "question": mcq.question,
                                                    "options": [o.model_dump() for o in options]})
 
+    def _baseline(self, view: RunView) -> None:
+        self._s3(view)
+        self._s4(view)
+        view.findings["baseline"] = {"country_probs": view.findings["geographer"]["country_probs"]}
+
     def _s7(self, view: RunView) -> None:
         sub = strategist.submit(view.state)
         view.state.submission = sub
@@ -262,19 +274,3 @@ class MockBackend:
     def _s8(self, view: RunView) -> None:
         pass  # report
 
-
-def _reason(a: dict[str, Any]) -> str:
-    """Plain-language version of navigator.assess for the question card."""
-    w, c = a["cluster_weights"], a["checks"]
-    if a["decision"] == "ASK_MCQ":
-        return (f"{len(a['far_clusters'])} far-apart areas; the top one holds {w[0]:.0%} (below 60%) "
-                f"and the top three {sum(w[:3]):.0%}.")
-    if not c["assisted"]:
-        return "Autonomous mode never asks."
-    if not c["mcqs_left"]:
-        return "The question limit for this panorama is reached."
-    if not c["two_far_clusters"]:
-        return "All candidates are in one area."
-    if not c["top_uncertain"]:
-        return f"The top area is already likely enough ({w[0]:.0%})."
-    return f"The candidates are too spread out for a useful question (top three {sum(w[:3]):.0%})."

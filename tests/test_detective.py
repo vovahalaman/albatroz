@@ -107,7 +107,7 @@ def test_run_records_hypotheses_and_writes_detective_json(state, monkeypatch):
 
     assert seen["inputs"]["reader"] == {"search_terms": ["CAL"]} and seen["inputs"]["geographer"] is None
     assert seen["tools"] == ["geocode", "reverse", "overpass_near", "overpass_named", "wiki_coords",
-                             "sun_check", "add_hypothesis"]
+                             "street_corners", "sun_check", "add_hypothesis"]
     assert len(hyps) == 1 and state.token_usage["total_token_count"] == 50
     saved = json.loads((st.run_dir(state.pano_id) / "detective.json").read_text())
     assert saved["summary"] == "summary text" and len(saved["hypotheses"]) == 1 and saved["error"] is None

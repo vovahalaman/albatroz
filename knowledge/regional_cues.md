@@ -33,3 +33,6 @@ verified: false — team to confirm on training panoramas
 
 ## Checklist dimensions
 vegetation · relief · soil colour · water/coast (+yaw) · roof type/colour · wall finish · chimneys · pavement · road markings · bollards/poles · signage shape/colour · vehicles · season.
+
+## Road signs
+- 

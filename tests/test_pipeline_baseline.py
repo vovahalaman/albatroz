@@ -232,3 +232,12 @@ def test_cli_batch_writes_summary_with_scores(tmp_path, pano, fake_llm, fake_geo
 
 def test_baseline_schema_matches_example():
     BaselineResult.model_validate(RESULT)
+
+def test_cli_batch_without_labels_uses_default_label(tmp_path, pano, fake_llm, fake_geo, capsys):
+    """No --labels: every panorama runs with --label; our own outputs under runs/ are not panoramas."""
+    Image.new("RGB", (64, 64)).save(tmp_path / "square_not_a_pano.jpg")
+    assert cli.main(["batch", str(tmp_path), "--label", "non_urban", "--truth", str(tmp_path / "none.csv")]) == 0
+    out = capsys.readouterr().out
+    assert f"1 of 1 panoramas have no label, using --label non_urban: {pano.name}" in out and "1/1 done" in out
+    cli.main(["batch", str(tmp_path), "--truth", str(tmp_path / "none.csv")])  # runs/ now holds views: skipped
+    assert "1/1 done" in capsys.readouterr().out

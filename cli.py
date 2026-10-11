@@ -137,8 +137,26 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(fh))
 
 
+def _is_pano(path: Path) -> bool:
+    """An equirectangular panorama (2:1), not one of our own outputs (views, zooms) under runs/ or cache/."""
+    from PIL import Image
+
+    from navegador.config import cache_dir, runs_dir
+
+    resolved = path.resolve()
+    if any(resolved.is_relative_to(d.resolve()) for d in (runs_dir(), cache_dir())):
+        return False
+    try:
+        with Image.open(path) as img:
+            w, h = img.size
+    except OSError:
+        return False
+    return w == 2 * h
+
+
 def batch(args: argparse.Namespace) -> int:
-    """Solve every labelled panorama under a folder; write a summary CSV to runs/_batch/."""
+    """Solve every panorama under a folder; write a summary CSV to runs/_batch/. Labels come from `--labels`
+    when given; panoramas it does not list use `--label`."""
     import csv
     import statistics
     import time
@@ -150,13 +168,18 @@ def batch(args: argparse.Namespace) -> int:
 
     # data/panoramas.csv writes "non-urban"; the contract is "non_urban"
     labels = {Path(r.get("filename") or r["file"]).name: r["label"].strip().lower().replace("-", "_")
-              for r in _read_csv(args.labels)}
+              for r in _read_csv(args.labels)} if args.labels else {}
     truth = {r["filename"]: (float(r["lat"]), float(r["lng"])) for r in _read_csv(args.truth)
              if r.get("lat") and r.get("lng")} if args.truth.exists() else {}
-    panos = [p for p in sorted(args.folder.rglob("*.jpg")) if p.name in labels][: args.limit]
+    panos = [p for p in sorted(args.folder.rglob("*.jpg")) if _is_pano(p)][: args.limit]
     if not panos:
-        print(f"no labelled .jpg under {args.folder} (labels from {args.labels})", file=sys.stderr)
+        print(f"no .jpg under {args.folder}", file=sys.stderr)
         return 1
+    unlabelled = [p.name for p in panos if p.name not in labels]
+    if unlabelled:
+        print(f"{len(unlabelled)} of {len(panos)} panoramas have no label, using --label {args.label}: "
+              + ", ".join(unlabelled))
+    labels = {p.name: labels.get(p.name, args.label) for p in panos}
     meta = scribe.metadata()
     # One hash over the prompts this mode uses, so summary CSVs of different prompt versions can be told apart.
     used = ["baseline.md"] if args.mode == "baseline" else CREW_PROMPTS
@@ -221,9 +244,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--mode", choices=["baseline", "autonomous", "assisted"], default="baseline")
     s.add_argument("--special", action="store_true")
     s.set_defaults(func=solve)
-    b = sub.add_parser("batch", help="solve every labelled panorama under a folder; summary CSV in runs/_batch/")
+    b = sub.add_parser("batch", help="solve every panorama under a folder; summary CSV in runs/_batch/")
     b.add_argument("folder", type=Path)
-    b.add_argument("--labels", type=Path, required=True, help="CSV with columns file|filename,label")
+    b.add_argument("--labels", type=Path, default=None,
+                   help="optional CSV with columns file|filename,label; panoramas it does not list use --label")
+    b.add_argument("--label", choices=["urban", "non_urban"], default="urban",
+                   help="label for panoramas without one in --labels (default: urban)")
     b.add_argument("--truth", type=Path, default=Path("eval/labels.csv"),
                    help="CSV filename,lat,lng for pseudo-scores (rows without lat/lng are ignored)")
     b.add_argument("--mode", choices=["baseline", "autonomous"], default="baseline")

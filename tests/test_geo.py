@@ -68,6 +68,7 @@ def http(monkeypatch):
     monkeypatch.setattr(geo, "_sleep", clock.sleep)
     monkeypatch.setattr(geo, "_last_nominatim", [float("-inf")])
     monkeypatch.setattr(settings().geo, "user_agent", UA)
+    monkeypatch.setattr(settings().geo, "overpass_fallback_urls", [])  # mirror tests set their own
     session.clock = clock
     with geo.use_run(PANO):
         yield session
@@ -315,3 +316,22 @@ def test_street_corners_merges_close_corners_and_reports_errors(http):
     http.push({"elements": [], "remark": "runtime error: Query timed out"})
     with pytest.raises(geo.GeoError, match="timed out"):
         geo.street_corners("Rua Z", 38.72, -9.14)
+
+
+def test_overpass_falls_back_to_mirrors_one_attempt_each(http, monkeypatch):
+    monkeypatch.setattr(settings().geo, "overpass_fallback_urls", ["https://m1/api", "https://m2/api"])
+    http.push({}, status=504)  # main: one attempt only
+    http.push({"elements": [], "remark": "runtime error: Query timed out"})  # m1 answers 200 but timed out
+    http.push(overpass_payload(1))  # m2 (last server) works
+    res = geo.overpass_near(38.7, -9.1, "amenity=cafe")
+    assert [c["url"] for c in http.calls] == [settings().geo.overpass_url, "https://m1/api", "https://m2/api"]
+    assert len(res) == 2 and tool_events("error") == []
+
+
+def test_overpass_all_mirrors_failing_raises(http, monkeypatch):
+    monkeypatch.setattr(settings().geo, "overpass_fallback_urls", ["https://m1/api"])
+    for _ in range(1 + settings().geo.retries):
+        http.push({}, status=504)
+    with pytest.raises(geo.GeoError, match="504"):
+        geo.overpass_near(38.7, -9.1, "amenity=cafe")
+    assert len(http.calls) == 1 + settings().geo.retries  # main once, last mirror with full retries

@@ -47,6 +47,10 @@ class MCQSettings(BaseModel):
     top3_min: float = 0.7
     cluster_eps_m: PerLabel
     far_m: PerLabel
+    # "Fine" MCQ (added, not in SPEC §4): when all candidates sit in one cluster but are distinct spots
+    # (street corners, nearby villages), ask which one. Same weight checks, on clusters of fine_eps_m.
+    fine_eps_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=20, non_urban=2000))
+    fine_far_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=40, non_urban=5000))
 
 
 class StrategistSettings(BaseModel):
@@ -66,6 +70,8 @@ class GeoSettings(BaseModel):
     retries: int = 3
     nominatim_url: str = "https://nominatim.openstreetmap.org"
     overpass_url: str = "https://overpass-api.de/api/interpreter"
+    # Tried in order after overpass_url fails (one attempt each; the last server gets the full retries).
+    overpass_fallback_urls: list[str] = Field(default_factory=list)
     wiki_url: str = "https://{lang}.wikipedia.org/w/api.php"
 
 

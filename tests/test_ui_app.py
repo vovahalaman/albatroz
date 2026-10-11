@@ -120,6 +120,32 @@ def test_run_shows_progress_line_and_question_beside_the_viewer(calls, tmp_path)
         assert word not in text, word
 
 
+def test_question_shows_each_options_points_with_coordinates_and_links(calls, tmp_path):
+    at = _started(tmp_path)
+    text = _text(at)
+    assert "Baixa, Lisboa · 50% · ±300 m" in text and "Ribeira, Porto · 50% · ±300 m" in text
+    assert [c.value for c in at.code] == ["38.710000, -9.140000", "41.140000, -8.610000"]  # copyable
+    assert "query=38.710000,-9.140000" in text and "viewpoint=41.140000,-8.610000" in text  # Maps / Street View
+    assert not [b for b in at.button if b.label == "Preview"]  # no embed key: links only
+    assert not [f for f in _iframes(at) if f.src.startswith("https://www.google.com/maps/embed")]
+
+
+def test_question_preview_toggles_street_view_of_a_point(calls, monkeypatch, tmp_path):
+    monkeypatch.setenv("GOOGLE_MAPS_EMBED_KEY", "test-key")
+    monkeypatch.setattr(streetview, "coverage", lambda lat, lng, radius, key: {"status": "OK", "pano_id": "p2"})
+    at = _started(tmp_path)
+    previews = [b for b in at.button if b.label == "Preview"]
+    assert len(previews) == 2
+    at = previews[1].click().run()
+    assert not at.exception and "Preview · B · Ribeira, Porto" in _text(at)
+    embeds = [f.src for f in _iframes(at) if f.src.startswith("https://www.google.com/maps/embed/v1/streetview")]
+    assert len(embeds) == 1 and "pano=p2" in embeds[0]
+    at = next(b for b in at.button if b.label == "Hide").click().run()
+    assert not [f for f in _iframes(at) if f.src.startswith("https://www.google.com/maps/embed")]
+    at = _click(at, "B · Ribeira, Porto")
+    assert not at.exception and calls[-1] == "answer:B" and at.session_state["mcq_preview"] is None
+
+
 def test_result_card_single_x10_row_copy_and_done_clock(calls, tmp_path):
     at = _click(_started(tmp_path), "A · Baixa, Lisboa")
     assert not at.exception and calls[-1] == "answer:A"

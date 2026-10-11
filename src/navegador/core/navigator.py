@@ -158,6 +158,15 @@ def _distinct(options: list[MCQOption], far: list[strategist.Cluster]) -> list[M
     return out
 
 
+def option_clusters(state: State, mcq: MCQ) -> dict[str, strategist.Cluster]:
+    """Option `cluster_id` (with the "spot:" prefix for spot MCQs) → its cluster of hypotheses. Hypotheses do not
+    change while an MCQ is pending, so this recomputes the clusters the MCQ was built from (also used by the UI
+    to show each option's points)."""
+    spot = any((o.cluster_id or "").startswith(SPOT_PREFIX) for o in mcq.options)
+    prefix = SPOT_PREFIX if spot else ""
+    return {prefix + c.cluster_id: c for c in _clusters(state, "spot" if spot else "area")}
+
+
 def apply_answer(state: State, option_id: str) -> Literal["S6", "S4"]:
     """Chosen cluster gets weight q_trust, others share the rest; "none of these" → excluded_zones → S4.
     Mutates the state (caller saves). Hypotheses do not change while the MCQ is pending, so the
@@ -169,9 +178,7 @@ def apply_answer(state: State, option_id: str) -> Literal["S6", "S4"]:
     if option is None:
         raise ValueError(f"option {option_id!r} not in {[o.id for o in mcq.options]}")
     mcq.answer, mcq.answered_at = option.id, st.utcnow()
-    spot = any((o.cluster_id or "").startswith(SPOT_PREFIX) for o in mcq.options)
-    prefix = SPOT_PREFIX if spot else ""
-    cls = {prefix + c.cluster_id: c for c in _clusters(state, "spot" if spot else "area")}
+    cls = option_clusters(state, mcq)
     shown = [cls[o.cluster_id] for o in mcq.options if o.cluster_id in cls]
 
     if option.cluster_id is not None:
@@ -182,7 +189,8 @@ def apply_answer(state: State, option_id: str) -> Literal["S6", "S4"]:
         for c in shown:
             radius = max(strategist.haversine_m((c.lat, c.lng), (h.lat, h.lng)) + h.radius_m for h in c.members)
             state.excluded_zones.append(ExcludedZone(lat=c.lat, lng=c.lng, radius_m=radius,
-                                                     label=next(o.text for o in mcq.options if o.cluster_id == prefix + c.cluster_id),
+                                                     label=next(o.text for o in mcq.options if o.cluster_id in cls
+                                                                and cls[o.cluster_id] is c),
                                                      ref=mcq.mcq_id))
         gone = {id(h) for c in shown for h in c.members}
         state.hypotheses = [h for h in state.hypotheses if id(h) not in gone]

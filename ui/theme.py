@@ -197,6 +197,8 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
   background: transparent !important; border-color: {c["border"]} !important; color: {c["muted"]} !important; }}
 /* question card */
 .nv-question, .stMarkdown p.nv-question {{ font-size: {z["title"]}px !important; font-weight: 600; line-height: 1.35; margin: 0 0 {s["md"]}px 0; }}
+.nv-point, .stMarkdown p.nv-point {{ margin: {s["sm"]}px 0 0 {s["md"]}px !important; }}
+[class*="st-key-pv-"] button {{ min-height: 32px; padding: 2px {s["sm"]}px; }}
 .nv-cost, .stMarkdown p.nv-cost {{ font-family: {f["mono"]}; color: {c["warning"]}; font-size: {z["small"]}px !important; }}
 
 /* widgets */

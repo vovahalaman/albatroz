@@ -16,12 +16,13 @@ from streamlit_folium import st_folium
 from navegador.core.state import State
 from navegador.schemas import MCQ, Submission
 from ui import streetview, theme
-from ui.runner import RunView, clean_summary
+from ui.runner import OptionPoint, RunView, clean_summary
 
 VIEWER_MAX_W = 4096  # px: the 360 viewer gets a downscaled copy so it loads fast
 VIEWER_H = 460  # the 360 viewer and the Street View frame
 PAIR_H = VIEWER_H + 58  # their panels: padding + header label + frame + padding
 NOTE_H = 32  # room for the satellite-fallback note under the Street View frame
+MCQ_PREVIEW_H = 300  # Street View preview of a question option's point
 RESULT_ZOOM = {"urban": 15, "non_urban": 11}  # map zoom on the result
 PANNELLUM = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build"
 
@@ -111,18 +112,55 @@ def viewer(path: Path | None, north_offset: float | None = None) -> None:
     st.iframe(viewer_html(str(path), path.stat().st_mtime, north_offset), height=VIEWER_H, alt="360 panorama")
 
 
-def question_card(mcq: MCQ, enabled: bool) -> str | None:
-    """The agent's question with one button per option. Returns the clicked option id."""
+def _link(href: str, text: str) -> str:
+    return f'<a class="nv-link" href="{escape(href, quote=True)}" target="_blank" rel="noopener">{escape(text)}</a>'
+
+
+def _option_points(mcq: MCQ, option_id: str, points: list[OptionPoint], can_preview: bool,
+                   preview: tuple[str, int] | None) -> tuple[str, int] | None:
+    """The agent's candidate points behind one option: name, share, radius, copyable coordinates, links and
+    (with an embed key) a Street View preview toggle. Returns (option id, point index) when Preview is clicked."""
+    asked = None
+    for i, p in enumerate(points):
+        html(f'<p class="nv-muted nv-point">{escape(p.label)} · {p.share:.0%} · ±{p.radius_m:,.0f} m</p>')
+        cols = st.columns([2.3, 1, 1, 0.9] if can_preview else [2.3, 1, 1], vertical_alignment="center", gap="small")
+        cols[0].code(f"{p.lat:.6f}, {p.lng:.6f}", language=None)  # Streamlit's code block has a copy icon
+        cols[1].markdown(_link(streetview.streetview_link(p.lat, p.lng), "Street View"), unsafe_allow_html=True)
+        cols[2].markdown(_link(streetview.maps_link(p.lat, p.lng), "Google Maps"), unsafe_allow_html=True)
+        if can_preview:
+            on = preview == (option_id, i)
+            if cols[3].button("Hide" if on else "Preview", key=f"pv-{mcq.mcq_id}-{option_id}-{i}",
+                              type="secondary" if on else "tertiary", width="stretch"):
+                asked = (option_id, i)
+    return asked
+
+
+def question_card(mcq: MCQ, enabled: bool, points: dict[str, list[OptionPoint]] | None = None,
+                  preview: tuple[str, int] | None = None, label_: str = "urban"
+                  ) -> tuple[str | None, tuple[str, int] | None]:
+    """The agent's question with one button per option and, under each, the points the agent has in mind
+    (to check on a map before answering). Returns (clicked option id, clicked preview (option id, index))."""
     label("The agent asks")
     html(f'<p class="nv-question">{escape(mcq.question)}</p>')
-    clicked = None
+    points = points or {}
+    key_ = streetview.embed_key()
+    clicked = asked = None
     for o in mcq.options:
         key = f"opt-{mcq.mcq_id}-{o.id}" + ("-none" if o.cluster_id is None else "")
         if st.button(f"{o.id} · {o.text}", key=key, disabled=not enabled, width="stretch"):
             clicked = o.id
+        if o.id in points:
+            asked = _option_points(mcq, o.id, points[o.id], key_ is not None, preview) or asked
     if any(o.cluster_id is None for o in mcq.options):
         html('<p class="nv-muted">"None of these" rules out the listed areas; the agent searches again.</p>')
-    return clicked
+    shown = points.get(preview[0], [])[preview[1]] if preview and preview[1] < len(points.get(preview[0], [])) else None
+    if shown is not None and key_ is not None:
+        emb = streetview.embed_for(shown.lat, shown.lng, label_, key_)
+        label(f"Preview · {preview[0]} · {shown.label}")
+        st.iframe(emb.url, height=MCQ_PREVIEW_H, alt="Street View preview")
+        if emb.note:
+            html(f'<p class="nv-muted nv-warn" style="margin:0">{escape(emb.note)}</p>')
+    return clicked, asked
 
 
 def _bar(value: float) -> str:

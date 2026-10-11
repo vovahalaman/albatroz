@@ -4,8 +4,12 @@ import json
 import time
 
 from navegador.core import pipeline
+from navegador.core import state as st
+from navegador.core.state import utcnow
+from navegador.schemas import MCQ, Hypothesis, MCQOption
 from tests.ui_fakes import install, make_pano
-from ui.runner import Runner, cue_block_reason, finished_at, save_upload, stage_line, top_place
+from ui.runner import (MCQ_POINTS_MAX, Runner, cue_block_reason, finished_at, mcq_points, save_upload,
+                       stage_line, top_place)
 
 
 def test_start_runs_assisted_and_stops_at_the_question(monkeypatch, tmp_path):
@@ -111,3 +115,34 @@ def test_first_point_is_plain_text_without_label_or_symbols():
     assert first_point("Plain sentence one. Sentence two.") == "Plain sentence one."
     long = first_point("- " + "word " * 80)
     assert len(long) <= 221 and long.endswith("…")
+
+
+def _h(lat, lng, weight, label):
+    return Hypothesis(lat=lat, lng=lng, radius_m=60, weight=weight, label=label, provenance="estimated",
+                      source="detective")
+
+
+def _mcq(*cluster_ids):
+    opts = [MCQOption(id="ABCD"[i], text=f"opt {i}", cluster_id=c) for i, c in enumerate(cluster_ids)]
+    return MCQ(mcq_id="m1", question="q", asked_at=utcnow(),
+               options=[*opts, MCQOption(id="ABCD"[len(opts)], text="None of these")])
+
+
+def test_mcq_points_are_the_heaviest_members_of_each_options_cluster(tmp_path):
+    s = st.new_state(make_pano(tmp_path), "urban", "assisted", False)
+    s.hypotheses = [_h(38.7100, -9.1400, 0.30, "Sé"), _h(38.7101, -9.1401, 0.10, "Sé corner"),
+                    _h(38.7102, -9.1399, 0.05, "Sé lane"), _h(38.7099, -9.1400, 0.05, "Sé steps"),
+                    _h(41.1400, -8.6100, 0.40, "Ribeira")]
+    pts = mcq_points(s, _mcq("c1", "c0"))  # c0 = the Sé cluster (0.5 in 4 members), c1 = Ribeira (0.4)
+    assert set(pts) == {"A", "B"}  # "None of these" has no points
+    assert [(p.label, round(p.share, 2)) for p in pts["A"]] == [("Ribeira", 0.44)]  # share of all weight
+    assert len(pts["B"]) == MCQ_POINTS_MAX == 3
+    assert [p.label for p in pts["B"]] == ["Sé", "Sé corner", "Sé lane"]
+    assert (pts["B"][0].lat, pts["B"][0].lng, pts["B"][0].radius_m) == (38.71, -9.14, 60)
+
+
+def test_mcq_points_for_a_spot_question_use_the_fine_clusters(tmp_path):
+    s = st.new_state(make_pano(tmp_path), "urban", "assisted", False)
+    s.hypotheses = [_h(38.7100, -9.1400, 0.6, "Corner A"), _h(38.7105, -9.1400, 0.4, "Corner B")]  # ~55 m apart
+    pts = mcq_points(s, _mcq("spot:c0", "spot:c1"))
+    assert [p[0].label for p in (pts["A"], pts["B"])] == ["Corner A", "Corner B"]

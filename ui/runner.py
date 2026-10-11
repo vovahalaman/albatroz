@@ -20,15 +20,40 @@ from pathlib import Path
 from typing import Any
 
 from navegador.config import runs_dir, settings
-from navegador.core import pipeline, scribe
+from navegador.core import navigator, pipeline, scribe
 from navegador.core import state as st
 from navegador.core.state import State
-from navegador.schemas import CueResult
+from navegador.schemas import MCQ, CueResult
 from navegador.tools import strategist
 from ui.progress import LINES
 
 MODE = "assisted"
 FINDING_FILES = ("detective", "geographer", "reader", "advocate")
+MCQ_POINTS_MAX = 3  # points shown per question option
+
+
+@dataclass(frozen=True)
+class OptionPoint:
+    """One hypothesis behind a question option, for checking it on a map."""
+    label: str
+    lat: float
+    lng: float
+    share: float  # of the weight of all hypotheses
+    radius_m: float
+
+
+def mcq_points(state: State, mcq: MCQ) -> dict[str, list[OptionPoint]]:
+    """Option id → the heaviest hypotheses of the cluster it stands for (the same clusters the answer is applied
+    to). "None of these" and options whose cluster is gone get no entry."""
+    clusters = navigator.option_clusters(state, mcq)
+    total = sum(h.weight for h in state.hypotheses) or 1.0
+    out: dict[str, list[OptionPoint]] = {}
+    for o in mcq.options:
+        c = clusters.get(o.cluster_id) if o.cluster_id else None
+        if c is not None:
+            out[o.id] = [OptionPoint(h.label, h.lat, h.lng, h.weight / total, h.radius_m)
+                         for h in sorted(c.members, key=lambda h: -h.weight)[:MCQ_POINTS_MAX]]
+    return out
 
 
 @dataclass

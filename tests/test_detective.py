@@ -141,3 +141,16 @@ def test_lookup_wrappers_have_real_types_for_the_sdk(state):
     tool = detective._lookup(detective._Session(state), geo.geocode)
     params = inspect.signature(tool).parameters
     assert params["query"].annotation is str and params["limit"].annotation is int
+
+
+def test_local_tools_do_not_use_the_lookup_budget(state):
+    session = detective._Session(state)
+    session.budget = 1
+
+    def local(x: int) -> dict:
+        return {"x": x}
+
+    free = detective._lookup(session, local, counted=False)
+    assert [free(x=i) for i in range(3)] == [{"x": 0}, {"x": 1}, {"x": 2}] and session.used == 0
+    paid = detective._lookup(session, local)
+    assert paid(x=1) == {"x": 1} and "budget exhausted" in paid(x=2)["error"]

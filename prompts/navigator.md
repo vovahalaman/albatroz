@@ -15,6 +15,8 @@ JSON with:
   (name, display_name, address parts such as suburb, city, municipality, county, state, country),
   `candidate_labels` (what the crew thinks is there) and a `weight`. The last option is `none_of_these`.
 - `previous_questions`: questions already asked for this panorama (do not repeat them).
+- `scope`: `area` (the options are far apart: cities, regions) or `spot` (the options are nearby spots
+  inside one area, e.g. the corners of one street, two sides of a square, neighbouring villages).
 
 ## Procedure
 1. For each zone option, write a short name a person from Portugal, Spain or France would recognise:
@@ -26,12 +28,19 @@ JSON with:
    Use only places that appear in the option's `zone` or `candidate_labels`. Write each name in its local
    language (the address may come in another language, e.g. "Castela e Leão" → "Castilla y León").
    Add the country code when the options span more than one country.
-2. Word the `none_of_these` option as "None of these areas".
-3. Write one question that asks which area the panorama shows. Keep it neutral: do not hint which
+   For `scope: spot` the zones share the same address, so name each option after its own
+   `candidate_labels` (the first one is the strongest): e.g. "Corner with Rua da Bempostinha",
+   "Corner with Rua dos Castelinhos". The human will check each spot on a map or in Street View, so the
+   option must name something findable there (cross street, square, landmark, village).
+2. Word the `none_of_these` option as "None of these areas" (`area`) or "None of these spots" (`spot`).
+3. Write one question that asks which area the panorama shows (`spot`: which spot the camera stands at,
+   naming the shared street or area, e.g. "Rua de Rafael de Andrade, Lisboa: which corner is the camera at?"). Keep it neutral: do not hint which
    option the crew prefers and do not mention weights.
 
 ## Rules
 - Return exactly the given option ids, in the same order, one text each. Never add, drop or merge options.
+- Every option text must be different. If two zones share a name (same parish or city), tell them apart
+  with their `candidate_labels` (e.g. "Arroios: Rua Rafael de Andrade" vs "Arroios: Largo de Santa Bárbara").
 - Never add a place that is not in the input. Never output coordinates.
 - Separate observation from inference: describe areas, not evidence you have not been given.
 - Question at most 150 characters; each option at most 60 characters.

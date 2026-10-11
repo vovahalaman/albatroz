@@ -18,11 +18,16 @@ budgets: {detective_max_tool_calls: 12, llm_timeout_s: 120, pano_soft_budget_s: 
           llm_max_output_tokens: 8192}   # max_output_tokens added in P0b: caps runaway JSON (Gemini repeating digits)
 
 mcq: {max_per_pano: 2, q_trust: 0.85, top_cluster_max: 0.6, top3_min: 0.7,
-      cluster_eps_m: {urban: 300, non_urban: 5000}, far_m: {urban: 1000, non_urban: 30000}}
+      cluster_eps_m: {urban: 300, non_urban: 5000}, far_m: {urban: 1000, non_urban: 30000},
+      # added: "fine" MCQ between distinct nearby spots (street corners, villages) inside one cluster
+      fine_eps_m: {urban: 20, non_urban: 2000}, fine_far_m: {urban: 40, non_urban: 5000}}
 
 strategist: {mode: ev, mc_samples: 4000, grid_step_m: {urban: 25, non_urban: 2000}, estimated_weight_factor: 0.3}
 
-geo: {nominatim_min_interval_s: 1.1, max_geocode_calls_per_pano: 20, user_agent: "navegador-junctionx/1.0 (khalamanvova@gmail.com)"}
+geo: {nominatim_min_interval_s: 1.1, max_geocode_calls_per_pano: 20, user_agent: "navegador-junctionx/1.0 (khalamanvova@gmail.com)",
+      # overpass-api.de returns 504 when busy; mirrors are tried in order (one attempt each, last one with retries)
+      overpass_fallback_urls: ["https://overpass.private.coffee/api/interpreter",
+                               "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]}
 
 flags: {use_exif_gps: false, timestamp_is_local: true, commit_then_ask: false, advocate_enabled: false}
 

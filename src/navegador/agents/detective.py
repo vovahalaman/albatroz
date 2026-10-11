@@ -142,18 +142,20 @@ def make_add_hypothesis(state: State, session: _Session | None = None) -> Callab
     return add_hypothesis
 
 
-def _lookup(session: _Session, fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Budget, run attribution and error capture for one lookup tool; errors go back to the model."""
+def _lookup(session: _Session, fn: Callable[..., Any], counted: bool = True) -> Callable[..., Any]:
+    """Budget, run attribution and error capture for one lookup tool; errors go back to the model.
+    `counted=False` for local tools (sun_check): the budget protects the map services, and the deadline and
+    the AFC turn limit still bound the loop."""
     @wraps(fn)
     def tool(*args: Any, **kwargs: Any) -> Any:
-        if session.used >= session.budget:
+        if counted and session.used >= session.budget:
             return {"error": "tool budget exhausted; record your best candidates with add_hypothesis and stop"}
         if time.monotonic() >= session.deadline:
             scribe.log_event(session.state.pano_id, "tool_call", ACTOR,
                              # not "tool": geo counts tool_call events by "tool" against the Nominatim budget
                              {"refused_tool": fn.__name__, "reason": "soft deadline"}, run_id=session.state.run_id)
             return {"error": "time is up; record your best candidates with add_hypothesis now and stop"}
-        session.used += 1
+        session.used += counted
         try:
             with geo.use_run(session.state.pano_id, ACTOR):
                 result = fn(*args, **kwargs)
@@ -190,9 +192,9 @@ def _tools(session: _Session) -> list[Callable[..., Any]]:
         call_id = scribe.register_tool_call(state.pano_id, ACTOR, "sun_check", {"lat": lat, "lng": lng}, result)
         return {**result, "call_id": call_id}
 
-    lookups = [geo.geocode, geo.reverse, geo.overpass_near, geo.overpass_named, geo.wiki_coords, geo.street_corners,
-               sun_check]
-    return [*(_lookup(session, f) for f in lookups), make_add_hypothesis(state, session)]
+    lookups = [geo.geocode, geo.reverse, geo.overpass_near, geo.overpass_named, geo.wiki_coords, geo.street_corners]
+    return [*(_lookup(session, f) for f in lookups), _lookup(session, sun_check, counted=False),
+            make_add_hypothesis(state, session)]
 
 
 def _read_json(state: State, name: str) -> Any:

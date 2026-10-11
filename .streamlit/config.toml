@@ -1,0 +1,10 @@
+# Navegador UI theme. Source of truth: ui/theme.py (COLORS); tests/test_ui_theme.py checks these match.
+[theme]
+base = "dark"
+primaryColor = "#4F8CFF"
+backgroundColor = "#0F1115"
+secondaryBackgroundColor = "#171A21"
+textColor = "#E6E8EC"
+
+[browser]
+gatherUsageStats = false

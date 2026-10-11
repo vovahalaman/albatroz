@@ -144,6 +144,16 @@ Answered by the brief:
   `knowledge/` and `prompts/` must be frozen before Sunday (tag `freeze-sunday`) and must stay general
   (never "panorama X is in Y").
 
+- **Cross-panorama inference is not allowed** (team decision, 2026-10-11): each panorama is solved on its
+  own. `related_panoramas` was removed from `prompts/detective.md`; do not add timestamp-neighbour logic.
+- **Detective weight calibration (2026-10-11, before freeze).** Batch 1: weight 0.95 was wrong ~1 in 5, all
+  weights < 0.8 were wrong, 14/20 panos ended with one hypothesis (nothing for an MCQ). `prompts/detective.md`
+  now caps class-level / linear-feature / unconfirmed-organisation evidence at 0.6 and asks for 2–3 other
+  instances as hypotheses. Spot check (4 panos): 209 and 683 still hit; 179 moved from Setúbal (30 km off)
+  to Marvila 0.65 with Setúbal as an alternative; 141 still picked the CAL head office (the organisation
+  rule was tightened after that run, untested). `lessons.md` no longer tells the model to fill rank slots:
+  the Strategist's `ev` mode stays (all 10 slots on the best point maximise expected score).
+
 [CONFIRM] still open for the organizers (ask on Discord):
 
 1. **Submission format** for the 10 coordinates. Default: `export.to_albatroz` = `to_json`.

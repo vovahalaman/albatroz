@@ -139,6 +139,17 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-guard {{ background: {c["warning_soft"]}; border: 1px solid {c["warning"]}; border-radius: {r}px;
   padding: {s["sm"]}px {s["md"]}px; margin: 0 0 {s["sm"]}px 0; }}
 
+.nv-link, .stMarkdown a.nv-link {{ color: {c["accent"]} !important; font-size: {z["small"]}px; font-weight: 600;
+  text-decoration: none; white-space: nowrap; }}
+.nv-link:hover {{ text-decoration: underline; }}
+.nv-placeholder {{ display: flex; align-items: center; justify-content: center; color: {c["muted"]};
+  background: {c["panel"]}; border: 1px dashed {c["border"]}; border-radius: {r}px; }}
+[class*="st-key-cand-"] button {{ font-family: {f["mono"]}; justify-content: flex-start !important;
+  text-align: left; min-height: 36px; white-space: pre; }}
+[class*="st-key-cand-"] button > div, [class*="st-key-cand-"] button p {{ justify-content: flex-start !important;
+  text-align: left; width: 100%; }}
+
+/* the one big Start button */
 /* the one big Start button */
 .st-key-start button {{ min-height: 64px !important; font-size: {z["title"]}px !important; }}
 [data-testid="stFileUploaderDropzone"] {{ background: {c["panel_2"]}; border: 1px dashed {c["border"]};

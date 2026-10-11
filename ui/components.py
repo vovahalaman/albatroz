@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
+import base64
+import io
 import json
 from html import escape
 from pathlib import Path
 
 import folium
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image
 from streamlit_folium import st_folium
 
 from navegador.core.state import State
 from navegador.schemas import MCQ, Submission
-from ui import theme
+from ui import streetview, theme
 from ui.runner import STAGES, RunView
+
+VIEWER_MAX_W = 4096  # px: the 360 viewer gets a downscaled copy so it loads fast
+VIEWER_H = 480
+PANNELLUM = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build"
 
 
 def html(markup: str) -> None:
@@ -52,15 +57,34 @@ def stage_chips(view: RunView) -> None:
     html(f'<div class="nv-chips">{"".join(chips)}</div>')
 
 
-@st.cache_data(show_spinner=False, max_entries=16)
-def _preview(path: str, mtime: float, width: int = 1600) -> Image.Image:
+@st.cache_data(show_spinner=False, max_entries=8)
+def viewer_html(path: str, mtime: float) -> str:
+    """Pannellum page for one panorama. Identical input → identical HTML, so Streamlit keeps the iframe
+    (and the operator's view direction) across reruns instead of reloading it."""
     with Image.open(path) as im:
-        im.draft("RGB", (width, width // 2))
-        return im.convert("RGB").resize((width, width // 2), Image.Resampling.LANCZOS)
+        im = im.convert("RGB")
+        if im.width > VIEWER_MAX_W:
+            im = im.resize((VIEWER_MAX_W, VIEWER_MAX_W // 2), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=82)
+    data = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+    c, r = theme.COLORS, theme.RADIUS
+    config = {"type": "equirectangular", "panorama": data, "autoLoad": True, "showZoomCtrl": True,
+              "mouseZoom": True, "hfov": 100, "minHfov": 30, "maxHfov": 120, "showFullscreenCtrl": True}
+    return f"""<link rel="stylesheet" href="{PANNELLUM}/pannellum.css">
+<script src="{PANNELLUM}/pannellum.js"></script>
+<style>html,body{{margin:0;background:{c['bg']}}}
+#pano{{width:100%;height:{VIEWER_H}px;border-radius:{r}px;overflow:hidden;border:1px solid {c['border']}}}</style>
+<div id="pano"></div>
+<script>window.nvViewer = pannellum.viewer("pano", {json.dumps(config)});</script>"""
 
 
-def panorama(path: Path) -> None:
-    st.image(_preview(str(path), path.stat().st_mtime), width="stretch")
+def viewer(path: Path | None) -> None:
+    """The interactive 360 view (drag to look around, scroll to zoom)."""
+    if path is None:
+        html(f'<div class="nv-placeholder" style="height:{VIEWER_H}px">The 360 view appears here after upload.</div>')
+        return
+    st.iframe(viewer_html(str(path), path.stat().st_mtime), height=VIEWER_H + 4)
 
 
 def question_card(mcq: MCQ, enabled: bool) -> str | None:
@@ -142,7 +166,8 @@ def findings(view: RunView) -> None:
                  f"<th>Weight</th></tr>{rows}</table>")
 
 
-def candidate_map(state: State, sub: Submission, height: int = 460) -> None:
+def candidate_map(state: State, sub: Submission, selected: int, height: int = 460) -> tuple[float, float] | None:
+    """Map with the 10 candidates (grouped when identical); returns the last clicked (lat, lng), if any."""
     pts = [(c.lat, c.lng) for c in sub.candidates]
     m = folium.Map(location=pts[0], zoom_start=12 if state.label == "urban" else 8, tiles=None, control_scale=True)
     base, labels = theme.MAP_TILES
@@ -160,21 +185,55 @@ def candidate_map(state: State, sub: Submission, height: int = 460) -> None:
         seen.setdefault((cand.lat, cand.lng), []).append(cand.rank)
     for (lat, lng), ranks in seen.items():
         tag = f"{ranks[0]}" if len(ranks) == 1 else f"{ranks[0]}–{ranks[-1]}"
+        on = selected in ranks
+        fg, bg, ring = ((c["on_accent"], c["accent"], c["on_accent"]) if on else (c["text"], c["panel_2"], c["accent"]))
         icon = folium.DivIcon(html=f'<div style="font-family:{theme.FONTS["mono"]};font-size:13px;font-weight:600;'
-                                   f'color:{c["on_accent"]};background:{c["accent"]};border-radius:999px;'
+                                   f'color:{fg};background:{bg};border:2px solid {ring};border-radius:999px;'
                                    f'padding:2px 8px;white-space:nowrap;transform:translate(-50%,-50%);'
-                                   f'display:inline-block">{tag}</div>')
+                                   f'display:inline-block;cursor:pointer">{tag}</div>')
         folium.Marker((lat, lng), icon=icon, tooltip=f"rank {tag}: {lat:.6f}, {lng:.6f}").add_to(m)
     if len(seen) > 1:
         m.fit_bounds(pts, padding=(40, 40))
-    st_folium(m, height=height, use_container_width=True, returned_objects=[], key=f"map-{state.pano_id}")
+    out = st_folium(m, height=height, use_container_width=True, returned_objects=["last_object_clicked"],
+                    key=f"map-{state.pano_id}")
+    click = (out or {}).get("last_object_clicked")
+    return (click["lat"], click["lng"]) if click else None
+
+
+def candidate_rows(sub: Submission, selected: int) -> int | None:
+    """The 10 coordinates; clicking a row selects it. Each row links to Street View and Google Maps."""
+    clicked = None
+    for cand in sorted(sub.candidates, key=lambda x: x.rank):
+        c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="center", gap="small")
+        on = cand.rank == selected
+        if c1.button(f"{cand.rank:>2}   {cand.lat:.6f}, {cand.lng:.6f}", key=f"cand-{cand.rank}",
+                     type="secondary" if on else "tertiary", width="stretch"):
+            clicked = cand.rank
+        c2.markdown(f'<a class="nv-link" href="{streetview.streetview_link(cand.lat, cand.lng)}" target="_blank" '
+                    f'rel="noopener">Street View</a>', unsafe_allow_html=True)
+        c3.markdown(f'<a class="nv-link" href="{streetview.maps_link(cand.lat, cand.lng)}" target="_blank" '
+                    f'rel="noopener">Google Maps</a>', unsafe_allow_html=True)
+    return clicked
+
+
+def streetview_panel(lat: float, lng: float, rank: int, label_: str) -> None:
+    """Embedded Street View of the selected coordinate (satellite fallback), or the enable hint."""
+    key = streetview.embed_key()
+    label(f"Street View · #{rank} · {lat:.6f}, {lng:.6f}")
+    if key is None:
+        html(f'<p class="nv-muted">{escape(streetview.ENABLE_HINT)}</p>')
+        return
+    emb = streetview.embed_for(lat, lng, label_, key)
+    st.iframe(emb.url, height=VIEWER_H - 24)
+    if emb.note:
+        html(f'<p class="nv-muted nv-warn">{escape(emb.note)}</p>')
 
 
 def copy_button(text: str, caption: str = "Copy 10 coordinates") -> None:
     """A big button that copies `text` to the clipboard (Clipboard API, with a fallback for iframes)."""
     c, f, r = theme.COLORS, theme.FONTS, theme.RADIUS
     payload = json.dumps(text)
-    components.html(f"""
+    st.iframe(f"""
 <button id="copy" style="width:100%;height:60px;border:1px solid {c['accent']};border-radius:{r}px;
   background:{c['accent']};color:{c['on_accent']};font:600 19px {f['ui']};cursor:pointer">{escape(caption)}</button>
 <script>

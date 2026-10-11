@@ -43,6 +43,8 @@ def _reset() -> None:
     ss.cue_review = None  # text waiting for confirmation
     ss.cue_blocked = None  # guard reason
     ss.last_sig = None
+    ss.sv_rank = 1  # coordinate shown in Street View (rank 1 when a result arrives)
+    ss.last_map_click = None
 
 
 # ---------------------------------------------------------------- actions (callbacks)
@@ -85,6 +87,7 @@ def send_cue(override: bool = False) -> None:
     if res.accepted:
         ss.cue_review = ss.cue_blocked = None
         ss[f"cue-{ss.pano_id}"] = ""
+        ss.sv_rank = 1  # the next result starts again at its top coordinate
     else:
         ss.cue_blocked = res.why or "the cue was not accepted"
 
@@ -108,55 +111,72 @@ def ticker() -> None:
         st.rerun(scope="app")
 
 
-def setup() -> None:
-    """Upload, label, Start."""
+def setup_panel() -> None:
+    """Right of the viewer before a run: upload, label, Start."""
     ss = st.session_state
-    ui.header("Upload a panorama, choose urban or non-urban, then press Start.")
     with st.container(border=True):
-        up = st.file_uploader("Panorama (JPG)", type=["jpg", "jpeg"], key=f"upload-{ss.upload_key}")
-        if up is not None:
-            ss.image_path = str(save_upload(up.name, up.getvalue()))
-        if ss.image_path:
-            ui.panorama(Path(ss.image_path))
-        c1, c2 = st.columns([1, 1.4], vertical_alignment="bottom")
-        with c1:
-            ui.label("Label")
-            label = st.segmented_control("Label", LABELS, default=None, key=f"label-{ss.upload_key}",
-                                         label_visibility="collapsed")
-        with c2:
-            st.button("Start", type="primary", key="start", width="stretch", on_click=start,
-                      disabled=not (ss.image_path and label))
+        st.file_uploader("Panorama (JPG)", type=["jpg", "jpeg"], key=f"upload-{ss.upload_key}")  # read in main()
+        ui.label("Label")
+        label = st.segmented_control("Label", LABELS, default=None, key=f"label-{ss.upload_key}",
+                                     label_visibility="collapsed")
+        st.button("Start", type="primary", key="start", width="stretch", on_click=start,
+                  disabled=not (ss.image_path and label))
 
 
 def asking(view: RunView) -> bool:
     return view.state.pending_mcq is not None and not view.busy
 
 
-def question(view: RunView) -> None:
-    mcq = view.state.pending_mcq
-    if not asking(view):
-        return
+def result_ready(view: RunView) -> bool:
+    return view.state.submission is not None and not view.busy
+
+
+def progress_panel(view: RunView) -> None:
+    """Right of the viewer during a run: the question when the agent asks, else what it is working on."""
+    s = view.state
     with st.container(border=True):
-        clicked = ui.question_card(mcq, enabled=True)
-        if clicked:
-            answer(clicked)
-            st.rerun()
+        if asking(view):
+            clicked = ui.question_card(s.pending_mcq, enabled=True)
+            if clicked:
+                answer(clicked)
+                st.rerun()
+            return
+        ui.html(f'<p class="nv-title nv-mono">{escape(Path(s.pano_path).name)}</p>')
+        ui.html(f'<p class="nv-muted">Label {escape(s.label)} · assisted mode. Drag the 360 view to look around '
+                'while the agent works.</p>')
+
+
+def select_rank(rank: int) -> None:
+    st.session_state.sv_rank = rank
+
+
+def streetview_panel(view: RunView) -> None:
+    ss, sub = st.session_state, view.state.submission
+    cand = next((c for c in sub.candidates if c.rank == ss.sv_rank), sub.candidates[0])
+    with st.container(border=True):
+        ui.streetview_panel(cand.lat, cand.lng, cand.rank, view.state.label)
 
 
 def results(view: RunView) -> None:
     ss, s = st.session_state, view.state
-    if s.submission is None or view.busy:
-        return
     sub = s.submission
-    with st.container(border=True):
-        ui.label("Result · 10 coordinates")
-        m, right = st.columns([1.6, 1], gap="large")
-        with m:
-            ui.candidate_map(s, sub)
-        with right:
-            st.code(to_text(sub), language=None)
-            ui.copy_button(to_text(sub))
-            ui.downloads(s.pano_id, ss.runner.log_json(s.pano_id), sub)
+    left, right = st.columns([1, 1.25], gap="medium")
+    with left, st.container(border=True):
+        ui.label("Result · 10 coordinates · click a row for its Street View")
+        clicked = ui.candidate_rows(sub, ss.sv_rank)
+        if clicked is not None and clicked != ss.sv_rank:
+            select_rank(clicked)
+            st.rerun()
+        ui.copy_button(to_text(sub))
+        ui.downloads(s.pano_id, ss.runner.log_json(s.pano_id), sub)
+    with right, st.container(border=True):
+        point = ui.candidate_map(s, sub, ss.sv_rank)
+        if point is not None and point != ss.last_map_click:
+            ss.last_map_click = point
+            nearest = min(sub.candidates, key=lambda c: (c.lat - point[0]) ** 2 + (c.lng - point[1]) ** 2)
+            if nearest.rank != ss.sv_rank:
+                select_rank(nearest.rank)
+                st.rerun()
     with st.container(border=True):
         ui.label("Findings")
         ui.findings(view)
@@ -189,35 +209,43 @@ def cue(view: RunView) -> None:
         st.button("Review cue", key="cue-review", width="stretch", on_click=review_cue)
 
 
-def running(view: RunView) -> None:
-    ss, s = st.session_state, view.state
-    top, side = st.columns([5, 1], vertical_alignment="center")
-    with top:
-        ui.header(*status_line(view))
-    with side:
-        st.button("New image", key="new-image", width="stretch", on_click=new_image)
-        ticker()
-    # While the agent asks, the question sits next to the panorama (the operator needs both).
-    main_col, q_col = st.columns([1.7, 1], gap="medium") if asking(view) else (st.container(), None)
-    with main_col, st.container(border=True):
-        ui.html(f'<p class="nv-title nv-mono">{escape(Path(s.pano_path).name)} · {escape(s.label)}</p>')
-        ui.stage_chips(view)
-        if s.submission is None or view.busy:
-            ui.panorama(Path(s.pano_path))
-    if q_col is not None:
-        with q_col:
-            question(view)
-    results(view)
-    cue(view)
-
-
 def main() -> None:
+    """Fixed page structure, so the 360 viewer keeps its place (and its view) through the whole run:
+    status row · stage chips · [360 viewer | setup / question / Street View] · result rows · cue."""
     _init()
     ss = st.session_state
-    if ss.pano_id is None:
-        setup()
-    else:
-        running(ss.runner.view(ss.pano_id))
+    # The uploader sits right of the viewer, i.e. it renders after it: take its file first, so the viewer
+    # shows the panorama in the same run.
+    up = ss.get(f"upload-{ss.upload_key}") if ss.pano_id is None else None
+    if up is not None and Path(ss.image_path or "").name != Path(up.name).name:
+        ss.image_path = str(save_upload(up.name, up.getvalue()))
+    view = ss.runner.view(ss.pano_id) if ss.pano_id else None
+    top, side = st.columns([5, 1], vertical_alignment="center")
+    with top:
+        ui.header(*(status_line(view) if view else ("Upload a panorama, choose urban or non-urban, then press "
+                                                    "Start.", "")))
+    with side:
+        if view is not None:
+            st.button("New image", key="new-image", width="stretch", on_click=new_image)
+            ticker()
+    chips = st.container()
+    if view is not None:
+        with chips:
+            ui.stage_chips(view)
+    left, right = st.columns([1.2, 1], gap="medium")
+    with left:
+        ui.viewer(Path(ss.image_path) if ss.image_path else None)
+    with right:
+        if view is None:
+            setup_panel()
+        elif result_ready(view):
+            streetview_panel(view)
+        else:
+            progress_panel(view)
+    if view is not None:
+        if result_ready(view):
+            results(view)
+        cue(view)
 
 
 main()

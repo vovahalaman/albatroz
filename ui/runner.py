@@ -181,8 +181,12 @@ class Runner:
 
     # ------------------------------------------------------------ pipeline calls
 
-    def start(self, path: Path, label: str) -> str:
+    def start(self, path: Path, label: str, label_info: dict[str, Any] | None = None) -> str:
+        """`label_info`: how the label was detected (ui/label_classifier), logged into this run's log."""
         pano_id = pipeline.start_run(Path(path), label, False, MODE)  # S0 only: fast
+        if label_info is not None:
+            scribe.log_event(pano_id, "stage", "ui", {"stage": "S0", "label_detection": label_info},
+                             run_id=st.load(pano_id).run_id)
         self._submit(pano_id, pipeline.advance, pano_id)
         return pano_id
 

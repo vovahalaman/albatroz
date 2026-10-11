@@ -8,7 +8,7 @@ from streamlit.testing.v1 import AppTest
 
 from navegador.tools import strategist
 from tests.ui_fakes import install, make_pano
-from ui import streetview
+from ui import label_classifier, streetview
 
 APP = str(Path(__file__).resolve().parents[1] / "ui" / "app.py")
 REMOVED = ["Special One", "Penalty multiplier", "Expected score", "NEXT", "Upload a panorama, choose",
@@ -31,6 +31,17 @@ def _iframes(at: AppTest) -> list:
     return [el.proto for el in at.get("iframe")]
 
 
+DETECTED = label_classifier.Detected("non_urban", "Open plain with a reservoir.", "classifier", "fake-lite", 300)
+
+
+@pytest.fixture(autouse=True)
+def _fake_label(monkeypatch):
+    """The label classifier is an LLM call: always faked here."""
+    seen = []
+    monkeypatch.setattr(label_classifier, "classify", lambda path: seen.append(path) or DETECTED)
+    return seen
+
+
 @pytest.fixture
 def calls(monkeypatch):
     monkeypatch.setenv("NAVEGADOR_UI_INLINE", "1")  # Runner runs pipeline tasks synchronously
@@ -46,11 +57,14 @@ def _click(at: AppTest, label: str) -> AppTest:
     return btn.click().run()
 
 
-def _started(tmp_path: Path) -> AppTest:
+def _uploaded(tmp_path: Path) -> AppTest:
     at = AppTest.from_file(APP, default_timeout=60).run()
-    at.session_state["image_path"] = str(make_pano(tmp_path))
-    at = at.segmented_control(key="label-0").set_value("non_urban").run()
-    return _click(at, "Start")
+    at.session_state["image_path"] = str(make_pano(tmp_path))  # what the uploader does
+    return at.run()
+
+
+def _started(tmp_path: Path) -> AppTest:
+    return _click(_uploaded(tmp_path), "Start")
 
 
 def test_start_screen_is_name_clock_viewer_and_upload_panel(calls):
@@ -59,10 +73,37 @@ def test_start_screen_is_name_clock_viewer_and_upload_panel(calls):
     text = _text(at)
     assert "Navegador" in text and "0:00" in text
     assert [b.label for b in at.button] == ["Start"] and at.button[0].disabled  # no image, no label yet
+    assert not at.segmented_control  # no urban / non_urban toggle: the agent detects the label
     assert at.button[0].proto.type == "primary"  # accent colour once enabled
     assert "The 360 view appears here after upload." in text and not _iframes(at)
     for word in REMOVED:
         assert word not in text, word
+
+
+def test_label_is_detected_after_upload_and_read_only(calls, _fake_label, tmp_path):
+    at = _uploaded(tmp_path)
+    chip = next(m.value for m in at.markdown if "nv-detected" in m.value and "<span" in m.value)
+    assert "Detected: non-urban" in chip and 'title="Open plain with a reservoir."' in chip
+    assert not at.button[0].disabled and not at.segmented_control and len(_fake_label) == 1
+    at = at.run()
+    assert len(_fake_label) == 1  # detected once per image, not on every rerun
+
+
+def test_default_label_is_marked(calls, monkeypatch, tmp_path):
+    monkeypatch.setattr(label_classifier, "classify",
+                        lambda path: label_classifier.Detected("urban", "failed", "default", error="Timeout"))
+    at = _uploaded(tmp_path)
+    assert "Detected: urban (default)" in _text(at) and not at.button[0].disabled
+
+
+def test_detected_label_goes_to_the_pipeline_and_the_log(calls, tmp_path):
+    at = _started(tmp_path)
+    assert calls[0] == "start_run:non_urban:assisted"
+    log = at.session_state["runner"].log_json(at.session_state["pano_id"])
+    det = [e["payload"]["label_detection"] for e in __import__("json").loads(log)["events"]
+           if "label_detection" in e["payload"]]
+    assert det == [{"label": "non_urban", "reason": "Open plain with a reservoir.", "source": "classifier",
+                    "model": "fake-lite", "tokens": 300, "error": ""}]
 
 
 def test_run_shows_progress_line_and_question_beside_the_viewer(calls, tmp_path):
@@ -140,7 +181,7 @@ def test_new_image_clears_everything(calls, tmp_path):
     at = _click(at, "New image")
     assert at.session_state["pano_id"] is None and at.session_state["image_path"] is None
     assert [b.label for b in at.button] == ["Start"]
-    assert at.segmented_control(key="label-1").value is None  # a fresh label choice
+    assert at.session_state["detected"] is None and at.button[0].disabled  # nothing detected for no image
 
 
 def test_iframes_have_titles_not_the_default_label(calls, tmp_path):

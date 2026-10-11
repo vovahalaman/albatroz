@@ -20,12 +20,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # `ui` package whe
 from navegador.core.export import to_text  # noqa: E402
 from navegador.tools.astrolabe_summary import summarise  # noqa: E402
 from ui import components as ui  # noqa: E402
-from ui import progress, theme  # noqa: E402
+from ui import label_classifier, progress, theme  # noqa: E402
 from ui.runner import (Runner, RunView, cue_block_reason, finished_at, save_upload, stage_line,  # noqa: E402
                        top_place)
 
 TICK_S = 1.0
-LABELS = ["urban", "non_urban"]
 COORDS_H_SINGLE = 340  # coordinates + map panels when the 10 coordinates are one point
 COORDS_H_LIST = 720  # ... when they are a ranked list of different points
 MAP_PAD = 36  # panel padding and border around the map
@@ -53,6 +52,7 @@ def _reset() -> None:
     ss.last_map_click = None
     ss.progress_max = 0.0  # the bar never goes backwards
     ss.north = None  # (pano_id, compass bearing of the image centre or None)
+    ss.detected = None  # (image_path, label_classifier.Detected)
 
 
 # ---------------------------------------------------------------- actions (callbacks)
@@ -60,7 +60,8 @@ def _reset() -> None:
 
 def start() -> None:
     ss = st.session_state
-    ss.pano_id = ss.runner.start(Path(ss.image_path), ss[f"label-{ss.upload_key}"])
+    det = ss.detected[1]
+    ss.pano_id = ss.runner.start(Path(ss.image_path), det.label, det.as_log())
 
 
 def new_image() -> None:
@@ -159,11 +160,15 @@ def setup_panel() -> None:
     ss = st.session_state
     with st.container(border=True, height=ui.PAIR_H):
         st.file_uploader("Panorama (JPG)", type=["jpg", "jpeg"], key=f"upload-{ss.upload_key}")  # read in main()
-        ui.label("Label")
-        label = st.segmented_control("Label", LABELS, default=None, key=f"label-{ss.upload_key}",
-                                     label_visibility="collapsed")
+        if ss.image_path and (ss.detected is None or ss.detected[0] != ss.image_path):
+            # Here, not at the top: a spinner above the viewer would shift it and reload the iframe.
+            with st.spinner("Detecting urban or non-urban…"):
+                ss.detected = (ss.image_path, label_classifier.classify(Path(ss.image_path)))
+        detected = ss.detected[1] if ss.detected and ss.detected[0] == ss.image_path else None
+        if detected is not None:
+            ui.label_chip(detected.label, detected.reason, detected.source == "default")
         st.button("Start", type="primary", key="start", width="stretch", on_click=start,
-                  disabled=not (ss.image_path and label))
+                  disabled=not (ss.image_path and detected))
 
 
 def asking(view: RunView) -> bool:
@@ -265,14 +270,15 @@ def main() -> None:
         ss.image_path = str(save_upload(up.name, up.getvalue()))
     view = ss.runner.view(ss.pano_id) if ss.pano_id else None
 
-    name, actions, clock_col = st.columns([6, 1.1, 1.3], vertical_alignment="center")
-    with name:
-        ui.brand()
-    with actions:
-        if view is not None:
-            st.button("New image", key="new-image", width="stretch", on_click=new_image)
-    with clock_col:
-        clock()
+    with st.container(key="header"):
+        name, actions, clock_col = st.columns([6, 1.1, 1.3], vertical_alignment="center")
+        with name:
+            ui.brand()
+        with actions:
+            if view is not None:
+                st.button("New image", key="new-image", width="stretch", on_click=new_image)
+        with clock_col:
+            clock()
     bar = st.container()
     if view is not None:
         with bar:

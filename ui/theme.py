@@ -28,7 +28,7 @@ FONTS = {
     "ui": "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     "mono": "'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace",
 }
-SIZE = {"base": 16, "small": 13, "label": 12, "title": 20, "big": 32, "huge": 44}  # px
+SIZE = {"base": 16, "small": 13, "label": 12, "title": 20, "status": 22, "brand": 26, "big": 32, "huge": 44}  # px
 GOOGLE_FONTS = ("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700"
                 "&family=JetBrains+Mono:wght@400;500;600&display=swap")
 
@@ -64,7 +64,7 @@ html, body, [class*="css"], .stApp, .stMarkdown, button, input, textarea {{
 .stApp {{ background: {c["bg"]}; }}
 header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ display: none !important; }}
 .block-container {{ padding: {s["lg"]}px {s["xl"]}px {s["xl"]}px {s["xl"]}px !important; max-width: 1480px !important; }}
-[data-testid="stVerticalBlock"] {{ gap: {s["md"]}px; }}
+[data-testid="stVerticalBlock"] {{ gap: {s["lg"]}px; }}  /* one rhythm between stacked panels */
 
 /* panels = bordered containers */
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]) {{
@@ -87,7 +87,7 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 
 /* top bar */
 .nv-topbar {{ display: flex; align-items: center; gap: {s["xl"]}px; }}
-.nv-brand {{ font-weight: 700; font-size: {z["title"]}px; letter-spacing: .02em; }}
+.nv-brand {{ font-weight: 700; font-size: {z["brand"]}px; letter-spacing: .02em; line-height: 1.2; }}
 .nv-brand span {{ color: {c["muted"]}; font-weight: 500; }}
 .nv-status {{ flex: 1; display: flex; align-items: center; gap: {s["md"]}px; padding: {s["sm"]}px {s["lg"]}px;
   border-radius: {r}px; background: {c["accent_soft"]}; border: 1px solid {c["accent"]}; font-weight: 500; }}
@@ -155,12 +155,12 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-clock.done {{ color: {c["accent"]}; font-size: {z["title"] + 4}px; }}
 
 /* one progress bar for the whole run */
-.nv-progress {{ height: 12px; border-radius: 999px; background: {c["panel_2"]}; border: 1px solid {c["border"]};
+.nv-progress {{ margin-top: {s["xs"]}px; height: 12px; border-radius: 999px; background: {c["panel_2"]}; border: 1px solid {c["border"]};
   overflow: hidden; }}
 .nv-progress > div {{ height: 100%; background: {c["accent"]}; border-radius: 999px; transition: width 1s linear; }}
 .nv-progress.warn > div {{ background: {c["warning"]}; }}
 .nv-progress.error > div {{ background: {c["error"]}; }}
-.nv-stage-line, .stMarkdown p.nv-stage-line {{ margin: {s["sm"]}px 0 0 0; font-size: {z["title"]}px !important;
+.nv-stage-line, .stMarkdown p.nv-stage-line {{ margin: {s["md"]}px 0 {s["xl"]}px 0; font-size: {z["status"]}px !important;
   font-weight: 500; }}
 .nv-stage-line.warn {{ color: {c["warning"]}; }} .nv-stage-line.error {{ color: {c["error"]}; }}
 .nv-stage-line.done {{ color: {c["accent"]}; }}
@@ -176,6 +176,10 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 .nv-gap {{ height: {s["sm"]}px; }}
 /* coordinates panel: row, copy button and downloads spread over the panel height (no empty gap below) */
 .st-key-coords-panel {{ justify-content: space-between !important; }}
+
+.nv-chip-row, .stMarkdown p.nv-chip-row {{ margin: {s["xs"]}px 0 {s["md"]}px 0; }}
+.st-key-header {{ margin-bottom: {s["lg"]}px; }}  /* air between the header and what follows */
+.nv-detected {{ font-size: {z["base"]}px; padding: {s["xs"]}px {s["md"]}px; cursor: help; }}
 
 /* the one big Start button */
 .st-key-start button {{ min-height: 64px !important; font-size: {z["title"]}px !important; }}

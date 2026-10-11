@@ -54,6 +54,13 @@ def progress_bar(fraction: float, line: str, kind: str = "") -> None:
          f'<p class="nv-stage-line {kind}">{escape(line)}</p>')
 
 
+def label_chip(label_: str, reason: str, default: bool) -> None:
+    """Read-only chip with the detected label; the reason is the tooltip."""
+    text = f"Detected: {label_.replace('_', '-')}" + (" (default)" if default else "")
+    html(f'<p class="nv-chip-row"><span class="nv-pill accent nv-detected" title="{escape(reason, quote=True)}">'
+         f'{escape(text)}</span></p>')
+
+
 def result_card(place: str, share: float, summary: str) -> None:
     pct = f"{share:.0%}" if share else ""
     html(f'<div class="nv-result"><div class="nv-result-place">{escape(place)}'

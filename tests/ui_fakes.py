@@ -9,7 +9,7 @@ from PIL import Image
 from navegador.core import pipeline, scribe
 from navegador.core import state as st
 from navegador.core.state import utcnow
-from navegador.schemas import MCQ, CueResult, Hypothesis, MCQOption
+from navegador.schemas import MCQ, CueResult, Hypothesis, MCQOption, SunObs
 from navegador.tools import strategist
 
 
@@ -19,8 +19,8 @@ def make_pano(folder: Path, name: str = "IMG_20261010_140000_00_001.jpg") -> Pat
     return p
 
 
-def install(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """Replace the pipeline API with fakes; returns the list of calls made."""
+def install(monkeypatch: pytest.MonkeyPatch, sun: bool = False) -> list[str]:
+    """Replace the pipeline API with fakes; returns the list of calls made. sun=True: S2 finds a sun."""
     calls: list[str] = []
 
     def start_run(pano_path, label, special_one, mode, timestamp=None):
@@ -37,10 +37,12 @@ def install(monkeypatch: pytest.MonkeyPatch) -> list[str]:
                                    provenance="estimated", source="detective"),
                         Hypothesis(lat=41.14, lng=-8.61, radius_m=300, weight=0.5, label="Ribeira, Porto",
                                    provenance="estimated", source="detective")]
+        if sun:
+            s.sun = SunObs(yaw=30.0, elevation=43.7, area_px=100, confidence=0.8, uncertainty_deg=3.0)
         out = st.run_dir(pano_id)
         (out / "geographer.json").write_text(json.dumps({"country_probs": {"pt": 0.9, "es": 0.1},
                                                          "region_guesses": [{"region": "Lisboa", "prob": 0.6}]}))
-        (out / "detective.json").write_text(json.dumps({"summary": "Old town with calçada."}))
+        (out / "detective.json").write_text(json.dumps({"summary": "Old town with calçada. Tram lines too."}))
         n = len(s.mcqs) + 1
         s.mcqs.append(MCQ(mcq_id=f"mcq{n}", question="Which area does this panorama show?", asked_at=utcnow(),
                           options=[MCQOption(id="A", text="Baixa, Lisboa", cluster_id="c0"),

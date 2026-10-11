@@ -1,4 +1,4 @@
-"""Headless runs of the Streamlit app with a fake pipeline (no API calls)."""
+"""Headless runs of the Streamlit app with a fake pipeline (no API calls, no real HTTP)."""
 
 from html import unescape
 from pathlib import Path
@@ -6,12 +6,13 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from navegador.tools import strategist
 from tests.ui_fakes import install, make_pano
 from ui import streetview
 
 APP = str(Path(__file__).resolve().parents[1] / "ui" / "app.py")
-REMOVED = ["Special One", "60:00", "Penalty multiplier", "Expected score", "NEXT", "assisted", "autonomous",
-           "baseline", "Panoramas ·", "Mock"]
+REMOVED = ["Special One", "Penalty multiplier", "Expected score", "NEXT", "Upload a panorama, choose",
+           "autonomous", "Panoramas ·", "Mock", "S0 Ingest", "S4 Investigate"]
 
 
 @pytest.fixture(autouse=True)
@@ -52,48 +53,74 @@ def _started(tmp_path: Path) -> AppTest:
     return _click(at, "Start")
 
 
-def test_setup_screen_has_upload_label_and_start_only(calls):
+def test_start_screen_is_name_clock_viewer_and_upload_panel(calls):
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert not at.exception
     text = _text(at)
-    assert "Upload a panorama, choose urban or non-urban" in text
+    assert "Navegador" in text and "0:00" in text
     assert [b.label for b in at.button] == ["Start"] and at.button[0].disabled  # no image, no label yet
+    assert at.button[0].proto.type == "primary"  # accent colour once enabled
     assert "The 360 view appears here after upload." in text and not _iframes(at)
-    assert at.segmented_control(key="label-0").options == ["urban", "non_urban"]
     for word in REMOVED:
         assert word not in text, word
 
 
-def test_start_runs_the_pipeline_and_shows_the_question(calls, tmp_path):
+def test_run_shows_progress_line_and_question_beside_the_viewer(calls, tmp_path):
     at = _started(tmp_path)
-    assert not at.exception
-    assert calls == ["start_run:non_urban:assisted", "advance"]
+    assert not at.exception and calls == ["start_run:non_urban:assisted", "advance"]
     text = _text(at)
-    assert "The agent has a question for you." in text and "Which area does this panorama show?" in text
-    assert [b.label for b in at.button if b.label[:1] in "ABC" and " · " in b.label] == [
+    assert "nv-progress" in " ".join(m.value for m in at.markdown)  # one bar, no stage chips
+    assert "Waiting for your answer" in text and "Which area does this panorama show?" in text
+    assert [b.label for b in at.button if " · " in b.label] == [
         "A · Baixa, Lisboa", "B · Ribeira, Porto", "C · None of these areas"]
-    assert "Answer the question first." in text  # cue section explains why it is closed
-    (viewer,) = _iframes(at)  # the 360 viewer, and nothing else embedded yet
-    assert "pannellum.viewer" in viewer.srcdoc and "data:image/jpeg;base64," in viewer.srcdoc
+    (viewer,) = _iframes(at)
+    assert "pannellum.viewer" in viewer.srcdoc and "northOffset" not in viewer.srcdoc  # no sun → no compass
+    for word in REMOVED:
+        assert word not in text, word
 
 
-def test_answer_shows_result_copy_downloads_and_findings(calls, tmp_path):
-    at = _started(tmp_path)
-    at = _click(at, "A · Baixa, Lisboa")
+def test_result_card_single_x10_row_copy_and_done_clock(calls, tmp_path):
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
     assert not at.exception and calls[-1] == "answer:A"
     text = _text(at)
-    assert "Done. Copy the 10 coordinates." in text and "Result · 10 coordinates" in text
-    rows = [b.label for b in at.button if b.label.strip()[:2].strip().isdigit()]
-    assert len(rows) == 10 and all(", " in r for r in rows)
-    assert text.count("map_action=pano&viewpoint=") == 10 and text.count("maps/search/?api=1&query=") == 10
+    assert "Result ready" in text and "Done in " in text
+    card = next(m.value for m in at.markdown if m.value.startswith('<div class="nv-result">'))
+    assert "50%" in card and "Old town with calçada." in card and "Tram lines" not in card  # first sentence
+    assert "×10" in text and not [b for b in at.button if b.label.strip()[:1].isdigit()]  # one row, identical
+    assert text.count("map_action=pano&viewpoint=") == 1 and text.count("maps/search/?api=1&query=") == 1
     assert streetview.ENABLE_HINT in text  # no key: links only, plus how to enable the embed
-    frames = _iframes(at)
-    assert "pannellum.viewer" in frames[0].srcdoc and any('id="copy"' in f.srcdoc for f in frames)
-    assert not [f for f in frames if f.src.startswith("https://www.google.com/maps/embed")]
-    assert "Old town with calçada." in text and "Baixa, Lisboa" in text  # Findings: Detective tab
+    copy = next(f.srcdoc for f in _iframes(at) if 'id="copy"' in f.srcdoc)
+    assert copy.count("\\n") == 10  # the copy button always copies all 10 lines
     assert [t.label for t in at.tabs] == ["Detective", "Geographer", "Reader", "Critic"]
-    for word in REMOVED:
-        assert word not in text, word
+
+
+def test_different_coordinates_are_listed_and_select_street_view(calls, monkeypatch, tmp_path):
+    real_submit = strategist.submit
+
+    def spread(state, fallback=None):  # 10 different points
+        sub = real_submit(state, fallback)
+        for c in sub.candidates:
+            c.lat = round(c.lat + 0.001 * c.rank, 6)
+        return sub
+
+    monkeypatch.setattr(strategist, "submit", spread)
+    monkeypatch.setenv("GOOGLE_MAPS_EMBED_KEY", "test-key")
+    monkeypatch.setattr(streetview, "coverage", lambda lat, lng, radius, key: {"status": "OK", "pano_id": "p1"})
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
+    rows = [b.label for b in at.button if b.label.strip()[:2].strip().isdigit()]
+    assert len(rows) == 10 and "Street View · #1 ·" in _text(at)
+    embeds = [f.src for f in _iframes(at) if f.src.startswith("https://www.google.com/maps/embed/v1/streetview")]
+    assert len(embeds) == 1 and "key=test-key" in embeds[0]
+    at = next(b for b in at.button if b.label.lstrip().startswith("7 ")).click().run()
+    assert at.session_state["sv_rank"] == 7 and "Street View · #7 ·" in _text(at)
+
+
+def test_compass_from_the_sun(monkeypatch, tmp_path):
+    monkeypatch.setenv("NAVEGADOR_UI_INLINE", "1")
+    install(monkeypatch, sun=True)
+    at = _started(tmp_path)
+    (viewer,) = _iframes(at)
+    assert '"compass": true' in viewer.srcdoc and '"northOffset":' in viewer.srcdoc
 
 
 def test_cue_after_result_needs_confirmation_and_guard_override(calls, tmp_path):
@@ -105,7 +132,7 @@ def test_cue_after_result_needs_confirmation_and_guard_override(calls, tmp_path)
     assert "names a place. Cues must not refer to a location" in _text(at) and calls[-1] == "cue:False"
     at = _click(at, "Send anyway")
     assert calls[-2:] == ["cue:True", "advance"]
-    assert "The agent has a question for you." in _text(at)  # the agent investigated again and asks anew
+    assert "Waiting for your answer" in _text(at)  # the agent investigated again and asks anew
 
 
 def test_new_image_clears_everything(calls, tmp_path):
@@ -114,21 +141,6 @@ def test_new_image_clears_everything(calls, tmp_path):
     assert at.session_state["pano_id"] is None and at.session_state["image_path"] is None
     assert [b.label for b in at.button] == ["Start"]
     assert at.segmented_control(key="label-1").value is None  # a fresh label choice
-
-
-def test_streetview_embed_follows_the_selected_row(calls, monkeypatch, tmp_path):
-    monkeypatch.setenv("GOOGLE_MAPS_EMBED_KEY", "test-key")
-    seen = []
-    monkeypatch.setattr(streetview, "coverage",
-                        lambda lat, lng, radius, key: seen.append((lat, lng)) or {"status": "OK", "pano_id": f"p{len(seen)}"})
-    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
-    text = _text(at)
-    assert "Street View · #1 ·" in text and streetview.ENABLE_HINT not in text
-    embeds = [f.src for f in _iframes(at) if f.src.startswith("https://www.google.com/maps/embed/v1/streetview")]
-    assert len(embeds) == 1 and "key=test-key" in embeds[0]
-    row3 = next(b for b in at.button if b.label.lstrip().startswith("3 "))
-    at = row3.click().run()
-    assert at.session_state["sv_rank"] == 3 and "Street View · #3 ·" in _text(at)
 
 
 def test_viewer_html_is_stable_across_reruns(calls, tmp_path):

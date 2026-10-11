@@ -14,25 +14,19 @@ import queue
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from navegador.config import runs_dir
+from navegador.config import runs_dir, settings
 from navegador.core import pipeline, scribe
 from navegador.core import state as st
 from navegador.core.state import State
 from navegador.schemas import CueResult
+from navegador.tools import strategist
+from ui.progress import LINES
 
 MODE = "assisted"
-STAGES = [("S0", "Ingest"), ("S1", "Views"), ("S2", "Sun"), ("S3", "Perceive"), ("S4", "Investigate"),
-          ("S5", "Critic"), ("S6", "Decide"), ("S7", "Submit"), ("S8", "Report")]
-DOING = {  # what the agent is doing while a stage runs
-    "S0": "Preparing the run", "S1": "Cutting the panorama into views",
-    "S2": "Looking for the sun", "S3": "Reading signs and studying the landscape",
-    "S4": "Investigating candidate places", "S5": "Checking the top candidates for contradictions",
-    "S6": "Deciding whether to ask you a question", "S7": "Choosing the 10 coordinates",
-    "S8": "Writing the report and the log",
-}
 FINDING_FILES = ("detective", "geographer", "reader", "advocate")
 
 
@@ -42,6 +36,7 @@ class RunView:
     findings: dict[str, Any] = field(default_factory=dict)
     busy: bool = False
     error: str | None = None
+    events: list[dict[str, Any]] = field(default_factory=list)
 
 
 def upload_dir() -> Path:
@@ -57,18 +52,41 @@ def save_upload(name: str, data: bytes) -> Path:
     return path
 
 
-def status_line(view: RunView) -> tuple[str, str]:
-    """(text, kind) for the one status line. kind: '' | 'warn' | 'error' | 'done'."""
+def stage_line(view: RunView) -> tuple[str, str]:
+    """(text, kind) for the short line under the progress bar. kind: '' | 'warn' | 'error' | 'done'."""
     s = view.state
     if view.error:
-        return f"The agent stopped with an error: {view.error}", "error"
+        return f"Stopped with an error: {view.error}", "error"
     if s.pending_mcq is not None and not view.busy:
-        return "The agent has a question for you.", "warn"
+        return "Waiting for your answer", "warn"
     if s.status == "done" and not view.busy:
-        return "Done. Copy the 10 coordinates.", "done"
+        return "Result ready", "done"
     if s.status == "error" and not view.busy:
-        return "The run ended with an error; a fallback answer was submitted if possible.", "error"
-    return f"{DOING.get(s.stage, 'Working')}…", ""
+        return "The run ended with an error; a fallback answer was submitted if possible", "error"
+    return f"{LINES.get(s.stage, 'Working')}…", ""
+
+
+def finished_at(view: RunView) -> float | None:
+    """Epoch seconds when the result was ready (last logged event), else None."""
+    if view.state.status != "done" or view.busy or not view.events:
+        return None
+    return datetime.fromisoformat(view.events[-1]["ts"]).timestamp()
+
+
+def top_place(view: RunView) -> tuple[str, float, str]:
+    """(place, weight share 0–1, one-sentence summary) for the result card. The place is the heaviest
+    hypothesis in the cluster that holds coordinate #1; the share is that cluster's weight."""
+    s, sub = view.state, view.state.submission
+    summary = str((view.findings.get("detective") or {}).get("summary") or "").strip()
+    summary = (summary.split(". ")[0].rstrip(".") + ".") if summary else ""
+    if not s.hypotheses or sub is None:
+        return "No confident place (fallback point)", 0.0, summary
+    top = min(sub.candidates, key=lambda c: c.rank)
+    cls = strategist.clusters(s.hypotheses, settings().mcq.cluster_eps_m.get(s.label))
+    best = min(cls, key=lambda c: min(strategist.haversine_m((top.lat, top.lng), (h.lat, h.lng)) for h in c.members))
+    total = sum(h.weight for h in s.hypotheses) or 1.0
+    label = max(best.members, key=lambda h: h.weight).label
+    return label, sum(h.weight for h in best.members) / total, summary
 
 
 def cue_block_reason(view: RunView) -> str | None:
@@ -141,8 +159,9 @@ class Runner:
                 findings[name] = json.loads((out / f"{name}.json").read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 pass
-        return RunView(state=st.load(pano_id), findings=findings, busy=pano_id in self._busy,
-                       error=self._errors.get(pano_id))
+        state = st.load(pano_id)
+        return RunView(state=state, findings=findings, busy=pano_id in self._busy, error=self._errors.get(pano_id),
+                       events=scribe.read_events(pano_id, state.run_id))
 
     def log_json(self, pano_id: str) -> str:
         """runs/<id>/log.json once reported, else the same shape built from log.jsonl."""

@@ -2,8 +2,8 @@
 
 The embed key comes from GOOGLE_MAPS_EMBED_KEY in .env (loaded by navegador.config). Before embedding,
 the Street View metadata endpoint (free, same key) checks coverage near the point: with imagery the embed
-shows that panorama; without it the embed falls back to a satellite map. If coverage cannot be checked
-(for example the key does not allow the Street View Static API), the Street View embed is shown with a note.
+shows that panorama; without it the embed falls back to a satellite map with a note. If coverage cannot be
+checked (for example the key does not allow the Street View Static API), the Street View embed is shown as is.
 """
 
 from __future__ import annotations
@@ -65,5 +65,4 @@ def embed_for(lat: float, lng: float, label: str, key: str) -> Embed:
         return Embed(url, "satellite", f"No Street View within {radius} m of this point: satellite view instead.")
     url = f"{EMBED}/streetview?" + urlencode({"key": key, "location": f"{lat:.6f},{lng:.6f}", "radius": radius,
                                              "fov": 90})
-    return Embed(url, "streetview", f"Street View coverage could not be checked ({status}). If the view stays "
-                                    "grey, there is no imagery here: use the Google Maps link.")
+    return Embed(url, "streetview")  # coverage unknown: no note (only confirmed absence gets one)

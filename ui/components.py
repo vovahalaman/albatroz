@@ -16,10 +16,11 @@ from streamlit_folium import st_folium
 from navegador.core.state import State
 from navegador.schemas import MCQ, Submission
 from ui import streetview, theme
-from ui.runner import STAGES, RunView
+from ui.runner import RunView
 
 VIEWER_MAX_W = 4096  # px: the 360 viewer gets a downscaled copy so it loads fast
 VIEWER_H = 480
+RESULT_ZOOM = {"urban": 15, "non_urban": 11}  # map zoom on the result
 PANNELLUM = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build"
 
 
@@ -31,36 +32,38 @@ def label(text: str) -> None:
     html(f'<p class="nv-label">{escape(text)}</p>')
 
 
-def fmt_mmss(seconds: float) -> str:
+def fmt_mss(seconds: float) -> str:
     s = max(0, int(round(seconds)))
-    return f"{s // 60:02d}:{s % 60:02d}"
+    return f"{s // 60}:{s % 60:02d}"
 
 
-def header(status: str = "", kind: str = "") -> None:
-    line = f'<div class="nv-status {kind}"><span>{escape(status)}</span></div>' if status else ""
-    html(f'<div class="nv-topbar"><div class="nv-brand">Navegador</div>{line}</div>')
+def brand() -> None:
+    html('<div class="nv-brand">Navegador</div>')
 
 
-def stage_chips(view: RunView) -> None:
-    s, codes = view.state, [c for c, _ in STAGES]
-    done_all = s.status == "done" and not view.busy
-    idx = codes.index(s.stage) if s.stage in codes else len(codes)
-    chips = []
-    for i, (code, name) in enumerate(STAGES):
-        if done_all or i < idx:
-            cls = "done"
-        elif i == idx:
-            cls = "wait" if (s.pending_mcq is not None and not view.busy) else ("error" if view.error else "current")
-        else:
-            cls = ""
-        chips.append(f'<span class="nv-chip {cls}">{code} {escape(name)}</span>')
-    html(f'<div class="nv-chips">{"".join(chips)}</div>')
+def timer(text: str, done: bool = False) -> None:
+    html(f'<div class="nv-clock{" done" if done else ""}">{escape(text)}</div>')
+
+
+def progress_bar(fraction: float, line: str, kind: str = "") -> None:
+    """One bar for the whole run (CSS transition keeps it smooth between 1 s ticks) and one line under it."""
+    pct = max(0.0, min(1.0, fraction)) * 100
+    html(f'<div class="nv-progress {kind}"><div style="width:{pct:.1f}%"></div></div>'
+         f'<p class="nv-stage-line {kind}">{escape(line)}</p>')
+
+
+def result_card(place: str, share: float, summary: str) -> None:
+    pct = f"{share:.0%}" if share else ""
+    html(f'<div class="nv-result"><div class="nv-result-place">{escape(place)}'
+         f'{f" <span class=nv-result-pct>{pct}</span>" if pct else ""}</div>'
+         f'{f"<p class=nv-result-summary>{escape(summary)}</p>" if summary else ""}</div>')
 
 
 @st.cache_data(show_spinner=False, max_entries=8)
-def viewer_html(path: str, mtime: float) -> str:
+def viewer_html(path: str, mtime: float, north_offset: float | None = None) -> str:
     """Pannellum page for one panorama. Identical input → identical HTML, so Streamlit keeps the iframe
-    (and the operator's view direction) across reruns instead of reloading it."""
+    across reruns. With `north_offset` (compass bearing of the image centre) the viewer shows a compass;
+    that changes the HTML once, so the view (yaw, pitch, zoom) is kept in localStorage and restored."""
     with Image.open(path) as im:
         im = im.convert("RGB")
         if im.width > VIEWER_MAX_W:
@@ -71,20 +74,31 @@ def viewer_html(path: str, mtime: float) -> str:
     c, r = theme.COLORS, theme.RADIUS
     config = {"type": "equirectangular", "panorama": data, "autoLoad": True, "showZoomCtrl": True,
               "mouseZoom": True, "hfov": 100, "minHfov": 30, "maxHfov": 120, "showFullscreenCtrl": True}
+    if north_offset is not None:
+        config |= {"compass": True, "northOffset": round(north_offset, 1)}
+    store = json.dumps(f"nv-view-{Path(path).name}-{int(mtime)}")
     return f"""<link rel="stylesheet" href="{PANNELLUM}/pannellum.css">
 <script src="{PANNELLUM}/pannellum.js"></script>
-<style>html,body{{margin:0;background:{c['bg']}}}
-#pano{{width:100%;height:{VIEWER_H}px;border-radius:{r}px;overflow:hidden;border:1px solid {c['border']}}}</style>
+<style>html,body{{margin:0;background:{c['bg']};overflow:hidden}}
+#pano{{width:100%;height:{VIEWER_H}px;box-sizing:border-box;border-radius:{r}px;overflow:hidden;
+  border:1px solid {c['border']}}}</style>
 <div id="pano"></div>
-<script>window.nvViewer = pannellum.viewer("pano", {json.dumps(config)});</script>"""
+<script>
+const key = {store}, cfg = {json.dumps(config)};
+try {{ Object.assign(cfg, JSON.parse(localStorage.getItem(key) || "{{}}")); }} catch (e) {{}}
+const v = window.nvViewer = pannellum.viewer("pano", cfg);
+const save = () => {{ try {{ localStorage.setItem(key, JSON.stringify(
+  {{yaw: v.getYaw(), pitch: v.getPitch(), hfov: v.getHfov()}})); }} catch (e) {{}} }};
+setInterval(save, 1000);
+</script>"""
 
 
-def viewer(path: Path | None) -> None:
-    """The interactive 360 view (drag to look around, scroll to zoom)."""
+def viewer(path: Path | None, north_offset: float | None = None) -> None:
+    """The interactive 360 view (drag to look around, scroll to zoom; compass when the sun gave north)."""
     if path is None:
         html(f'<div class="nv-placeholder" style="height:{VIEWER_H}px">The 360 view appears here after upload.</div>')
         return
-    st.iframe(viewer_html(str(path), path.stat().st_mtime), height=VIEWER_H + 4)
+    st.iframe(viewer_html(str(path), path.stat().st_mtime, north_offset), height=VIEWER_H)
 
 
 def question_card(mcq: MCQ, enabled: bool) -> str | None:
@@ -169,17 +183,18 @@ def findings(view: RunView) -> None:
 def candidate_map(state: State, sub: Submission, selected: int, height: int = 460) -> tuple[float, float] | None:
     """Map with the 10 candidates (grouped when identical); returns the last clicked (lat, lng), if any."""
     pts = [(c.lat, c.lng) for c in sub.candidates]
-    m = folium.Map(location=pts[0], zoom_start=12 if state.label == "urban" else 8, tiles=None, control_scale=True)
+    focus = next((p for c, p in zip(sub.candidates, pts) if c.rank == selected), pts[0])
+    m = folium.Map(location=focus, zoom_start=RESULT_ZOOM.get(state.label, 12), tiles=None, control_scale=True)
     base, labels = theme.MAP_TILES
     folium.TileLayer(base, attr=theme.MAP_ATTR, name="base", max_zoom=16).add_to(m)
     folium.TileLayer(labels, attr=theme.MAP_ATTR, name="labels", overlay=True, max_zoom=16).add_to(m)
     m.get_root().header.add_child(folium.Element(theme.map_css()))
     c = theme.COLORS
     total = sum(h.weight for h in state.hypotheses) or 1.0
-    for h in state.hypotheses:  # fixed pixel size scaled by weight: visible at every zoom
+    for h in state.hypotheses:  # faint circles, pixel size by weight (visible at any zoom)
         share = h.weight / total
-        folium.CircleMarker((h.lat, h.lng), radius=5 + 18 * share, color=c["accent"], weight=1, fill=True,
-                            fill_opacity=0.15 + 0.45 * share, tooltip=f"{h.label} · {share:.0%}").add_to(m)
+        folium.CircleMarker((h.lat, h.lng), radius=6 + 30 * share, color=c["accent"], weight=1, opacity=0.35,
+                            fill=True, fill_opacity=0.06 + 0.14 * share, tooltip=f"{h.label} · {share:.0%}").add_to(m)
     seen: dict[tuple[float, float], list[int]] = {}
     for cand in sub.candidates:
         seen.setdefault((cand.lat, cand.lng), []).append(cand.rank)
@@ -192,27 +207,38 @@ def candidate_map(state: State, sub: Submission, selected: int, height: int = 46
                                    f'padding:2px 8px;white-space:nowrap;transform:translate(-50%,-50%);'
                                    f'display:inline-block;cursor:pointer">{tag}</div>')
         folium.Marker((lat, lng), icon=icon, tooltip=f"rank {tag}: {lat:.6f}, {lng:.6f}").add_to(m)
-    if len(seen) > 1:
-        m.fit_bounds(pts, padding=(40, 40))
+    if len(seen) > 1:  # different candidates: show them all; identical ones: zoom in on the result
+        m.fit_bounds(pts, padding=(40, 40), max_zoom=RESULT_ZOOM.get(state.label, 12))
     out = st_folium(m, height=height, use_container_width=True, returned_objects=["last_object_clicked"],
                     key=f"map-{state.pano_id}")
     click = (out or {}).get("last_object_clicked")
     return (click["lat"], click["lng"]) if click else None
 
 
+def _links(c2, c3, cand) -> None:
+    c2.markdown(f'<a class="nv-link" href="{streetview.streetview_link(cand.lat, cand.lng)}" target="_blank" '
+                f'rel="noopener">Street View</a>', unsafe_allow_html=True)
+    c3.markdown(f'<a class="nv-link" href="{streetview.maps_link(cand.lat, cand.lng)}" target="_blank" '
+                f'rel="noopener">Google Maps</a>', unsafe_allow_html=True)
+
+
 def candidate_rows(sub: Submission, selected: int) -> int | None:
-    """The 10 coordinates; clicking a row selects it. Each row links to Street View and Google Maps."""
-    clicked = None
-    for cand in sorted(sub.candidates, key=lambda x: x.rank):
+    """The coordinates with Street View / Google Maps links. All 10 identical → one row marked ×10;
+    otherwise the ranked list, where clicking a row selects it. Returns the clicked rank."""
+    cands = sorted(sub.candidates, key=lambda x: x.rank)
+    if len({(c.lat, c.lng) for c in cands}) == 1:
         c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="center", gap="small")
-        on = cand.rank == selected
+        c1.markdown(f'<p class="nv-row-x10 nv-mono">{cands[0].lat:.6f}, {cands[0].lng:.6f}'
+                    f' <span class="nv-pill accent">×10</span></p>', unsafe_allow_html=True)
+        _links(c2, c3, cands[0])
+        return None
+    clicked = None
+    for cand in cands:
+        c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="center", gap="small")
         if c1.button(f"{cand.rank:>2}   {cand.lat:.6f}, {cand.lng:.6f}", key=f"cand-{cand.rank}",
-                     type="secondary" if on else "tertiary", width="stretch"):
+                     type="secondary" if cand.rank == selected else "tertiary", width="stretch"):
             clicked = cand.rank
-        c2.markdown(f'<a class="nv-link" href="{streetview.streetview_link(cand.lat, cand.lng)}" target="_blank" '
-                    f'rel="noopener">Street View</a>', unsafe_allow_html=True)
-        c3.markdown(f'<a class="nv-link" href="{streetview.maps_link(cand.lat, cand.lng)}" target="_blank" '
-                    f'rel="noopener">Google Maps</a>', unsafe_allow_html=True)
+        _links(c2, c3, cand)
     return clicked
 
 

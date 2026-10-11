@@ -149,7 +149,30 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
 [class*="st-key-cand-"] button > div, [class*="st-key-cand-"] button p {{ justify-content: flex-start !important;
   text-align: left; width: 100%; }}
 
-/* the one big Start button */
+/* header: app name left, clock right */
+.nv-clock {{ font-family: {f["mono"]}; font-size: {z["big"]}px; font-weight: 600; text-align: right;
+  font-variant-numeric: tabular-nums; line-height: 1.2; }}
+.nv-clock.done {{ color: {c["accent"]}; font-size: {z["title"] + 4}px; }}
+
+/* one progress bar for the whole run */
+.nv-progress {{ height: 12px; border-radius: 999px; background: {c["panel_2"]}; border: 1px solid {c["border"]};
+  overflow: hidden; }}
+.nv-progress > div {{ height: 100%; background: {c["accent"]}; border-radius: 999px; transition: width 1s linear; }}
+.nv-progress.warn > div {{ background: {c["warning"]}; }}
+.nv-progress.error > div {{ background: {c["error"]}; }}
+.nv-stage-line, .stMarkdown p.nv-stage-line {{ margin: {s["sm"]}px 0 0 0; font-size: {z["title"]}px !important;
+  font-weight: 500; }}
+.nv-stage-line.warn {{ color: {c["warning"]}; }} .nv-stage-line.error {{ color: {c["error"]}; }}
+.nv-stage-line.done {{ color: {c["accent"]}; }}
+
+/* result card */
+.nv-result {{ padding: {s["sm"]}px 0; }}
+.nv-result-place {{ font-size: {z["huge"] - 8}px; font-weight: 700; line-height: 1.15; }}
+.nv-result-pct {{ font-family: {f["mono"]}; color: {c["accent"]}; font-size: {z["big"] - 4}px; margin-left: {s["md"]}px; }}
+.nv-result-summary, .stMarkdown p.nv-result-summary {{ font-size: {z["title"]}px !important; color: {c["muted"]};
+  margin: {s["sm"]}px 0 0 0; }}
+.nv-row-x10, .stMarkdown p.nv-row-x10 {{ font-size: {z["title"]}px !important; margin: 0; }}
+
 /* the one big Start button */
 .st-key-start button {{ min-height: 64px !important; font-size: {z["title"]}px !important; }}
 [data-testid="stFileUploaderDropzone"] {{ background: {c["panel_2"]}; border: 1px dashed {c["border"]};

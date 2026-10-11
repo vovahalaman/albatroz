@@ -60,18 +60,19 @@ def test_satellite_when_no_imagery(monkeypatch):
     assert "No Street View within 1000 m" in emb.note
 
 
-def test_unchecked_coverage_still_embeds_with_a_note(monkeypatch):
+def test_unchecked_coverage_embeds_without_a_note(monkeypatch):
     monkeypatch.setattr(streetview.requests, "get", _fake_get({"status": "REQUEST_DENIED"}, []))
     emb = streetview.embed_for(38.7, -9.1, "urban", "k123")
     assert emb.kind == "streetview" and "location=38.700000%2C-9.100000" in emb.url
-    assert "could not be checked (REQUEST_DENIED)" in emb.note
+    assert emb.note == ""  # only a confirmed absence of Street View gets a note
 
 
 def test_network_error_is_not_raised(monkeypatch):
     def boom(*a, **k):
         raise streetview.requests.ConnectionError("offline")
     monkeypatch.setattr(streetview.requests, "get", boom)
-    assert streetview.embed_for(38.7, -9.1, "urban", "k123").note.startswith("Street View coverage could not")
+    emb = streetview.embed_for(38.7, -9.1, "urban", "k123")
+    assert emb.kind == "streetview" and emb.note == ""
 
 
 def test_coverage_is_cached(monkeypatch):

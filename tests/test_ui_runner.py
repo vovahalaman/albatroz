@@ -5,7 +5,7 @@ import time
 
 from navegador.core import pipeline
 from tests.ui_fakes import install, make_pano
-from ui.runner import Runner, cue_block_reason, save_upload, status_line
+from ui.runner import Runner, cue_block_reason, finished_at, save_upload, stage_line, top_place
 
 
 def test_start_runs_assisted_and_stops_at_the_question(monkeypatch, tmp_path):
@@ -15,7 +15,7 @@ def test_start_runs_assisted_and_stops_at_the_question(monkeypatch, tmp_path):
     v = r.view(pid)
     assert calls == ["start_run:non_urban:assisted", "advance"]
     assert v.state.pending_mcq is not None and not v.busy
-    assert status_line(v) == ("The agent has a question for you.", "warn")
+    assert stage_line(v) == ("Waiting for your answer", "warn") and finished_at(v) is None
     assert v.findings["geographer"]["country_probs"]["pt"] == 0.9
     assert cue_block_reason(v) == "Answer the question first."
 
@@ -27,7 +27,10 @@ def test_answer_gives_result_and_log(monkeypatch, tmp_path):
     r.answer(pid, "A")
     v = r.view(pid)
     assert v.state.status == "done" and len(v.state.submission.candidates) == 10
-    assert status_line(v) == ("Done. Copy the 10 coordinates.", "done")
+    assert stage_line(v) == ("Result ready", "done") and finished_at(v) is not None
+    place, share, summary = top_place(v)
+    assert place in ("Baixa, Lisboa", "Ribeira, Porto") and abs(share - 0.5) < 1e-9
+    assert summary == "Old town with calçada."  # first sentence only
     assert cue_block_reason(v) is None  # a cue after the result sends the agent back to S4
     log = json.loads(r.log_json(pid))
     assert log["metadata"]["pano_id"] == pid
@@ -54,7 +57,7 @@ def test_errors_are_shown_not_raised(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline, "advance", boom)
     r = Runner(inline=True)
     v = r.view(r.start(make_pano(tmp_path), "urban"))
-    assert v.error == "RuntimeError: Vertex 504" and status_line(v)[1] == "error"
+    assert v.error == "RuntimeError: Vertex 504" and stage_line(v)[1] == "error"
 
 
 def test_background_worker_is_busy_until_the_agent_stops(monkeypatch, tmp_path):
@@ -69,7 +72,7 @@ def test_background_worker_is_busy_until_the_agent_stops(monkeypatch, tmp_path):
     r = Runner(inline=False)
     pid = r.start(make_pano(tmp_path), "urban")
     v = r.view(pid)
-    assert v.busy and status_line(v)[0].startswith("Cutting the panorama into views")
+    assert v.busy and stage_line(v)[0].startswith("Cutting the panorama into views")
     assert cue_block_reason(v) == "Available when the agent stops."
     for _ in range(60):
         if not r.view(pid).busy:

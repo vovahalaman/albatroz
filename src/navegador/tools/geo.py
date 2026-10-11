@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
+import math
 import re
 import threading
 import time
@@ -32,6 +33,7 @@ Service = Literal["nominatim", "overpass", "wikipedia"]
 NOMINATIM_TOOLS = frozenset({"geocode", "reverse"})
 _OSM_TAG = re.compile(r'^([A-Za-z0-9_:]+)(?:=([^"\\\n\[\]]+))?$')
 _LANG = re.compile(r"^[a-z]{2,3}$")
+CORNER_MERGE_M = 15.0
 
 _run: contextvars.ContextVar[tuple[str, str] | None] = contextvars.ContextVar("geo_run", default=None)
 _session = requests.Session()
@@ -235,6 +237,66 @@ def overpass_named(name: str, bbox: str | None = None) -> list[dict]:
     selector = f"[name={_quote(args['name'])}]"
     statements = "".join(f"nwr{selector}({s},{w},{n},{e});" for s, w, n, e in boxes)
     return _overpass("overpass_named", args, statements)
+
+
+def _corners(raw: dict[str, Any], name: str) -> list[dict[str, Any]]:
+    """Intersections of the ways named `name` with other named highways, plus street ends that are no
+    intersection. Corners closer than CORNER_MERGE_M are merged (dual carriageways, offset nodes)."""
+    if "runtime error" in str(raw.get("remark", "")):
+        raise ValueError(f"Overpass: {raw['remark']}")
+    nodes = {e["id"]: (float(e["lat"]), float(e["lon"])) for e in raw.get("elements", []) if e["type"] == "node"}
+    ways = [e for e in raw.get("elements", []) if e["type"] == "way"]
+    street = [w for w in ways if w.get("tags", {}).get("name") == name]
+    street_nodes = {n for w in street for n in w.get("nodes", [])}
+    crossing: dict[int, set[str]] = {}
+    for w in ways:
+        cross = w.get("tags", {}).get("name")
+        if w in street or not cross:  # unnamed footways/service roads mostly duplicate a real corner
+            continue
+        for n in set(w.get("nodes", [])) & street_nodes:
+            crossing.setdefault(n, set()).add(cross)
+    out: list[dict[str, Any]] = []
+    for n, names in crossing.items():
+        if n not in nodes:
+            continue
+        lat, lng = nodes[n]
+        near = next((c for c in out if c["kind"] == "corner" and _dist_m(lat, lng, c["lat"], c["lng"]) < CORNER_MERGE_M), None)
+        if near:
+            near["cross_streets"] = sorted(set(near["cross_streets"]) | names)
+            continue
+        out.append({"kind": "corner", "lat": lat, "lng": lng, "cross_streets": sorted(names)})
+    for w in street:
+        for n in (w["nodes"][0], w["nodes"][-1]) if w.get("nodes") else ():
+            if n in nodes and n not in crossing and sum(n in v.get("nodes", []) for v in street) == 1:
+                lat, lng = nodes[n]
+                if all(_dist_m(lat, lng, c["lat"], c["lng"]) >= CORNER_MERGE_M for c in out):
+                    out.append({"kind": "end", "lat": lat, "lng": lng, "cross_streets": []})
+    for c in out:
+        c["name"] = f"{name} × {' / '.join(c['cross_streets'])}" if c["cross_streets"] else f"{name} (end)"
+    return out
+
+
+def _dist_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lng2 - lng1) / 2) ** 2
+    return 2 * 6_371_008.8 * math.asin(math.sqrt(h))
+
+
+def street_corners(name: str, lat: float, lng: float, radius_m: int = 400) -> list[dict]:
+    """Corners (intersections with other named streets) and dead ends of the street called exactly `name`
+    near a point. Street name plaques hang on corner buildings, so the camera is usually close to one of
+    these corners. Use the OSM name from a geocode result (e.g. "Rua de Rafael de Andrade") and its lat/lng.
+    Each result has kind ("corner" | "end"), lat, lng, cross_streets, name and a call_id."""
+    args = {"name": name.strip(), "lat": round(float(lat), 6), "lng": round(float(lng), 6),
+            "radius_m": max(50, min(int(radius_m), 2000))}
+    cfg = settings().geo
+    query = (f"[out:json][timeout:{cfg.overpass_timeout_s}];"
+             f"way[highway][name={_quote(args['name'])}](around:{args['radius_m']},{args['lat']},{args['lng']})->.s;"
+             ".s out body;node(w.s)->.n;.n out skel;way[highway](bn.n)->.x;(.x; - .s;)->.o;.o out body;")
+    value, call_id = _fetch("street_corners", args, "overpass", lambda raw: _corners(raw, args["name"]),
+                            method="POST", url=cfg.overpass_url, data={"data": query},
+                            timeout=cfg.overpass_timeout_s + 5)
+    return [{**c, "call_id": call_id} for c in value]
 
 
 def wiki_coords(query: str, lang: str = "pt") -> dict | None:

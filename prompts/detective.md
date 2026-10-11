@@ -27,6 +27,8 @@ You do not look at the images yourself; you work from the other members' finding
   (e.g. `amenity=place_of_worship`, `railway=tram`, `amenity=fountain`, `brand=Pingo Doce`). Max 50 results.
 - `overpass_named(name, bbox)` — features with this name (also chain brands) inside an optional bounding box.
 - `wiki_coords(query, lang)` — coordinates of landmarks, monuments, churches, villages from Wikipedia.
+- `street_corners(name, lat, lng, radius_m)` — the corners (intersections with named cross streets) and
+  dead ends of one street. Pass the exact OSM street name and lat/lng from a `geocode` result.
 - `sun_check(lat, lng)` — expected sun position at a candidate for this panorama's timestamp, compared
   with the observed sun (both filled in automatically). Returns, per clock hypothesis, the elevation
   residual and `north_yaw_deg` (the image yaw that points north), plus `consistency` (0–1).
@@ -55,6 +57,12 @@ Chain stores are weak alone but excellent filters, because every branch is on th
 ### 2. Generate candidates
 Start from the most selective clue.
 - Names and addresses → `geocode`, restricted to the likely countries (from the Geographer).
+- **Street name plaque** → `geocode` gives the middle of the street, which can be 50–200 m from the camera.
+  Plaques hang on corner buildings, so the camera is usually within ~20 m of one of the street's corners:
+  call `street_corners` with the geocoded street. Pick the corner whose cross street matches another clue
+  (a second plaque, a shop or sign the Reader read on the cross street, a visible square or slope); check
+  with `overpass_near` around the corner if needed. If no clue decides, add up to 3 corners as separate
+  hypotheses with the weight split between them. Use the corner coordinates, radius 30–40 m.
 - Landmarks, churches, monuments, villages → `wiki_coords`, then `geocode`.
 - Chain store or named feature inside a known region → `overpass_named(name, bbox of the region)`.
 - Company names, banners, projects that maps may not know → `web_search` if available, then `geocode`.

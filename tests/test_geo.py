@@ -268,3 +268,50 @@ def test_wiki_coords_none(http):
     assert len(tool_events()) == 2  # the call is still registered
     with pytest.raises(ValueError):
         geo.wiki_coords("x", lang="pt/../evil")
+
+
+def corners_payload() -> dict:
+    """Rua A (ways 1+6) crosses Rua B at node 11 and Rua C at node 13 (Rua C mapped as two ways);
+    node 12 only meets an unnamed footway; node 10 is a dead end; node 14 joins the two Rua A ways."""
+    def node(i, lat, lng):
+        return {"type": "node", "id": i, "lat": lat, "lon": lng}
+    return {"elements": [
+        {"type": "way", "id": 1, "nodes": [10, 11, 12, 13, 14], "tags": {"highway": "residential", "name": "Rua A"}},
+        {"type": "way", "id": 6, "nodes": [14, 15], "tags": {"highway": "residential", "name": "Rua A"}},
+        node(10, 38.7200, -9.1400), node(11, 38.7205, -9.1400), node(12, 38.7210, -9.1400),
+        node(13, 38.7215, -9.1400), node(14, 38.7220, -9.1400), node(15, 38.7225, -9.1400),
+        {"type": "way", "id": 2, "nodes": [11, 20], "tags": {"highway": "residential", "name": "Rua B"}},
+        {"type": "way", "id": 3, "nodes": [12, 21], "tags": {"highway": "footway"}},
+        {"type": "way", "id": 4, "nodes": [13, 22], "tags": {"highway": "residential", "name": "Rua C"}},
+        {"type": "way", "id": 5, "nodes": [23, 13], "tags": {"highway": "residential", "name": "Rua C"}},
+    ]}
+
+
+def test_street_corners_finds_named_intersections_and_ends(http):
+    http.push(corners_payload())
+    res = geo.street_corners("Rua A", 38.7212, -9.14)
+    by_kind = {(r["kind"], tuple(r["cross_streets"])): r for r in res}
+    assert set(by_kind) == {("corner", ("Rua B",)), ("corner", ("Rua C",)), ("end", ()), ("end", ())}
+    assert by_kind[("corner", ("Rua B",))]["lat"] == 38.7205
+    assert by_kind[("corner", ("Rua C",))]["name"] == "Rua A × Rua C"
+    assert {r["lat"] for r in res if r["kind"] == "end"} == {38.72, 38.7225}  # 14 joins two Rua A ways: no end
+    assert len({r["call_id"] for r in res}) == 1 and res[0]["call_id"].startswith("street_corners-")
+    q = http.calls[0]["data"]["data"]
+    assert 'way[highway][name="Rua A"](around:400,38.7212,-9.14)' in q and "(.x; - .s;)" in q
+    geo.street_corners("Rua A", 38.7212, -9.14)  # cached: no second request
+    assert len(http.calls) == 1
+
+
+def test_street_corners_merges_close_corners_and_reports_errors(http):
+    payload = corners_payload()
+    for e in payload["elements"]:
+        if e.get("id") == 12 and e["type"] == "node":
+            e["lat"] = 38.72051  # ~1 m from the Rua B corner
+        if e.get("id") == 3:
+            e["tags"]["name"] = "Travessa D"
+    http.push(payload)
+    corners = [r for r in geo.street_corners("Rua A", 38.72, -9.14) if r["kind"] == "corner"]
+    assert sorted(c["cross_streets"] for c in corners) == [["Rua B", "Travessa D"], ["Rua C"]]
+    http.push({"elements": [], "remark": "runtime error: Query timed out"})
+    with pytest.raises(geo.GeoError, match="timed out"):
+        geo.street_corners("Rua Z", 38.72, -9.14)

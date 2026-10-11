@@ -1,7 +1,7 @@
 """Scribe: JSON event log, tool-call registry, penalty ledger, exports (SPEC §11).
 
 `runs/<pano_id>/log.jsonl` is append-only, one event per line. `export()` writes
-`log.json` (events + metadata) and `report.md` (readable deduction trace).
+`IMG_20261005_171832_00_163_log.json` (events + metadata) and `report.md` (readable deduction trace).
 """
 
 from __future__ import annotations
@@ -178,11 +178,11 @@ def metadata() -> dict[str, Any]:
 
 
 def export(pano_id: str) -> tuple[Path, Path]:
-    """Write `log.json` and `report.md` for the current run; return both paths."""
+    """Write `IMG_20261005_171832_00_163_log.json` and `report.md` for the current run; return both paths."""
     state = st.load(pano_id)
     events = read_events(pano_id, state.run_id)
     out = st.run_dir(pano_id)
-    log_json = out / "log.json"
+    log_json = out / "IMG_20261005_171832_00_163_log.json"
     log_json.write_text(json.dumps(
         {"metadata": {**metadata(), "pano_id": pano_id, "run_id": state.run_id}, "events": events},
         ensure_ascii=False, indent=2), encoding="utf-8")

@@ -237,9 +237,9 @@ class Runner:
                        events=scribe.read_events(pano_id, state.run_id))
 
     def log_json(self, pano_id: str) -> str:
-        """runs/<id>/log.json once reported, else the same shape built from log.jsonl."""
+        """runs/<id>/IMG_20261005_171832_00_163_log.json once reported, else the same shape built from log.jsonl."""
         state = st.load(pano_id)
-        path = st.run_dir(pano_id) / "log.json"
+        path = st.run_dir(pano_id) / "IMG_20261005_171832_00_163_log.json"
         if state.status == "done" and path.exists():
             return path.read_text(encoding="utf-8")
         meta = {**scribe.metadata(), "pano_id": pano_id, "run_id": state.run_id}

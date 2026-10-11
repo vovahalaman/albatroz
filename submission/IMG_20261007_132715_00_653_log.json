@@ -1,0 +1,2269 @@
+{
+  "metadata": {
+    "git_commit": "7e3d5ad",
+    "prompt_hashes": {
+      "advocate.md": "9617278a69dc",
+      "baseline.md": "630247c7898d",
+      "check_llm.md": "ac0c7d148d4f",
+      "cue_guard.md": "5cc648e84e89",
+      "detective.md": "586e4962e179",
+      "geographer.md": "c925172cedf7",
+      "navigator.md": "49aa0d15722d",
+      "professor.md": "192c395043c9",
+      "reader.md": "27d3ceb9dd47",
+      "sun_locate.md": "073a9c6c212d",
+      "sun_verify.md": "9e6de90dab0b"
+    },
+    "knowledge_hash": "facb753d6e92",
+    "models": {
+      "perception": "gemini-3.8-flash",
+      "detective": "gemini-3.8-flash",
+      "navigator": "gemini-3.5-flash-lite",
+      "cue_guard": "gemini-3.5-flash-lite",
+      "advocate": "gemini-3.8-flash",
+      "baseline": "gemini-3.8-flash"
+    },
+    "pano_id": "IMG_20261007_132715_00_653",
+    "run_id": "30da9ad84b44"
+  },
+  "events": [
+    {
+      "ts": "2026-10-11T10:32:51.852579+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "run_start",
+      "actor": "pipeline",
+      "payload": {
+        "pano_path": "/Users/aatupartanen/albatroz/runs/_uploads/IMG_20261007_132715_00_653.jpg",
+        "pano_sha256": "6958499af6c96175c3548d55e998d4c946babba875f6e7e88fd224bd932cc83c",
+        "label": "urban",
+        "mode": "assisted",
+        "special_one": false,
+        "timestamp": "20261007132715",
+        "exif": {
+          "tags": {},
+          "gps": null,
+          "xmp": {}
+        },
+        "git_commit": "7e3d5ad"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:51.854338+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "ui",
+      "payload": {
+        "stage": "S0",
+        "label_detection": {
+          "label": "urban",
+          "reason": "Park terrace overlooking a dense city with buildings and a construction crane.",
+          "source": "classifier",
+          "model": "gemini-3.5-flash-lite",
+          "tokens": 611,
+          "error": ""
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:51.855375+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S1",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:56.687638+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "magnifier",
+      "payload": {
+        "stage": "S1",
+        "views": [
+          "h000",
+          "h045",
+          "h090",
+          "h135",
+          "h180",
+          "h225",
+          "h270",
+          "h315",
+          "g000",
+          "g090",
+          "g180",
+          "g270",
+          "u000",
+          "u090",
+          "u180",
+          "u270",
+          "overview"
+        ]
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:56.689223+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S1",
+        "status": "done",
+        "seconds": 4.833
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:56.690165+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S2",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:59.569290+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "sun_locate.md",
+        "prompt_version": "dfc668c",
+        "knowledge": [],
+        "text_parts": [
+          "Image 1520x380 px.",
+          "Return only JSON that validates against this JSON Schema:\n{\"description\": \"Astrolabe VLM fallback (prompts/sun_locate.md); x, y in 0–1000 of the sent sky image.\", \"properties\": {\"sun_visible\": {\"title\": \"Sun Visible\", \"type\": \"boolean\"}, \"x\": {\"anyOf\": [{\"maximum\": 1000, \"minimum\": 0, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"X\"}, \"y\": {\"anyOf\": [{\"maximum\": 1000, \"minimum\": 0, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Y\"}, \"kind\": {\"anyOf\": [{\"enum\": [\"disc\", \"behind_cloud\", \"behind_object\"], \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Kind\"}}, \"required\": [\"sun_visible\"], \"title\": \"SunLocateResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "/Users/aatupartanen/albatroz/cache/astrolabe_vlm/93118acf05c07713aab6cfab521a862c.jpg",
+            "sha256": "af42c9567f3c64734b011815669636f5afe3beb9a0de75aea419b60aa6dbe500",
+            "media_resolution": "MEDIUM"
+          }
+        ],
+        "schema": "SunLocateResult",
+        "tools": [],
+        "max_output_tokens": 512,
+        "backend": "vertex",
+        "latency_s": 2.594,
+        "response_text": "{\"sun_visible\": true, \"x\": 532, \"y\": 461, \"kind\": \"disc\"}",
+        "parsed": {
+          "sun_visible": true,
+          "x": 532,
+          "y": 461,
+          "kind": "disc"
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 29,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 29
+            }
+          ],
+          "prompt_token_count": 1116,
+          "prompt_tokens_details": [
+            {
+              "modality": "IMAGE",
+              "token_count": 517
+            },
+            {
+              "modality": "TEXT",
+              "token_count": 599
+            }
+          ],
+          "total_token_count": 1145,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:59.770733+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "astrolabe",
+      "payload": {
+        "stage": "S2",
+        "sun": {
+          "yaw": 11.52,
+          "elevation": 48.51,
+          "area_px": 0,
+          "confidence": 0.3,
+          "uncertainty_deg": 8.0,
+          "pixel_xy": [
+            3234.6,
+            700.7
+          ],
+          "source": "vlm"
+        },
+        "note": "Image centre faces roughly S (171°, ±43°). Clock ambiguous between local (Europe/Lisbon) and UTC. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed."
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:59.770960+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S2",
+        "status": "done",
+        "seconds": 3.081
+      }
+    },
+    {
+      "ts": "2026-10-11T10:32:59.771526+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S3",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:33:23.362307+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "reader.md",
+        "prompt_version": "03883b8",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md"
+        ],
+        "text_parts": [
+          "Pass: 1\nLabel: urban\nTimestamp: 2026-10-07 13:27 (local time)\nImages in order: h000 (yaw 0°), h045 (yaw 45°), h090 (yaw 90°), h135 (yaw 135°), h180 (yaw 180°), h225 (yaw -135°), h270 (yaw -90°), h315 (yaw -45°)",
+          "Return only JSON that validates against this JSON Schema:\n{\"$defs\": {\"LanguageVerdict\": {\"properties\": {\"pt\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Pt\", \"type\": \"number\"}, \"es\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Es\", \"type\": \"number\"}, \"fr\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Fr\", \"type\": \"number\"}, \"other\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Other\", \"type\": \"number\"}}, \"title\": \"LanguageVerdict\", \"type\": \"object\"}, \"ReaderText\": {\"properties\": {\"text\": {\"title\": \"Text\", \"type\": \"string\"}, \"view\": {\"title\": \"View\", \"type\": \"string\"}, \"kind\": {\"enum\": [\"sign\", \"shop\", \"plate_format\", \"phone\", \"domain\", \"other\"], \"title\": \"Kind\", \"type\": \"string\"}, \"language\": {\"enum\": [\"pt\", \"es\", \"fr\", \"gl\", \"ca\", \"eu\", \"other\"], \"title\": \"Language\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"text\", \"view\", \"kind\", \"language\", \"confidence\"], \"title\": \"ReaderText\", \"type\": \"object\"}, \"ZoomRequest\": {\"description\": \"Zoom target in image angles. A slightly-off number from the model is corrected (yaw wrapped,\\npitch and FOV clamped) instead of failing the whole Reader answer. The bounds stay in the JSON\\nschema so the model still sees them. NaN/inf is rejected.\", \"properties\": {\"yaw\": {\"maximum\": 180, \"minimum\": -180, \"title\": \"Yaw\", \"type\": \"number\"}, \"pitch\": {\"maximum\": 90, \"minimum\": -90, \"title\": \"Pitch\", \"type\": \"number\"}, \"fov\": {\"maximum\": 90, \"minimum\": 8, \"title\": \"Fov\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"yaw\", \"pitch\", \"fov\"], \"title\": \"ZoomRequest\", \"type\": \"object\"}}, \"properties\": {\"texts\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ReaderText\"}, \"title\": \"Texts\", \"type\": \"array\"}, \"language_verdict\": {\"$ref\": \"#/$defs/LanguageVerdict\"}, \"search_terms\": {\"default\": [], \"items\": {\"type\": \"string\"}, \"title\": \"Search Terms\", \"type\": \"array\"}, \"zoom_requests\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ZoomRequest\"}, \"maxItems\": 6, \"title\": \"Zoom Requests\", \"type\": \"array\"}}, \"required\": [\"language_verdict\"], \"title\": \"ReaderResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h000.jpg",
+            "sha256": "4c3a8b85abe4448f72c0f6f361941e803710a4f35c03b892b75d46d245e216d1",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h045.jpg",
+            "sha256": "19f7663ae0d86f5b785c92c4c471198b968f045e1c88551b592af74085f84534",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h090.jpg",
+            "sha256": "856c2440330a118f96082b647ad23cf884f8d3ddd42e688b6fec2e07c2d3942d",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h135.jpg",
+            "sha256": "316b0bcb259ccd1bb5b44fda932df646556b9479f0f49726f7942c7a2db9f61e",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h180.jpg",
+            "sha256": "f3c8618491a413e544dcc52ce5c53e85e025212048b0982ff1e710b06d33ebe8",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h225.jpg",
+            "sha256": "51ff1c568d35f7ecbc02920e38878fd5302d0cf3a1617f89e5e47459c1fc1d9c",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h270.jpg",
+            "sha256": "f93b307f3b62bfdc5b1e7790e78c118cbc6fb6c0c45c457a3b31c545f3d5b32a",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h315.jpg",
+            "sha256": "ef32908f6177f7a7e08590ec2567c050ab386cc092316b174386d7e9c2aa9d44",
+            "media_resolution": "MEDIUM"
+          }
+        ],
+        "schema": "ReaderResult",
+        "tools": [],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 23.537,
+        "response_text": "{\n  \"texts\": [],\n  \"language_verdict\": {\n    \"pt\": 0.25,\n    \"es\": 0.25,\n    \"fr\": 0.25,\n    \"other\": 0.25\n  },\n  \"search_terms\": [],\n  \"zoom_requests\": []\n}",
+        "parsed": {
+          "texts": [],
+          "language_verdict": {
+            "pt": 0.25,
+            "es": 0.25,
+            "fr": 0.25,
+            "other": 0.25
+          },
+          "search_terms": [],
+          "zoom_requests": []
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 80,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 80
+            }
+          ],
+          "prompt_token_count": 10543,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 6311
+            },
+            {
+              "modality": "IMAGE",
+              "token_count": 4232
+            }
+          ],
+          "thoughts_token_count": 2871,
+          "total_token_count": 13494,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:33:27.659454+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "geographer.md",
+        "prompt_version": "f0d2283",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md",
+          "lessons.md"
+        ],
+        "text_parts": [
+          "Label: urban\nCamera clock: 2026-10-07 13:27 (time zone not known)\nImages in order: h000 (yaw 0°, pitch 0°), h045 (yaw 45°, pitch 0°), h090 (yaw 90°, pitch 0°), h135 (yaw 135°, pitch 0°), h180 (yaw 180°, pitch 0°), h225 (yaw -135°, pitch 0°), h270 (yaw -90°, pitch 0°), h315 (yaw -45°, pitch 0°), g000 (yaw 0°, pitch -50°), g090 (yaw 90°, pitch -50°), g180 (yaw 180°, pitch -50°), g270 (yaw -90°, pitch -50°), u000 (yaw 0°, pitch 50°), u090 (yaw 90°, pitch 50°), u180 (yaw 180°, pitch 50°), u270 (yaw -90°, pitch 50°), overview (whole panorama)\nSun/compass note (Astrolabe, low confidence): Image centre faces roughly S (171°, ±43°). Clock ambiguous between local (Europe/Lisbon) and UTC. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed.",
+          "Return only JSON that validates against this JSON Schema:\n{\"$defs\": {\"CountryProbs\": {\"properties\": {\"pt\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Pt\", \"type\": \"number\"}, \"es\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Es\", \"type\": \"number\"}, \"fr\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Fr\", \"type\": \"number\"}}, \"title\": \"CountryProbs\", \"type\": \"object\"}, \"GeographerObservation\": {\"properties\": {\"cue\": {\"title\": \"Cue\", \"type\": \"string\"}, \"value\": {\"title\": \"Value\", \"type\": \"string\"}, \"view\": {\"title\": \"View\", \"type\": \"string\"}, \"status\": {\"enum\": [\"observed\", \"not_observed\", \"uncertain\"], \"title\": \"Status\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"cue\", \"value\", \"view\", \"status\", \"confidence\"], \"title\": \"GeographerObservation\", \"type\": \"object\"}, \"RecognizedPlace\": {\"properties\": {\"place\": {\"title\": \"Place\", \"type\": \"string\"}, \"country\": {\"enum\": [\"pt\", \"es\", \"fr\"], \"title\": \"Country\", \"type\": \"string\"}, \"prob\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Prob\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"place\", \"country\", \"prob\"], \"title\": \"RecognizedPlace\", \"type\": \"object\"}, \"RegionGuess\": {\"properties\": {\"region\": {\"title\": \"Region\", \"type\": \"string\"}, \"country\": {\"enum\": [\"pt\", \"es\", \"fr\"], \"title\": \"Country\", \"type\": \"string\"}, \"prob\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Prob\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"region\", \"country\", \"prob\"], \"title\": \"RegionGuess\", \"type\": \"object\"}, \"WaterOrCoast\": {\"properties\": {\"present\": {\"default\": false, \"title\": \"Present\", \"type\": \"boolean\"}, \"yaw\": {\"anyOf\": [{\"type\": \"number\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Yaw\"}, \"type\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Type\"}}, \"title\": \"WaterOrCoast\", \"type\": \"object\"}}, \"properties\": {\"observations\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/GeographerObservation\"}, \"title\": \"Observations\", \"type\": \"array\"}, \"setting\": {\"default\": \"\", \"title\": \"Setting\", \"type\": \"string\"}, \"country_probs\": {\"$ref\": \"#/$defs/CountryProbs\"}, \"region_guesses\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/RegionGuess\"}, \"title\": \"Region Guesses\", \"type\": \"array\"}, \"recognized_places\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/RecognizedPlace\"}, \"title\": \"Recognized Places\", \"type\": \"array\"}, \"water_or_coast\": {\"$ref\": \"#/$defs/WaterOrCoast\", \"default\": {\"present\": false, \"yaw\": null, \"type\": null}}, \"terrain\": {\"default\": \"\", \"title\": \"Terrain\", \"type\": \"string\"}, \"season\": {\"default\": \"\", \"title\": \"Season\", \"type\": \"string\"}}, \"required\": [\"country_probs\"], \"title\": \"GeographerResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h000.jpg",
+            "sha256": "4c3a8b85abe4448f72c0f6f361941e803710a4f35c03b892b75d46d245e216d1",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h045.jpg",
+            "sha256": "19f7663ae0d86f5b785c92c4c471198b968f045e1c88551b592af74085f84534",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h090.jpg",
+            "sha256": "856c2440330a118f96082b647ad23cf884f8d3ddd42e688b6fec2e07c2d3942d",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h135.jpg",
+            "sha256": "316b0bcb259ccd1bb5b44fda932df646556b9479f0f49726f7942c7a2db9f61e",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h180.jpg",
+            "sha256": "f3c8618491a413e544dcc52ce5c53e85e025212048b0982ff1e710b06d33ebe8",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h225.jpg",
+            "sha256": "51ff1c568d35f7ecbc02920e38878fd5302d0cf3a1617f89e5e47459c1fc1d9c",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h270.jpg",
+            "sha256": "f93b307f3b62bfdc5b1e7790e78c118cbc6fb6c0c45c457a3b31c545f3d5b32a",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/h315.jpg",
+            "sha256": "ef32908f6177f7a7e08590ec2567c050ab386cc092316b174386d7e9c2aa9d44",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/g000.jpg",
+            "sha256": "ad740a9d1c4cd5c3271b14a83b32a72709afe4111b89766a785dc76870db55c5",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/g090.jpg",
+            "sha256": "84e945bb747b7c614a4adfb632a6919625dfd113a7eee2a2b37089bdd5fcbd16",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/g180.jpg",
+            "sha256": "2918c699398f7a59dfa1c0d4806d6ae73fdc88de3fb634adc3ee5ad944ee0e65",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/g270.jpg",
+            "sha256": "b428ef883daf7c66ec47e7e2ae7a49ee9a7144899cdbf1b6de7f28749df71676",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/u000.jpg",
+            "sha256": "3e47979f359d47f21f1983dcdf8672ad54af65286ab4ceb2539f175626461352",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/u090.jpg",
+            "sha256": "fc3766a263b0dba2e55cb1395da2c6a633515cebe8c8ae172ed1aee2c7d5276a",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/u180.jpg",
+            "sha256": "bfb616ff81d0e631339592e7709019509d982ce00d8ae029826552d38b0434f8",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/u270.jpg",
+            "sha256": "612d9de58e1611c0dc735bb9d196d65933e9ee670dc018dbe4bc5390580034a7",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "/Users/aatupartanen/albatroz/runs/IMG_20261007_132715_00_653/views/overview.jpg",
+            "sha256": "79c3a3069b6c175507d12da7aaf4a9c173add4b16a81c7eb1abbb6fa6de7fac3",
+            "media_resolution": "LOW"
+          }
+        ],
+        "schema": "GeographerResult",
+        "tools": [],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 27.703,
+        "response_text": "{\n  \"observations\": [\n    {\n      \"cue\": \"pavement\",\n      \"value\": \"curved park pathway with bound earth/gravel centre edged by white limestone calçada (Portuguese cobblestone)\",\n      \"view\": \"g090\",\n      \"status\": \"observed\",\n      \"confidence\": 0.95\n    },\n    {\n      \"cue\": \"bollards/poles\",\n      \"value\": \"classic dark green cast-iron municipal park lantern post with white drop globe lamp\",\n      \"view\": \"h180\",\n      \"status\": \"observed\",\n      \"confidence\": 0.9\n    },\n    {\n      \"cue\": \"wall finish\",\n      \"value\": \"yellow-painted eclectic 19th-century palacete/mansion with hipped terracotta roof and ornamental window surrounds uphill\",\n      \"view\": \"h270\",\n      \"status\": \"observed\",\n      \"confidence\": 0.85\n    },\n    {\n      \"cue\": \"vegetation\",\n      \"value\": \"large mature London plane trees (Platanus) over manicured lawn, with palm tree and agapanthus borders\",\n      \"view\": \"h225\",\n      \"status\": \"observed\",\n      \"confidence\": 0.9\n    },\n    {\n      \"cue\": \"distinctive\",\n      \"value\": \"terrace viewpoint with green vertical iron bar railing on low whitewashed parapet wall, overlooking a dense city valley and opposing hill ridge\",\n      \"view\": \"h000\",\n      \"status\": \"observed\",\n      \"confidence\": 0.9\n    },\n    {\n      \"cue\": \"water/coast\",\n      \"value\": \"distant horizontal blue expanse of the Tagus estuary visible between hills to the south/south-west\",\n      \"view\": \"h000\",\n      \"status\": \"observed\",\n      \"confidence\": 0.75\n    },\n    {\n      \"cue\": \"roof type/colour\",\n      \"value\": \"dense sea of orange-red terracotta barrel-tile roofs across the urban valley\",\n      \"view\": \"h045\",\n      \"status\": \"observed\",\n      \"confidence\": 0.95\n    }\n  ],\n  \"setting\": \"The camera stands on the curved upper terrace pathway of a hillside public garden and viewpoint (miradouro). The gravel path is edged with white limestone calçada paving and lawn shaded by large plane trees. A green iron railing on a low parapet wall overlooks an urban valley of multi-storey buildings with red-tiled roofs, climbing up an opposing ridge, with a palacete immediately uphill behind the garden.\",\n  \"country_probs\": {\n    \"pt\": 0.99,\n    \"es\": 0.01,\n    \"fr\": 0.0\n  },\n  \"region_guesses\": [\n    {\"region\": \"Lisboa\", \"country\": \"pt\", \"prob\": 0.98, \"why\": \"White limestone calçada borders g090, signature Lisbon municipal green lantern pole h180, classic Lisbon hilly urban fabric and Tagus estuary view h000\"}\n  ],\n  \"recognized_places\": [\n    {\n      \"place\": \"Jardim do Torel, Lisboa\",\n      \"country\": \"pt\",\n      \"prob\": 0.85,\n      \"why\": \"Specific hillside park on Colina de Santana with curving terrace, green iron railing, plane trees, and the prominent yellow Palacete do Torel / Ribeiro da Cunha uphill h270, overlooking the valley toward Bairro Alto\"\n    },\n    {\n      \"place\": \"Miradouro de São Pedro de Alcântara, Lisboa\",\n      \"country\": \"pt\",\n      \"prob\": 0.05,\n      \"why\": \"Alternative Lisbon miradouro overlooking the city valley, but São Pedro de Alcântara features stone balustrades rather than simple green iron railings\"\n    },\n    {\n      \"place\": \"Miradouro do Monte Agudo, Lisboa\",\n      \"country\": \"pt\",\n      \"prob\": 0.03,\n      \"why\": \"generic: Lisbon viewpoint garden on a hillside, but lacks the specific palacete architecture and terraced plane-tree lawn configuration seen here\"\n    }\n  ],\n  \"water_or_coast\": {\n    \"present\": true,\n    \"yaw\": 335.0,\n    \"type\": \"estuary\"\n  },\n  \"terrain\": \"steep urban hills separated by a central valley, with a wide river estuary on the distant horizon\",\n  \"season\": \"early autumn, with deep green plane tree foliage, lush irrigated lawn, and bright sunshine; consistent with October\"\n}",
+        "parsed": {
+          "observations": [
+            {
+              "cue": "pavement",
+              "value": "curved park pathway with bound earth/gravel centre edged by white limestone calçada (Portuguese cobblestone)",
+              "view": "g090",
+              "status": "observed",
+              "confidence": 0.95
+            },
+            {
+              "cue": "bollards/poles",
+              "value": "classic dark green cast-iron municipal park lantern post with white drop globe lamp",
+              "view": "h180",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "wall finish",
+              "value": "yellow-painted eclectic 19th-century palacete/mansion with hipped terracotta roof and ornamental window surrounds uphill",
+              "view": "h270",
+              "status": "observed",
+              "confidence": 0.85
+            },
+            {
+              "cue": "vegetation",
+              "value": "large mature London plane trees (Platanus) over manicured lawn, with palm tree and agapanthus borders",
+              "view": "h225",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "distinctive",
+              "value": "terrace viewpoint with green vertical iron bar railing on low whitewashed parapet wall, overlooking a dense city valley and opposing hill ridge",
+              "view": "h000",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "water/coast",
+              "value": "distant horizontal blue expanse of the Tagus estuary visible between hills to the south/south-west",
+              "view": "h000",
+              "status": "observed",
+              "confidence": 0.75
+            },
+            {
+              "cue": "roof type/colour",
+              "value": "dense sea of orange-red terracotta barrel-tile roofs across the urban valley",
+              "view": "h045",
+              "status": "observed",
+              "confidence": 0.95
+            }
+          ],
+          "setting": "The camera stands on the curved upper terrace pathway of a hillside public garden and viewpoint (miradouro). The gravel path is edged with white limestone calçada paving and lawn shaded by large plane trees. A green iron railing on a low parapet wall overlooks an urban valley of multi-storey buildings with red-tiled roofs, climbing up an opposing ridge, with a palacete immediately uphill behind the garden.",
+          "country_probs": {
+            "pt": 0.99,
+            "es": 0.01,
+            "fr": 0.0
+          },
+          "region_guesses": [
+            {
+              "region": "Lisboa",
+              "country": "pt",
+              "prob": 0.98,
+              "why": "White limestone calçada borders g090, signature Lisbon municipal green lantern pole h180, classic Lisbon hilly urban fabric and Tagus estuary view h000"
+            }
+          ],
+          "recognized_places": [
+            {
+              "place": "Jardim do Torel, Lisboa",
+              "country": "pt",
+              "prob": 0.85,
+              "why": "Specific hillside park on Colina de Santana with curving terrace, green iron railing, plane trees, and the prominent yellow Palacete do Torel / Ribeiro da Cunha uphill h270, overlooking the valley toward Bairro Alto"
+            },
+            {
+              "place": "Miradouro de São Pedro de Alcântara, Lisboa",
+              "country": "pt",
+              "prob": 0.05,
+              "why": "Alternative Lisbon miradouro overlooking the city valley, but São Pedro de Alcântara features stone balustrades rather than simple green iron railings"
+            },
+            {
+              "place": "Miradouro do Monte Agudo, Lisboa",
+              "country": "pt",
+              "prob": 0.03,
+              "why": "generic: Lisbon viewpoint garden on a hillside, but lacks the specific palacete architecture and terraced plane-tree lawn configuration seen here"
+            }
+          ],
+          "water_or_coast": {
+            "present": true,
+            "yaw": 335.0,
+            "type": "estuary"
+          },
+          "terrain": "steep urban hills separated by a central valley, with a wide river estuary on the distant horizon",
+          "season": "early autumn, with deep green plane tree foliage, lush irrigated lawn, and bright sunshine; consistent with October"
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 1076,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1076
+            }
+          ],
+          "prompt_token_count": 16815,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8098
+            },
+            {
+              "modality": "IMAGE",
+              "token_count": 8717
+            }
+          ],
+          "thoughts_token_count": 2900,
+          "total_token_count": 20791,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:33:27.667924+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S3",
+        "status": "done",
+        "seconds": 27.896
+      }
+    },
+    {
+      "ts": "2026-10-11T10:33:27.669547+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:33:31.199819+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-2e4a4f5f10",
+        "tool": "geocode",
+        "args": {
+          "query": "Jardim do Torel, Lisboa",
+          "country_codes": "pt",
+          "limit": 5
+        },
+        "result": [
+          {
+            "name": "Jardim do Torel",
+            "display_name": "Jardim do Torel, Santo António, Madalena, Lisboa, Portugal",
+            "lat": 38.719236,
+            "lng": -9.1417566,
+            "class": "leisure",
+            "type": "park",
+            "importance": 0.30289193994832775,
+            "osm_type": "way",
+            "osm_id": 39221574,
+            "address": {
+              "park": "Jardim do Torel",
+              "suburb": "Santo António",
+              "village": "Madalena",
+              "city": "Lisboa",
+              "county": "Lisboa",
+              "ISO3166-2-lvl6": "PT-11",
+              "country": "Portugal",
+              "country_code": "pt"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:34:22.456394+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-d137a49341",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.719236,
+          "lng": -9.141757,
+          "osm_tag": "leisure=park",
+          "radius_m": 300
+        },
+        "result": [
+          {
+            "name": "Jardim do Torel",
+            "lat": 38.7192452,
+            "lng": -9.141545,
+            "osm_type": "way",
+            "osm_id": 39221574,
+            "tags": {
+              "addr:street": "Rua Júlio de Andrade",
+              "description": "O Jardim do Torel está situado no alto de uma das sete colinas de Lisboa, junto do elevador do Lavra, de onde se vislumbra uma magnifica panorâmica da Freguesia e da cidade de Lisboa. O espaço envolvente a este jardim é rico em numerosos exemplares d",
+              "leisure": "park",
+              "name": "Jardim do Torel",
+              "operator": "Câmara Municipal de Lisboa",
+              "operator:type": "government",
+              "operator:wikidata": "Q30255955",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "wikidata": "Q10306349",
+              "wikimedia_commons": "Category:Jardim do Torel",
+              "wikipedia": "pt:Jardim do Torel"
+            }
+          },
+          {
+            "name": "Campo dos Mártires da Pátria",
+            "lat": 38.7216781,
+            "lng": -9.1398834,
+            "osm_type": "relation",
+            "osm_id": 9238046,
+            "tags": {
+              "alt_name": "Jardim do Campo Santana;Jardim Braamcamp Freire;Campo de Santana;Campo Mártires da Pátria",
+              "description": "O Jardim Braancamp Freire (Campo de Santana) ocupa um espaço carregado de história, na área central da cidade e que teve vários usos díspares ao longo dos últimos duzentos anos, como sejam matadouro, uma praça de touros ou a feira da ladra. També",
+              "leisure": "park",
+              "name": "Campo dos Mártires da Pátria",
+              "name:etymology": "Mártires da Pátria",
+              "name:etymology:wikidata": "Q126737000",
+              "old_name": "Campo de Santana;Campo de Sant'Ana;Campo do Curral",
+              "operator": "Câmara Municipal de Lisboa",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "type": "multipolygon",
+              "wikidata": "Q9678396"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:34:25.588699+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-dc53edb1c3",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.719236,
+          "lng": -9.141757,
+          "osm_tag": "tourism=viewpoint",
+          "radius_m": 300
+        },
+        "result": [
+          {
+            "name": "Miradouro do Torel",
+            "lat": 38.7187379,
+            "lng": -9.1414103,
+            "osm_type": "node",
+            "osm_id": 4771391278,
+            "tags": {
+              "addr:street": "Travessa do Torel",
+              "description": "Deste miradouro disfruta-se de uma vista desafogada sobre o vale da Avenida da Liberdade e a colina de São Roque, onde se destaca o jardim de São Pedro de Alcântara, os sucessivos patamares da Calçada de Santana e de um modo geral a zona Ocidental da",
+              "email": "daev@cm-lisboa.pt",
+              "name": "Miradouro do Torel",
+              "phone": "+351 213 912 600",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "tourism": "viewpoint",
+              "wheelchair": "yes",
+              "wikidata": "Q10306349",
+              "wikimedia_commons": "Category:Jardim do Torel",
+              "wikipedia": "pt:Jardim do Torel"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:34:30.373243+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-49d4afb38a",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.7192,
+          "lng": -9.1416,
+          "osm_tag": "historic",
+          "radius_m": 200
+        },
+        "result": [
+          {
+            "name": "Viana da Mota",
+            "lat": 38.7187197,
+            "lng": -9.1411843,
+            "osm_type": "node",
+            "osm_id": 5457844744,
+            "tags": {
+              "artist_name": "Anjos Teixeira (filho)",
+              "artwork_subject": "figurative",
+              "description": "José Viana da Mota (1868-1948), virtuoso pianista, intérprete, compositor e professor, foi um dos vultos do panorama artístico português da primeira metade do séc. XX, tendo alcançado igual reconhecimento no estrangeiro.",
+              "historic": "memorial",
+              "material": "bronze;stone",
+              "memorial": "bust",
+              "name": "Viana da Mota",
+              "operator": "Câmara Municipal de Lisboa",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "9_173",
+              "start_date": "1957",
+              "website": "http://www.cm-lisboa.pt/equipamentos/equipamento/info/viana-da-mota"
+            }
+          },
+          {
+            "name": "Manuel Cordo Boullosa",
+            "lat": 38.7195688,
+            "lng": -9.1410927,
+            "osm_type": "node",
+            "osm_id": 5457844788,
+            "tags": {
+              "artist_name": "Author unknown",
+              "artwork_subject": "figurative",
+              "description": "Manuel Cordo Boullosa, galego e ilustre sócio da Xuventude de Galícia, doou o palacete oitocentista, onde esta instituição se encontra instalada desde 1988.",
+              "historic": "memorial",
+              "material": "granite;stone",
+              "memorial": "bust",
+              "name": "Manuel Cordo Boullosa",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "9_190",
+              "start_date": "1995",
+              "website": "http://www.cm-lisboa.pt/equipamentos/equipamento/info/manuel-cordo-boullosa"
+            }
+          },
+          {
+            "name": "Cruzeiro na Xuventude de Galicia - Centro Galego de Lisboa",
+            "lat": 38.7194391,
+            "lng": -9.1409474,
+            "osm_type": "node",
+            "osm_id": 5457851277,
+            "tags": {
+              "artist_name": "Author unknown",
+              "artwork_subject": "Marco",
+              "description": "Cruzeiro em pedra erguido por iniciativa da Xuventude de Galicia - Centro Galego de Lisboa, local, no exterior do qual se encontra localizado, para comemorar a inauguração do seu centro social, em 18 de Junho de 1988.",
+              "historic": "wayside_cross",
+              "material": "stone",
+              "memorial": "stele",
+              "name": "Cruzeiro na Xuventude de Galicia - Centro Galego de Lisboa",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "9_41",
+              "start_date": "1988",
+              "website": "http://www.cm-lisboa.pt/equipamentos/equipamento/info/cruzeiro-na-xuventude-de-galicia-centro-galego-de-lisboa"
+            }
+          },
+          {
+            "name": "Palacete Nunes Correia",
+            "lat": 38.7173987,
+            "lng": -9.1423644,
+            "osm_type": "way",
+            "osm_id": 96192097,
+            "tags": {
+              "architect": "Giuseppe Cinatti",
+              "building": "retail",
+              "building:levels": "5",
+              "castle_type": "stately",
+              "historic": "castle",
+              "name": "Palacete Nunes Correia",
+              "wikidata": "Q135529162",
+              "wikimedia_commons": "Category:Palacete Nunes Correia"
+            }
+          },
+          {
+            "name": "Palácio Lavra",
+            "lat": 38.718027,
+            "lng": -9.1417935,
+            "osm_type": "way",
+            "osm_id": 96766868,
+            "tags": {
+              "addr:housenumber": "1",
+              "addr:street": "Calçada do Lavra",
+              "alt_name": "Palácio Lavre",
+              "building": "house",
+              "building:levels": "4",
+              "castle_type": "palace",
+              "description": "Este imóvel está integrado na classificação como Imóvel de Interesse Público do conjunto de três edifícios, de estrutura autónoma e distintos entre si, distribuídos ao longo da Rua de São José (10-42) até ao Elevador do Lavra...",
+              "historic": "castle",
+              "name": "Palácio Lavra",
+              "roof:levels": "1",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:name": "CICL",
+              "wikidata": "Q135726307",
+              "wikimedia_commons": "Category:Palácio Lavra"
+            }
+          },
+          {
+            "name": "Palácio das Pedrosas",
+            "lat": 38.7184245,
+            "lng": -9.1420986,
+            "osm_type": "way",
+            "osm_id": 96766885,
+            "tags": {
+              "addr:housenumber": "12-20",
+              "addr:street": "Rua de São José",
+              "building": "house",
+              "building:levels": "3",
+              "castle_type": "palace",
+              "description": "Construído em 1764, para residência e panificação do comerciante italiano Tomás Mongiardino, em terrenos aforados por Joaquim Miguel Lopes de Lavre, a Norte do seu palácio. Em 1785 Joaquim Lavre adquire toda a propriedade do edifício que, em 1800,",
+              "dgpc:inscription_date": "1977-09-29",
+              "heritage": "2",
+              "heritage:operator": "dgpc",
+              "heritage:website": "https://servicos.dgpc.gov.pt/pesquisapatrimonioimovel/detalhes.php?code=74175",
+              "heritage:website:sipa": "http://www.monumentos.gov.pt/Site/APP_PagesUser/SIPA.aspx?id=21435",
+              "historic": "castle",
+              "name": "Palácio das Pedrosas",
+              "protection_title": "Imóvel de Interesse Público",
+              "ref:dgpc": "74175",
+              "ref:ipa": "21435",
+              "roof:levels": "1",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:name": "CICL",
+              "wikidata": "Q135726306",
+              "wikimedia_commons": "Category:Palácio das Pedrosas"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7188554,
+            "lng": -9.1425945,
+            "osm_type": "way",
+            "osm_id": 100681305,
+            "tags": {
+              "addr:housenumber": "34-42",
+              "addr:street": "Rua de São José",
+              "building": "house",
+              "building:levels": "4",
+              "castle_type": "palace",
+              "description": "Este imóvel está integrado na classificação como Imóvel de Interesse Público do conjunto de edifícios, de estrutura autónoma e distintos entre si, distribuídos ao longo da Rua de São José (10-42) até ao Elevador do Lavra, incluindo os jardins",
+              "historic": "castle",
+              "note": "Edifício na Rua de São José, 34-42",
+              "roof:levels": "1",
+              "roof:material": "roof_tiles",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:name": "CICL"
+            }
+          },
+          {
+            "name": "Palácio Silva Amado",
+            "lat": 38.7195703,
+            "lng": -9.1401133,
+            "osm_type": "way",
+            "osm_id": 244170295,
+            "tags": {
+              "addr:housenumber": "1",
+              "addr:street": "Campo dos Mártires da Pátria",
+              "building": "house",
+              "building:levels": "3",
+              "castle_type": "palace",
+              "description": "Palácio datado do séc. XVIII, traduz um exemplar de arquitectura residencial setecentista, que foi objecto de obras de alterações no séc. XX, após a sua aquisição pelo Estado em 1928. Integra o conjunto do Campo dos Mártires da Pátria...",
+              "historic": "castle",
+              "name": "Palácio Silva Amado",
+              "roof:levels": "1",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "wikimedia_commons": "Category:Palácio Silva Amado"
+            }
+          },
+          {
+            "name": "Palacete Andrade Bastos",
+            "lat": 38.7194683,
+            "lng": -9.1411273,
+            "osm_type": "way",
+            "osm_id": 244174599,
+            "tags": {
+              "architect": "Sebastiano Giuseppe Locati",
+              "architect:wikidata": "Q25273105",
+              "building": "yes",
+              "building:levels": "3",
+              "castle_type": "palace",
+              "historic": "castle",
+              "name": "Palacete Andrade Bastos"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7200908,
+            "lng": -9.1411061,
+            "osm_type": "way",
+            "osm_id": 244175791,
+            "tags": {
+              "addr:housenumber": "2",
+              "building": "house",
+              "castle_type": "palace",
+              "historic": "castle"
+            }
+          },
+          {
+            "name": "Palacete Virtvs",
+            "lat": 38.7198047,
+            "lng": -9.1410842,
+            "osm_type": "way",
+            "osm_id": 244176244,
+            "tags": {
+              "addr:housenumber": "5",
+              "addr:street": "Rua Júlio de Andrade",
+              "architect": "Manuel Joaquim Norte Júnior",
+              "architect:wikidata": "Q10324244",
+              "building": "yes",
+              "building:levels": "3",
+              "castle_type": "palace",
+              "historic": "castle",
+              "name": "Palacete Virtvs"
+            }
+          },
+          {
+            "name": "Casa Conde Castro Guimarães",
+            "lat": 38.7188096,
+            "lng": -9.1409106,
+            "osm_type": "way",
+            "osm_id": 1215488888,
+            "tags": {
+              "building": "house",
+              "historic": "house",
+              "name": "Casa Conde Castro Guimarães"
+            }
+          },
+          {
+            "name": "Elevador do Lavra",
+            "lat": 38.7182422,
+            "lng": -9.1409949,
+            "osm_type": "way",
+            "osm_id": 1378960265,
+            "tags": {
+              "electrified": "contact_line",
+              "gauge": "900",
+              "historic": "railway",
+              "incline": "23%",
+              "name": "Elevador do Lavra",
+              "official_name": "Ascensor do Lavra",
+              "operator": "Carris",
+              "operator:wikidata": "Q1045108",
+              "railway": "funicular",
+              "start_date": "1884",
+              "tourism": "attraction",
+              "wikidata": "Q99642",
+              "wikipedia": "pt:Elevador do Lavra"
+            }
+          },
+          {
+            "name": "Elevador do Lavra",
+            "lat": 38.7182345,
+            "lng": -9.1409811,
+            "osm_type": "way",
+            "osm_id": 1378960266,
+            "tags": {
+              "electrified": "contact_line",
+              "gauge": "900",
+              "historic": "railway",
+              "incline": "23%",
+              "name": "Elevador do Lavra",
+              "official_name": "Ascensor do Lavra",
+              "operator": "Carris",
+              "operator:wikidata": "Q1045108",
+              "railway": "funicular",
+              "start_date": "1884",
+              "tourism": "attraction",
+              "wikidata": "Q99642",
+              "wikipedia": "pt:Elevador do Lavra"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.71824,
+            "lng": -9.1410267,
+            "osm_type": "way",
+            "osm_id": 1379194037,
+            "tags": {
+              "historic": "district"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7187756,
+            "lng": -9.1422978,
+            "osm_type": "relation",
+            "osm_id": 8306287,
+            "tags": {
+              "addr:housenumber": "22-30",
+              "addr:street": "Rua de São José",
+              "building": "house",
+              "building:levels": "4",
+              "castle_type": "palace",
+              "description": "Este imóvel está integrado na classificação como Imóvel de Interesse Público do conjunto de edifícios, de estrutura autónoma e distintos entre si, distribuídos ao longo da Rua de São José (10-42) até ao Elevador do Lavra, incluindo os jardins",
+              "historic": "castle",
+              "note": "Edifício na Rua de São José, 22-30",
+              "roof:levels": "1",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:name": "CICL",
+              "type": "multipolygon"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:34:37.663131+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "sun_check-244edba594",
+        "tool": "sun_check",
+        "args": {
+          "lat": 38.718738,
+          "lng": -9.14141
+        },
+        "result": {
+          "lat": 38.718738,
+          "lng": -9.14141,
+          "timestamp": "20261007132715",
+          "sun_observed": true,
+          "any_above_horizon": true,
+          "hypotheses": [
+            {
+              "clock": [
+                "local (Europe/Lisbon)",
+                "Europe/Lisbon"
+              ],
+              "utc": "2026-10-07T12:27:15+00:00",
+              "expected_elev_deg": 45.67,
+              "expected_azimuth_deg": 181.02,
+              "above_horizon": true,
+              "elevation_residual_deg": 2.84,
+              "north_yaw_deg": -169.5
+            },
+            {
+              "clock": [
+                "UTC"
+              ],
+              "utc": "2026-10-07T13:27:15+00:00",
+              "expected_elev_deg": 43.33,
+              "expected_azimuth_deg": 201.75,
+              "above_horizon": true,
+              "elevation_residual_deg": 5.18,
+              "north_yaw_deg": 169.77
+            }
+          ],
+          "best": {
+            "clock": [
+              "local (Europe/Lisbon)",
+              "Europe/Lisbon"
+            ],
+            "utc": "2026-10-07T12:27:15+00:00",
+            "expected_elev_deg": 45.67,
+            "expected_azimuth_deg": 181.02,
+            "above_horizon": true,
+            "elevation_residual_deg": 2.84,
+            "north_yaw_deg": -169.5
+          },
+          "consistency": 1.0,
+          "ambiguous": true,
+          "uncertainty_deg": 8.0
+        },
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:03.757863+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-f7ddb0647b",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.719,
+          "lng": -9.1415,
+          "osm_tag": "highway",
+          "radius_m": 120
+        },
+        "result": [
+          {
+            "name": null,
+            "lat": 38.7195433,
+            "lng": -9.1423852,
+            "osm_type": "node",
+            "osm_id": 1960295510,
+            "tags": {
+              "crossing": "uncontrolled",
+              "crossing:island": "no",
+              "crossing:markings": "zebra",
+              "highway": "crossing",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.718641,
+            "lng": -9.1410766,
+            "osm_type": "node",
+            "osm_id": 9695556808,
+            "tags": {
+              "highway": "street_lamp"
+            }
+          },
+          {
+            "name": "Rua do Telhal",
+            "lat": 38.7196337,
+            "lng": -9.1422347,
+            "osm_type": "node",
+            "osm_id": 10082937111,
+            "tags": {
+              "bench": "no",
+              "bin": "no",
+              "bus": "yes",
+              "highway": "bus_stop",
+              "lit": "yes",
+              "name": "Rua do Telhal",
+              "network": "Carris",
+              "operator": "Carris",
+              "public_transport": "platform",
+              "ref": "1104",
+              "shelter": "no",
+              "short_name": "R. Telhal",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": "Rua do Telhal",
+            "lat": 38.7197226,
+            "lng": -9.1424739,
+            "osm_type": "way",
+            "osm_id": 4751551,
+            "tags": {
+              "description": "Toponímia: Outros. Início: Rua de São José. Fim: Rua de Santo António dos Capuchos.",
+              "highway": "residential",
+              "lanes": "2",
+              "name": "Rua do Telhal",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "1846",
+              "surface": "sett",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=1846"
+            }
+          },
+          {
+            "name": "Rua de São José",
+            "lat": 38.7192839,
+            "lng": -9.1431469,
+            "osm_type": "way",
+            "osm_id": 20124633,
+            "tags": {
+              "description": "Toponímia: Santos. Início: Largo da Anunciada. Fim: Rua de Santa Marta.",
+              "highway": "residential",
+              "lane_markings": "no",
+              "lit": "yes",
+              "name": "Rua de São José",
+              "old_name": "Rua Alves Correia",
+              "oneway": "yes",
+              "sidewalk": "both",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "2526",
+              "start_date": "1956-06-05",
+              "surface": "sett",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=2526"
+            }
+          },
+          {
+            "name": "Travessa da Cruz do Torel",
+            "lat": 38.718914,
+            "lng": -9.1405111,
+            "osm_type": "way",
+            "osm_id": 32331218,
+            "tags": {
+              "description": "Toponímia: Georreferência. Início: Calçada do Lavra. Fim: Travessa do Torel ( Freg. São José (Rua Júlio de Andrade)).",
+              "highway": "residential",
+              "name": "Travessa da Cruz do Torel",
+              "old_name": "Travessa da Cruz",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "1860",
+              "start_date": "1859-09-01",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=1860"
+            }
+          },
+          {
+            "name": "Calçada do Lavra",
+            "lat": 38.7183503,
+            "lng": -9.1406653,
+            "osm_type": "way",
+            "osm_id": 32331221,
+            "tags": {
+              "description": "Toponímia: Morador/Proprietário do local, Funcionário Público. Início: Rua de São José. Fim: Travessa do Forno do Torel.",
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "up",
+              "name": "Calçada do Lavra",
+              "ramp": "no",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "1849",
+              "step_count": "124",
+              "surface": "sett",
+              "tactile_paving": "no",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=1849"
+            }
+          },
+          {
+            "name": "Travessa do Torel",
+            "lat": 38.7193568,
+            "lng": -9.1402128,
+            "osm_type": "way",
+            "osm_id": 32331225,
+            "tags": {
+              "description": "Toponímia: Morador/Proprietário do local. Início: Rua do instituto Bacteriológico. Fim: Travessa da Cruz do Torel.",
+              "highway": "residential",
+              "lane_markings": "no",
+              "lit": "yes",
+              "name": "Travessa do Torel",
+              "oneway": "yes",
+              "sidewalk": "left",
+              "smoothness": "very_bad",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "2470",
+              "surface": "asphalt",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=2470"
+            }
+          },
+          {
+            "name": "Rua Júlio de Andrade",
+            "lat": 38.7197309,
+            "lng": -9.1405565,
+            "osm_type": "way",
+            "osm_id": 32331226,
+            "tags": {
+              "description": "Toponímia: Benemérito. Início: Travessa da Cruz do Torel. Fim: Campo dos Mártires da Pátria.",
+              "highway": "residential",
+              "lane_markings": "no",
+              "name": "Rua Júlio de Andrade",
+              "oneway": "yes",
+              "sidewalk": "both",
+              "smoothness": "good",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "2467",
+              "start_date": "1910-05-12",
+              "surface": "asphalt",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=2467"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7186715,
+            "lng": -9.1403248,
+            "osm_type": "way",
+            "osm_id": 95408933,
+            "tags": {
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "up",
+              "ramp": "no",
+              "surface": "sett",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": "Calçada do Moinho de Vento",
+            "lat": 38.7201117,
+            "lng": -9.1414089,
+            "osm_type": "way",
+            "osm_id": 97759892,
+            "tags": {
+              "description": "Toponímia: Memórias rurais. Início: Campo dos Mártires da Pátria. Fim: Rua de Santo António dos Capuchos.",
+              "highway": "service",
+              "name": "Calçada do Moinho de Vento",
+              "smoothness": "good",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "2473",
+              "surface": "sett",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=2473"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7194111,
+            "lng": -9.1418524,
+            "osm_type": "way",
+            "osm_id": 185428501,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": "Calçada do Moinho de Vento",
+            "lat": 38.719617,
+            "lng": -9.1414609,
+            "osm_type": "way",
+            "osm_id": 185428503,
+            "tags": {
+              "description": "Toponímia: Memórias rurais. Início: Campo dos Mártires da Pátria. Fim: Rua de Santo António dos Capuchos.",
+              "highway": "footway",
+              "name": "Calçada do Moinho de Vento",
+              "source": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "2473",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=2473"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7188593,
+            "lng": -9.1414059,
+            "osm_type": "way",
+            "osm_id": 185428505,
+            "tags": {
+              "highway": "footway",
+              "lit": "yes",
+              "smoothness": "good",
+              "surface": "concrete"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7190715,
+            "lng": -9.1415783,
+            "osm_type": "way",
+            "osm_id": 185428507,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7192594,
+            "lng": -9.1409775,
+            "osm_type": "way",
+            "osm_id": 185428509,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7193736,
+            "lng": -9.1416023,
+            "osm_type": "way",
+            "osm_id": 185428511,
+            "tags": {
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "up",
+              "ramp": "no",
+              "surface": "concrete",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7195412,
+            "lng": -9.1423499,
+            "osm_type": "way",
+            "osm_id": 185428513,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7189726,
+            "lng": -9.141559,
+            "osm_type": "way",
+            "osm_id": 185684773,
+            "tags": {
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "down",
+              "lit": "no",
+              "ramp": "no",
+              "step_count": "10",
+              "surface": "concrete",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7192385,
+            "lng": -9.1414174,
+            "osm_type": "way",
+            "osm_id": 185684774,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": "Vila Ferreira à Calçada do Lavra",
+            "lat": 38.7183408,
+            "lng": -9.1405557,
+            "osm_type": "way",
+            "osm_id": 238506895,
+            "tags": {
+              "alt_name": "Ascensor do Lavra",
+              "embedded_rails": "funicular",
+              "highway": "footway",
+              "lit": "yes",
+              "name": "Vila Ferreira à Calçada do Lavra",
+              "surface": "sett"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7191223,
+            "lng": -9.1414256,
+            "osm_type": "way",
+            "osm_id": 244170421,
+            "tags": {
+              "handrail": "no",
+              "highway": "steps",
+              "incline": "down",
+              "ramp": "no",
+              "step_count": "20",
+              "surface": "concrete",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7190317,
+            "lng": -9.1414883,
+            "osm_type": "way",
+            "osm_id": 244170422,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7191073,
+            "lng": -9.141655,
+            "osm_type": "way",
+            "osm_id": 244170423,
+            "tags": {
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "down",
+              "surface": "concrete"
+            }
+          },
+          {
+            "name": "Travessa do Forno do Torel",
+            "lat": 38.7190045,
+            "lng": -9.1402233,
+            "osm_type": "way",
+            "osm_id": 330216441,
+            "tags": {
+              "description": "Toponímia: Equipamentos urbanos. Início: Calçada do Lavra. Fim: Travessa do Torel.",
+              "highway": "residential",
+              "lane_markings": "no",
+              "maxspeed": "50",
+              "name": "Travessa do Forno do Torel",
+              "old_name": "Travessa do Forno",
+              "oneway": "yes",
+              "sidewalk": "both",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "1949",
+              "start_date": "1859-09-01",
+              "surface": "asphalt",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=1949"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.719097,
+            "lng": -9.1412085,
+            "osm_type": "way",
+            "osm_id": 387237150,
+            "tags": {
+              "highway": "footway",
+              "lit": "yes",
+              "smoothness": "excellent",
+              "surface": "concrete"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7193281,
+            "lng": -9.1408236,
+            "osm_type": "way",
+            "osm_id": 387237151,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7195026,
+            "lng": -9.1423096,
+            "osm_type": "way",
+            "osm_id": 633438294,
+            "tags": {
+              "handrail": "no",
+              "highway": "steps",
+              "incline": "up"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7195019,
+            "lng": -9.1422425,
+            "osm_type": "way",
+            "osm_id": 633438295,
+            "tags": {
+              "handrail": "no",
+              "highway": "steps",
+              "incline": "up"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7194637,
+            "lng": -9.1423173,
+            "osm_type": "way",
+            "osm_id": 633438296,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7194572,
+            "lng": -9.1421302,
+            "osm_type": "way",
+            "osm_id": 633438297,
+            "tags": {
+              "highway": "steps"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7195381,
+            "lng": -9.1421647,
+            "osm_type": "way",
+            "osm_id": 633438299,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7187931,
+            "lng": -9.1413269,
+            "osm_type": "way",
+            "osm_id": 675059016,
+            "tags": {
+              "highway": "footway",
+              "lit": "yes",
+              "smoothness": "excellent",
+              "surface": "concrete"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7193168,
+            "lng": -9.1414979,
+            "osm_type": "way",
+            "osm_id": 675059017,
+            "tags": {
+              "handrail": "no",
+              "highway": "steps",
+              "incline": "down",
+              "ramp": "no",
+              "surface": "concrete",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7192168,
+            "lng": -9.1419001,
+            "osm_type": "way",
+            "osm_id": 675059019,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7192153,
+            "lng": -9.1417002,
+            "osm_type": "way",
+            "osm_id": 675059020,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7191024,
+            "lng": -9.141763,
+            "osm_type": "way",
+            "osm_id": 675059023,
+            "tags": {
+              "highway": "footway"
+            }
+          },
+          {
+            "name": "Calçada do Lavra",
+            "lat": 38.7179391,
+            "lng": -9.1413827,
+            "osm_type": "way",
+            "osm_id": 875227414,
+            "tags": {
+              "description": "Toponímia: Morador/Proprietário do local, Funcionário Público. Início: Rua de São José. Fim: Travessa do Forno do Torel.",
+              "embedded_rails": "funicular",
+              "highway": "pedestrian",
+              "lit": "yes",
+              "name": "Calçada do Lavra",
+              "smoothness": "intermediate",
+              "source:description": "dadosabertos.cm-lisboa.pt",
+              "source:pkey": "1849",
+              "surface": "sett",
+              "website": "https://revelar.lisboa.pt/explorar/toponimia/detalhe?tx_toponimia_pi1%5Baction%5D=show&tx_toponimia_pi1%5Bcontroller%5D=Toponimia&tx_toponimia_pi1%5Btopid%5D=1849"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7201319,
+            "lng": -9.1414843,
+            "osm_type": "way",
+            "osm_id": 1296742731,
+            "tags": {
+              "footway": "sidewalk",
+              "highway": "footway",
+              "surface": "sett",
+              "width": "1.25"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7202394,
+            "lng": -9.1417132,
+            "osm_type": "way",
+            "osm_id": 1296742732,
+            "tags": {
+              "footway": "sidewalk",
+              "highway": "footway",
+              "surface": "sett"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7186581,
+            "lng": -9.1401891,
+            "osm_type": "way",
+            "osm_id": 1378959192,
+            "tags": {
+              "highway": "footway",
+              "layer": "-1",
+              "tunnel": "covered"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7184812,
+            "lng": -9.14261,
+            "osm_type": "way",
+            "osm_id": 1424256672,
+            "tags": {
+              "bicycle": "no",
+              "highway": "footway",
+              "horse": "no",
+              "motor_vehicle": "no",
+              "tunnel": "building_passage"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7185439,
+            "lng": -9.1424868,
+            "osm_type": "way",
+            "osm_id": 1424256673,
+            "tags": {
+              "bicycle": "no",
+              "highway": "footway",
+              "horse": "no",
+              "motor_vehicle": "no",
+              "surface": "sett"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7187063,
+            "lng": -9.1401752,
+            "osm_type": "way",
+            "osm_id": 1562771676,
+            "tags": {
+              "handrail": "yes",
+              "highway": "steps",
+              "incline": "up",
+              "ramp": "no",
+              "step_count": "24",
+              "surface": "sett",
+              "tactile_paving": "no"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.7193035,
+            "lng": -9.1416414,
+            "osm_type": "way",
+            "osm_id": 1563150966,
+            "tags": {
+              "handrail": "no",
+              "highway": "steps",
+              "incline": "up",
+              "ramp": "no",
+              "surface": "concrete",
+              "tactile_paving": "no"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:13.584761+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-4017e67d41",
+        "tool": "geocode",
+        "args": {
+          "query": "Miradouro de São Pedro de Alcântara, Lisboa",
+          "country_codes": "pt",
+          "limit": 1
+        },
+        "result": [
+          {
+            "name": "Miradouro de São Pedro de Alcântara",
+            "display_name": "Miradouro de São Pedro de Alcântara, Rua de São Pedro de Alcântara, Bairro Alto, Misericórdia, Lisboa, 1250-238, Portugal",
+            "lat": 38.7154576,
+            "lng": -9.1440371,
+            "class": "tourism",
+            "type": "viewpoint",
+            "importance": 0.31353539144981896,
+            "osm_type": "node",
+            "osm_id": 419313189,
+            "address": {
+              "tourism": "Miradouro de São Pedro de Alcântara",
+              "road": "Rua de São Pedro de Alcântara",
+              "suburb": "Bairro Alto",
+              "village": "Misericórdia",
+              "city": "Lisboa",
+              "county": "Lisboa",
+              "ISO3166-2-lvl6": "PT-11",
+              "postcode": "1250-238",
+              "country": "Portugal",
+              "country_code": "pt"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:45.027492+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "tool": "add_hypothesis",
+        "accepted": true,
+        "hypothesis": {
+          "lat": 38.7191223,
+          "lng": -9.1414256,
+          "radius_m": 35.0,
+          "weight": 0.88,
+          "label": "Jardim do Torel, upper terrace pathway",
+          "provenance": "overpass_near-f7ddb0647b",
+          "evidence": [
+            "Jardim do Torel upper terrace pathway with gravel path edged by calçada",
+            "Yellow 19th-century palacete directly uphill to the east (Rua Júlio de Andrade)",
+            "Terrace with green iron railing overlooking Avenida da Liberdade valley toward Bairro Alto",
+            "Tagus estuary visible to the south"
+          ],
+          "why": "The camera stands on the curved upper terrace pathway of Jardim do Torel beneath mature plane trees. The terrace railing overlooks the valley, while the yellow Palacete Andrade Bastos / Ribeiro da Cunha sits uphill to the east.",
+          "source": "detective"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:48.624710+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "tool": "add_hypothesis",
+        "accepted": true,
+        "hypothesis": {
+          "lat": 38.7154576,
+          "lng": -9.1440371,
+          "radius_m": 60.0,
+          "weight": 0.12,
+          "label": "Miradouro de São Pedro de Alcântara, Lisboa",
+          "provenance": "geocode-4017e67d41",
+          "evidence": [
+            "Hillside miradouro garden overlooking Lisbon central valley",
+            "Mature plane trees and calçada paving"
+          ],
+          "why": "Rival viewpoint garden overlooking the central valley; less likely due to stone balustrades rather than green railings and opposite orientation relative to the slope.",
+          "source": "detective"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.315040+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "llm_call",
+      "actor": "detective",
+      "payload": {
+        "role": "detective",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "detective.md",
+        "prompt_version": "f0d2283",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md",
+          "lessons.md"
+        ],
+        "text_parts": [
+          "{\"label\": \"urban\", \"timestamp\": \"20261007132715\", \"reader\": {\"texts\": [], \"language_verdict\": {\"pt\": 0.25, \"es\": 0.25, \"fr\": 0.25, \"other\": 0.25}, \"search_terms\": [], \"zoom_requests\": []}, \"geographer\": {\"observations\": [{\"cue\": \"pavement\", \"value\": \"curved park pathway with bound earth/gravel centre edged by white limestone calçada (Portuguese cobblestone)\", \"view\": \"g090\", \"status\": \"observed\", \"confidence\": 0.95}, {\"cue\": \"bollards/poles\", \"value\": \"classic dark green cast-iron municipal park lantern post with white drop globe lamp\", \"view\": \"h180\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"wall finish\", \"value\": \"yellow-painted eclectic 19th-century palacete/mansion with hipped terracotta roof and ornamental window surrounds uphill\", \"view\": \"h270\", \"status\": \"observed\", \"confidence\": 0.85}, {\"cue\": \"vegetation\", \"value\": \"large mature London plane trees (Platanus) over manicured lawn, with palm tree and agapanthus borders\", \"view\": \"h225\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"distinctive\", \"value\": \"terrace viewpoint with green vertical iron bar railing on low whitewashed parapet wall, overlooking a dense city valley and opposing hill ridge\", \"view\": \"h000\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"water/coast\", \"value\": \"distant horizontal blue expanse of the Tagus estuary visible between hills to the south/south-west\", \"view\": \"h000\", \"status\": \"observed\", \"confidence\": 0.75}, {\"cue\": \"roof type/colour\", \"value\": \"dense sea of orange-red terracotta barrel-tile roofs across the urban valley\", \"view\": \"h045\", \"status\": \"observed\", \"confidence\": 0.95}], \"setting\": \"The camera stands on the curved upper terrace pathway of a hillside public garden and viewpoint (miradouro). The gravel path is edged with white limestone calçada paving and lawn shaded by large plane trees. A green iron railing on a low parapet wall overlooks an urban valley of multi-storey buildings with red-tiled roofs, climbing up an opposing ridge, with a palacete immediately uphill behind the garden.\", \"country_probs\": {\"pt\": 0.99, \"es\": 0.01, \"fr\": 0.0}, \"region_guesses\": [{\"region\": \"Lisboa\", \"country\": \"pt\", \"prob\": 0.98, \"why\": \"White limestone calçada borders g090, signature Lisbon municipal green lantern pole h180, classic Lisbon hilly urban fabric and Tagus estuary view h000\"}], \"recognized_places\": [{\"place\": \"Jardim do Torel, Lisboa\", \"country\": \"pt\", \"prob\": 0.85, \"why\": \"Specific hillside park on Colina de Santana with curving terrace, green iron railing, plane trees, and the prominent yellow Palacete do Torel / Ribeiro da Cunha uphill h270, overlooking the valley toward Bairro Alto\"}, {\"place\": \"Miradouro de São Pedro de Alcântara, Lisboa\", \"country\": \"pt\", \"prob\": 0.05, \"why\": \"Alternative Lisbon miradouro overlooking the city valley, but São Pedro de Alcântara features stone balustrades rather than simple green iron railings\"}, {\"place\": \"Miradouro do Monte Agudo, Lisboa\", \"country\": \"pt\", \"prob\": 0.03, \"why\": \"generic: Lisbon viewpoint garden on a hillside, but lacks the specific palacete architecture and terraced plane-tree lawn configuration seen here\"}], \"water_or_coast\": {\"present\": true, \"yaw\": 335.0, \"type\": \"estuary\"}, \"terrain\": \"steep urban hills separated by a central valley, with a wide river estuary on the distant horizon\", \"season\": \"early autumn, with deep green plane tree foliage, lush irrigated lawn, and bright sunshine; consistent with October\"}, \"sun\": {\"sun_observed\": true, \"source\": \"vlm\", \"yaw\": 11.52, \"elevation\": 48.51, \"uncertainty_deg\": 8.0, \"confidence\": 0.3, \"lat\": 39.5, \"lng\": -8.0, \"location\": \"region_centre\", \"timestamp\": \"20261007132715\", \"time_hypotheses\": [{\"clock\": [\"local (Europe/Lisbon)\", \"Europe/Lisbon\"], \"utc\": \"2026-10-07T12:27:15+00:00\", \"expected_elev_deg\": 44.86, \"expected_azimuth_deg\": 182.61, \"above_horizon\": true, \"elevation_residual_deg\": 3.65, \"north_yaw_deg\": -171.09}, {\"clock\": [\"UTC\"], \"utc\": \"2026-10-07T13:27:15+00:00\", \"expected_elev_deg\": 42.27, \"expected_azimuth_deg\": 202.95, \"above_horizon\": true, \"elevation_residual_deg\": 6.24, \"north_yaw_deg\": 168.57}], \"best\": {\"clock\": [\"local (Europe/Lisbon)\", \"Europe/Lisbon\"], \"utc\": \"2026-10-07T12:27:15+00:00\", \"expected_elev_deg\": 44.86, \"expected_azimuth_deg\": 182.61, \"above_horizon\": true, \"elevation_residual_deg\": 3.65, \"north_yaw_deg\": -171.09}, \"ambiguous\": true, \"consistency\": 1.0, \"compass\": {\"centre_bearing_deg\": 171.1, \"centre_faces\": \"S\", \"directions\": {\"N\": -171.1, \"NE\": -126.1, \"E\": -81.1, \"SE\": -36.1, \"S\": 8.9, \"SW\": 53.9, \"W\": 98.9, \"NW\": 143.9}}, \"compass_uncertainty_deg\": 43.4, \"note\": \"Image centre faces roughly S (171°, ±43°). Clock ambiguous between local (Europe/Lisbon) and UTC. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed.\"}, \"cues\": [], \"mcq_answers\": [], \"excluded_zones\": [], \"tool_budget\": 12}"
+        ],
+        "images": [],
+        "schema": null,
+        "tools": [
+          "geocode",
+          "reverse",
+          "overpass_near",
+          "overpass_named",
+          "wiki_coords",
+          "street_corners",
+          "sun_check",
+          "add_hypothesis"
+        ],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 144.564,
+        "response_text": "### Summary\n\n1. **Key Clues & What They Pin Down:**\n   - **Urban viewpoint park / miradouro:** Terraced hillside park with curved gravel paths edged by white limestone *calçada*, shaded by mature London plane trees (*Platanus*), and classic Lisbon dark green cast-iron lantern posts with drop-globe lamps.\n   - **Parapet & Railing:** Green vertical iron bar railing along a low parapet overlooking a central urban valley filled with terracotta roofs climbing an opposite ridge.\n   - **Architectural landmark uphill (East, h270):** Yellow eclectic 19th-century mansion/palacete uphill behind the park (Palacete Andrade Bastos / Ribeiro da Cunha / Palacete Virtvs along Rua Júlio de Andrade).\n   - **Tagus Estuary (South, h000 / yaw 335):** Distant blue water visible through the valley opening southward.\n\n2. **Candidates & Checks:**\n   - **Jardim do Torel (Colina de Santana, Lisboa):** Matches every observed feature perfectly. Terrace slope faces west toward Avenida da Liberdade and Bairro Alto; palacetes lie directly uphill to the east; green metal railing and plane tree terrace are signature elements. Sun direction and elevation residuals are highly consistent (< 3° residual).\n   - **Miradouro de São Pedro de Alcântara (Lisboa):** Located on the opposing ridge across the valley; features stone balustrades rather than green iron railings, and the slope/uphill orientation is reversed.\n\n3. **Final Hypotheses:**\n   - **Jardim do Torel, upper terrace pathway:** 88% weight, radius 35 m.\n   - **Miradouro de São Pedro de Alcântara:** 12% weight, radius 60 m.\n\n4. **Most Likely Way Wrong:** The camera is at another viewpoint along Colina de Santana or Jardim do Torel's lower terrace pool area rather than the upper pathway.",
+        "parsed": null,
+        "tool_calls": [
+          {
+            "name": "geocode",
+            "args": {
+              "country_codes": "pt",
+              "query": "Jardim do Torel, Lisboa",
+              "limit": 5
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Jardim do Torel', 'display_name': 'Jardim do Torel, Santo António, Madalena, Lisboa, Portugal', 'lat': 38.719236, 'lng': -9.1417566, 'class': 'leisure', 'type': 'park', 'importance': 0.30289193994832775, 'osm_type': 'way', 'osm_id': 39221574, 'address': {'park': 'Jardim do Torel', 'suburb': 'Santo António', 'village': 'Madalena', 'city': 'Lisboa', 'county': 'Lisboa', 'ISO3166-2-lvl6': 'PT-11', 'country': 'Portugal', 'country_code': 'pt'}, 'call_id': 'geocode-2e4"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "radius_m": 300,
+              "lng": -9.1417566,
+              "lat": 38.719236,
+              "osm_tag": "leisure=park"
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Jardim do Torel', 'lat': 38.7192452, 'lng': -9.141545, 'osm_type': 'way', 'osm_id': 39221574, 'tags': {'addr:street': 'Rua Júlio de Andrade', 'description': 'O Jardim do Torel está situado no alto de uma das sete colinas de Lisboa, junto do elevador do Lavra, de onde se vislumbra uma magnifica panorâmica da Freguesia e da cidade de Lisboa. O espaço envolvente a este jardim é rico em numerosos exemplares d', 'leisure': 'park', 'name': 'Jardim do Torel', 'operator"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "osm_tag": "tourism=viewpoint",
+              "lat": 38.719236,
+              "lng": -9.1417566,
+              "radius_m": 300
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Miradouro do Torel', 'lat': 38.7187379, 'lng': -9.1414103, 'osm_type': 'node', 'osm_id': 4771391278, 'tags': {'addr:street': 'Travessa do Torel', 'description': 'Deste miradouro disfruta-se de uma vista desafogada sobre o vale da Avenida da Liberdade e a colina de São Roque, onde se destaca o jardim de São Pedro de Alcântara, os sucessivos patamares da Calçada de Santana e de um modo geral a zona Ocidental da', 'email': 'daev@cm-lisboa.pt', 'name': 'Miradouro do"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "lat": 38.7192,
+              "osm_tag": "historic",
+              "lng": -9.1416,
+              "radius_m": 200
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Viana da Mota', 'lat': 38.7187197, 'lng': -9.1411843, 'osm_type': 'node', 'osm_id': 5457844744, 'tags': {'artist_name': 'Anjos Teixeira (filho)', 'artwork_subject': 'figurative', 'description': 'José Viana da Mota (1868-1948), virtuoso pianista, intérprete, compositor e professor, foi um dos vultos do panorama artístico português da primeira metade do séc. XX, tendo alcançado igual reconhecimento no estrangeiro.', 'historic': 'memorial', 'material': 'bronze;ston"
+          },
+          {
+            "name": "sun_check",
+            "args": {
+              "lng": -9.14141,
+              "lat": 38.718738
+            },
+            "result_summary": "{'result': {'lat': 38.718738, 'lng': -9.14141, 'timestamp': '20261007132715', 'sun_observed': True, 'any_above_horizon': True, 'hypotheses': [{'clock': ['local (Europe/Lisbon)', 'Europe/Lisbon'], 'utc': '2026-10-07T12:27:15+00:00', 'expected_elev_deg': 45.67, 'expected_azimuth_deg': 181.02, 'above_horizon': True, 'elevation_residual_deg': 2.84, 'north_yaw_deg': -169.5}, {'clock': ['UTC'], 'utc': '2026-10-07T13:27:15+00:00', 'expected_elev_deg': 43.33, 'expected_azimuth_deg': 201.75, 'above_horiz"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "radius_m": 120,
+              "lat": 38.719,
+              "osm_tag": "highway",
+              "lng": -9.1415
+            },
+            "result_summary": "{'result': {'results': [{'name': None, 'lat': 38.7195433, 'lng': -9.1423852, 'osm_type': 'node', 'osm_id': 1960295510, 'tags': {'crossing': 'uncontrolled', 'crossing:island': 'no', 'crossing:markings': 'zebra', 'highway': 'crossing', 'tactile_paving': 'no'}, 'call_id': 'overpass_near-f7ddb0647b'}, {'name': None, 'lat': 38.718641, 'lng': -9.1410766, 'osm_type': 'node', 'osm_id': 9695556808, 'tags': {'highway': 'street_lamp'}, 'call_id': 'overpass_near-f7ddb0647b'}, {'name': 'Rua do Telhal', 'lat'"
+          },
+          {
+            "name": "geocode",
+            "args": {
+              "country_codes": "pt",
+              "limit": 1,
+              "query": "Miradouro de São Pedro de Alcântara, Lisboa"
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Miradouro de São Pedro de Alcântara', 'display_name': 'Miradouro de São Pedro de Alcântara, Rua de São Pedro de Alcântara, Bairro Alto, Misericórdia, Lisboa, 1250-238, Portugal', 'lat': 38.7154576, 'lng': -9.1440371, 'class': 'tourism', 'type': 'viewpoint', 'importance': 0.31353539144981896, 'osm_type': 'node', 'osm_id': 419313189, 'address': {'tourism': 'Miradouro de São Pedro de Alcântara', 'road': 'Rua de São Pedro de Alcântara', 'suburb': 'Bairro Alto', 'vil"
+          },
+          {
+            "name": "add_hypothesis",
+            "args": {
+              "lat": 38.7191223,
+              "weight": 0.88,
+              "provenance": "overpass_near-f7ddb0647b",
+              "lng": -9.1414256,
+              "label": "Jardim do Torel, upper terrace pathway",
+              "why": "The camera stands on the curved upper terrace pathway of Jardim do Torel beneath mature plane trees. The terrace railing overlooks the valley, while the yellow Palacete Andrade Bastos / Ribeiro da Cunha sits uphill to the east.",
+              "evidence": [
+                "Jardim do Torel upper terrace pathway with gravel path edged by calçada",
+                "Yellow 19th-century palacete directly uphill to the east (Rua Júlio de Andrade)",
+                "Terrace with green iron railing overlooking Avenida da Liberdade valley toward Bairro Alto",
+                "Tagus estuary visible to the south"
+              ],
+              "radius_m": 35
+            },
+            "result_summary": "{'result': {'ok': True, 'hypothesis_no': 1, 'radius_m': 35.0, 'weight': 0.88}}"
+          },
+          {
+            "name": "add_hypothesis",
+            "args": {
+              "evidence": [
+                "Hillside miradouro garden overlooking Lisbon central valley",
+                "Mature plane trees and calçada paving"
+              ],
+              "label": "Miradouro de São Pedro de Alcântara, Lisboa",
+              "weight": 0.12,
+              "why": "Rival viewpoint garden overlooking the central valley; less likely due to stone balustrades rather than green railings and opposite orientation relative to the slope.",
+              "lng": -9.1440371,
+              "radius_m": 60,
+              "provenance": "geocode-4017e67d41",
+              "lat": 38.7154576
+            },
+            "result_summary": "{'result': {'ok': True, 'hypothesis_no': 2, 'radius_m': 60.0, 'weight': 0.12}}"
+          }
+        ],
+        "usage": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 21146
+            }
+          ],
+          "cached_content_token_count": 21146,
+          "candidates_token_count": 428,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 428
+            }
+          ],
+          "prompt_token_count": 23896,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 23896
+            }
+          ],
+          "thoughts_token_count": 21,
+          "total_token_count": 24345,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.318207+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "detective": 2,
+        "kept_previous": 0,
+        "geographer_fallback": 0,
+        "excluded_dropped": 0,
+        "hypotheses": 2
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.318345+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "status": "done",
+        "seconds": 144.65
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.318910+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S5",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.319089+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "advocate",
+      "payload": {
+        "stage": "advocate",
+        "skipped": "flags.advocate_enabled is false"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.319290+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S5",
+        "status": "done",
+        "seconds": 0.0
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.319609+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S6",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.319869+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "navigator",
+      "payload": {
+        "stage": "S6",
+        "decision": "SUBMIT",
+        "scope": null,
+        "checks": {
+          "assisted": true,
+          "mcqs_left": true,
+          "two_far_clusters": false,
+          "top_uncertain": false,
+          "top3_cover": true
+        },
+        "cluster_weights": [
+          0.88,
+          0.12
+        ],
+        "far_clusters": [
+          "c0"
+        ],
+        "spot": {
+          "checks": {
+            "assisted": true,
+            "mcqs_left": true,
+            "two_far_clusters": true,
+            "top_uncertain": false,
+            "top3_cover": true
+          },
+          "cluster_weights": [
+            0.88,
+            0.12
+          ],
+          "far_clusters": [
+            "c0",
+            "c1"
+          ]
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.319961+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S6",
+        "status": "done",
+        "seconds": 0.0
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.320269+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S7",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.329678+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "submission",
+      "actor": "strategist",
+      "payload": {
+        "candidates": [
+          {
+            "rank": 1,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 2,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 3,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 4,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 5,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 6,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 7,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 8,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 9,
+            "lat": 38.719122,
+            "lng": -9.141426
+          },
+          {
+            "rank": 10,
+            "lat": 38.719122,
+            "lng": -9.141426
+          }
+        ],
+        "expected_score": 10447.099362605697,
+        "penalty_factor": 1.0,
+        "hypotheses": 2,
+        "fallback_used": false
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.329792+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S7",
+        "status": "done",
+        "seconds": 0.009
+      }
+    },
+    {
+      "ts": "2026-10-11T10:35:52.330109+00:00",
+      "run_id": "30da9ad84b44",
+      "pano_id": "IMG_20261007_132715_00_653",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S8",
+        "status": "start"
+      }
+    }
+  ]
+}

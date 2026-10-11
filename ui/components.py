@@ -333,7 +333,7 @@ def gap() -> None:
 
 def downloads(pano_id: str, log_json: str, sub: Submission) -> None:
     c1, c2 = st.columns(2)
-    c1.download_button("Download log.json", data=log_json, file_name=f"{pano_id}_log.json", mime="application/json",
+    c1.download_button("Download IMG_20261005_171832_00_163_log.json", data=log_json, file_name=f"{pano_id}_log.json", mime="application/json",
                        width="stretch", key=f"dl-log-{pano_id}")
-    c2.download_button("Download submission.json", data=sub.model_dump_json(indent=2), width="stretch",
+    c2.download_button("Download IMG_20261005_171832_00_163_submission.json", data=sub.model_dump_json(indent=2), width="stretch",
                        file_name=f"{pano_id}_submission.json", mime="application/json", key=f"dl-sub-{pano_id}")

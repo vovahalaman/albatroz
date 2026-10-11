@@ -90,7 +90,7 @@ def test_baseline_end_to_end(pano, fake_llm, fake_geo):
     assert len({(c.lat, c.lng) for c in sub.candidates}) == 1
     assert strategist.haversine_m((sub.candidates[0].lat, sub.candidates[0].lng), LISBOA) < 300
     out = st.run_dir(state.pano_id)
-    for name in ("submission.json", "submission.txt", "submission.csv", "log.json", "report.md", "baseline.json"):
+    for name in ("IMG_20261005_171832_00_163_submission.json", "submission.txt", "submission.csv", "IMG_20261005_171832_00_163_log.json", "report.md", "baseline.json"):
         assert (out / name).exists(), name
     assert (out / "submission.txt").read_text().count("\n") == 10
     events = [e["event"] for e in scribe.read_events(state.pano_id, state.run_id)]

@@ -27,7 +27,7 @@ from navegador.schemas import Cue, CueResult, Hypothesis, Label, Mode
 from navegador.tools import magnifier, strategist
 
 STALE_OUTPUTS = ("baseline.json", "reader.json", "geographer.json", "detective.json", "advocate.json",
-                 "submission.json", "submission.txt", "submission.csv", "log.json", "report.md")
+                 "IMG_20261005_171832_00_163_submission.json", "submission.txt", "submission.csv", "IMG_20261005_171832_00_163_log.json", "report.md")
 StageFn = Callable[[State], "str | None"]  # returns the next stage, or None for the mode's next one
 
 
@@ -173,7 +173,7 @@ def _s7_submit(state: State) -> None:
     export.validate(sub)
     state.submission = sub
     out = st.run_dir(state.pano_id)
-    (out / "submission.json").write_text(export.to_json(sub), encoding="utf-8")
+    (out / "IMG_20261005_171832_00_163_submission.json").write_text(export.to_json(sub), encoding="utf-8")
     (out / "submission.txt").write_text(export.to_text(sub), encoding="utf-8")
     (out / "submission.csv").write_text(export.to_csv(sub), encoding="utf-8")
     scribe.log_event(state.pano_id, "submission", "strategist",

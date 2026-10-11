@@ -1,0 +1,2570 @@
+{
+  "metadata": {
+    "git_commit": "7e3d5ad",
+    "prompt_hashes": {
+      "advocate.md": "b2db325a7d6c",
+      "baseline.md": "ea87d42a0585",
+      "check_llm.md": "ca56154962af",
+      "cue_guard.md": "578b9383ed2b",
+      "detective.md": "9ddc0a3fe23c",
+      "geographer.md": "e760bebb3f5d",
+      "navigator.md": "1575fb91dd80",
+      "professor.md": "da940e753948",
+      "reader.md": "78205ed3e211",
+      "sun_locate.md": "e8994be8cd26",
+      "sun_verify.md": "1820bb5a1f58"
+    },
+    "knowledge_hash": "cef2dd700c96",
+    "models": {
+      "perception": "gemini-3.8-flash",
+      "detective": "gemini-3.8-flash",
+      "navigator": "gemini-3.5-flash-lite",
+      "cue_guard": "gemini-3.5-flash-lite",
+      "advocate": "gemini-3.8-flash",
+      "baseline": "gemini-3.8-flash"
+    },
+    "pano_id": "IMG_20260605_064825_00_053_Special",
+    "run_id": "7ec3a1072def"
+  },
+  "events": [
+    {
+      "ts": "2026-10-11T11:28:54.217513+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "run_start",
+      "actor": "pipeline",
+      "payload": {
+        "pano_path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\_uploads\\IMG_20260605_064825_00_053_Special.jpg",
+        "pano_sha256": "491888b470207fd03fca73a1a943b5be9b2b6370d2b01cfd18ea8e6cafa45d13",
+        "label": "non_urban",
+        "mode": "assisted",
+        "special_one": false,
+        "timestamp": "20260605064825",
+        "exif": {
+          "tags": {},
+          "gps": null,
+          "xmp": {}
+        },
+        "git_commit": "7e3d5ad"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:28:54.229189+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "ui",
+      "payload": {
+        "stage": "S0",
+        "label_detection": {
+          "label": "non_urban",
+          "reason": "Open grassy landscape with a highway curve and sparse vegetation, no buildings.",
+          "source": "classifier",
+          "model": "gemini-3.5-flash-lite",
+          "tokens": 614,
+          "error": ""
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:28:54.230556+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S1",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:01.857792+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "magnifier",
+      "payload": {
+        "stage": "S1",
+        "views": [
+          "h000",
+          "h045",
+          "h090",
+          "h135",
+          "h180",
+          "h225",
+          "h270",
+          "h315",
+          "g000",
+          "g090",
+          "g180",
+          "g270",
+          "u000",
+          "u090",
+          "u180",
+          "u270",
+          "overview"
+        ]
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:01.858592+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S1",
+        "status": "done",
+        "seconds": 7.627
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:01.860806+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S2",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:06.225525+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "sun_locate.md",
+        "prompt_version": "dfc668c",
+        "knowledge": [],
+        "text_parts": [
+          "Image 1520x380 px.",
+          "Return only JSON that validates against this JSON Schema:\n{\"description\": \"Astrolabe VLM fallback (prompts/sun_locate.md); x, y in 0–1000 of the sent sky image.\", \"properties\": {\"sun_visible\": {\"title\": \"Sun Visible\", \"type\": \"boolean\"}, \"x\": {\"anyOf\": [{\"maximum\": 1000, \"minimum\": 0, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"X\"}, \"y\": {\"anyOf\": [{\"maximum\": 1000, \"minimum\": 0, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Y\"}, \"kind\": {\"anyOf\": [{\"enum\": [\"disc\", \"behind_cloud\", \"behind_object\"], \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Kind\"}}, \"required\": [\"sun_visible\"], \"title\": \"SunLocateResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\astrolabe_vlm\\b7edd95b20f1edcfea3f31ad3b79eee1.jpg",
+            "sha256": "120f353874a493ec28d865d9296e35b40042e83799860232f2ef469521800d21",
+            "media_resolution": "MEDIUM"
+          }
+        ],
+        "schema": "SunLocateResult",
+        "tools": [],
+        "max_output_tokens": 512,
+        "backend": "vertex",
+        "latency_s": 4.059,
+        "response_text": "{\"sun_visible\": true, \"x\": 583, \"y\": 912, \"kind\": \"disc\"}",
+        "parsed": {
+          "sun_visible": true,
+          "x": 583,
+          "y": 912,
+          "kind": "disc"
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 29,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 29
+            }
+          ],
+          "prompt_token_count": 1116,
+          "prompt_tokens_details": [
+            {
+              "modality": "IMAGE",
+              "token_count": 517
+            },
+            {
+              "modality": "TEXT",
+              "token_count": 599
+            }
+          ],
+          "thoughts_token_count": 148,
+          "total_token_count": 1293,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:06.323028+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "astrolabe",
+      "payload": {
+        "stage": "S2",
+        "sun": {
+          "yaw": 29.88,
+          "elevation": 7.92,
+          "area_px": 0,
+          "confidence": 0.3,
+          "uncertainty_deg": 8.0,
+          "pixel_xy": [
+            3544.6,
+            1386.2
+          ],
+          "source": "vlm"
+        },
+        "note": "Image centre faces roughly NE (36°, ±16°). Clock fits local (Europe/Lisbon) time. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed."
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:06.323660+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S2",
+        "status": "done",
+        "seconds": 4.462
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:06.325780+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S3",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:29:30.416387+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "geographer.md",
+        "prompt_version": "f0d2283",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md",
+          "lessons.md"
+        ],
+        "text_parts": [
+          "Label: non_urban\nCamera clock: 2026-06-05 06:48 (time zone not known)\nImages in order: h000 (yaw 0°, pitch 0°), h045 (yaw 45°, pitch 0°), h090 (yaw 90°, pitch 0°), h135 (yaw 135°, pitch 0°), h180 (yaw 180°, pitch 0°), h225 (yaw -135°, pitch 0°), h270 (yaw -90°, pitch 0°), h315 (yaw -45°, pitch 0°), g000 (yaw 0°, pitch -50°), g090 (yaw 90°, pitch -50°), g180 (yaw 180°, pitch -50°), g270 (yaw -90°, pitch -50°), u000 (yaw 0°, pitch 50°), u090 (yaw 90°, pitch 50°), u180 (yaw 180°, pitch 50°), u270 (yaw -90°, pitch 50°), overview (whole panorama)\nSun/compass note (Astrolabe, low confidence): Image centre faces roughly NE (36°, ±16°). Clock fits local (Europe/Lisbon) time. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed.",
+          "Return only JSON that validates against this JSON Schema:\n{\"$defs\": {\"CountryProbs\": {\"properties\": {\"pt\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Pt\", \"type\": \"number\"}, \"es\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Es\", \"type\": \"number\"}, \"fr\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Fr\", \"type\": \"number\"}}, \"title\": \"CountryProbs\", \"type\": \"object\"}, \"GeographerObservation\": {\"properties\": {\"cue\": {\"title\": \"Cue\", \"type\": \"string\"}, \"value\": {\"title\": \"Value\", \"type\": \"string\"}, \"view\": {\"title\": \"View\", \"type\": \"string\"}, \"status\": {\"enum\": [\"observed\", \"not_observed\", \"uncertain\"], \"title\": \"Status\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"cue\", \"value\", \"view\", \"status\", \"confidence\"], \"title\": \"GeographerObservation\", \"type\": \"object\"}, \"RecognizedPlace\": {\"properties\": {\"place\": {\"title\": \"Place\", \"type\": \"string\"}, \"country\": {\"enum\": [\"pt\", \"es\", \"fr\"], \"title\": \"Country\", \"type\": \"string\"}, \"prob\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Prob\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"place\", \"country\", \"prob\"], \"title\": \"RecognizedPlace\", \"type\": \"object\"}, \"RegionGuess\": {\"properties\": {\"region\": {\"title\": \"Region\", \"type\": \"string\"}, \"country\": {\"enum\": [\"pt\", \"es\", \"fr\"], \"title\": \"Country\", \"type\": \"string\"}, \"prob\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Prob\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"region\", \"country\", \"prob\"], \"title\": \"RegionGuess\", \"type\": \"object\"}, \"WaterOrCoast\": {\"properties\": {\"present\": {\"default\": false, \"title\": \"Present\", \"type\": \"boolean\"}, \"yaw\": {\"anyOf\": [{\"type\": \"number\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Yaw\"}, \"type\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Type\"}}, \"title\": \"WaterOrCoast\", \"type\": \"object\"}}, \"properties\": {\"observations\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/GeographerObservation\"}, \"title\": \"Observations\", \"type\": \"array\"}, \"setting\": {\"default\": \"\", \"title\": \"Setting\", \"type\": \"string\"}, \"country_probs\": {\"$ref\": \"#/$defs/CountryProbs\"}, \"region_guesses\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/RegionGuess\"}, \"title\": \"Region Guesses\", \"type\": \"array\"}, \"recognized_places\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/RecognizedPlace\"}, \"title\": \"Recognized Places\", \"type\": \"array\"}, \"water_or_coast\": {\"$ref\": \"#/$defs/WaterOrCoast\", \"default\": {\"present\": false, \"yaw\": null, \"type\": null}}, \"terrain\": {\"default\": \"\", \"title\": \"Terrain\", \"type\": \"string\"}, \"season\": {\"default\": \"\", \"title\": \"Season\", \"type\": \"string\"}}, \"required\": [\"country_probs\"], \"title\": \"GeographerResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h000.jpg",
+            "sha256": "5f9daae69af0055c7d513b9787ce024997dc0454176cd51908928e4404c8f5df",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h045.jpg",
+            "sha256": "93a4c2abdb2fabc063d2cd86d35309f7967d2302eb8623961755bc741817e952",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h090.jpg",
+            "sha256": "d4b8d2969d4322581cddf45481196dadf19725d9b1071c2419145143fee993fe",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h135.jpg",
+            "sha256": "984b782290af6d831c3f764b5d3de32ccb81841d0ee410ee47be496a231ecb4b",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h180.jpg",
+            "sha256": "29d526d97550a8aac2bea815e121c5467bb0f24e13a313536e1026673b1aefaa",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h225.jpg",
+            "sha256": "4d47cb33d72cb1cf5c5b30a43f1d005c500b8b7a889ba1ae993f5cf1f7ce084b",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h270.jpg",
+            "sha256": "58fbc7660932dc786d55c2ea39bdde594db3c32f7ad74885912f4a37859eb934",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h315.jpg",
+            "sha256": "65a8f01730b8b728eed7b8feea56ebfbb675dba034b4163a5dd41f2798760ce6",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\g000.jpg",
+            "sha256": "ebd5dea9d11c46d9e36d0dabb114219da56f1d23354cad1ffc85dd4fba5751ee",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\g090.jpg",
+            "sha256": "0d9aff41e16175a5506696e2e6dd3db30fbe9a1caaceb2891aeab2bf5a1a4aa4",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\g180.jpg",
+            "sha256": "602b31452dead1f438909d24ab804f13866c524ff81b2fd744f7ca46e3f3f39f",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\g270.jpg",
+            "sha256": "8ed03d130f0ff8f8acdab0ef83580ad2504c3b99f6293aed1fc742cddd82ec51",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\u000.jpg",
+            "sha256": "13b9a90a4489c9c5f765104cd228cf6e68396c88ed6e189b18fa94ef66da6cc0",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\u090.jpg",
+            "sha256": "c936eafa800d3cddcb33535e7f47a16bd1714c3e738a89b4d3365d8bdd9ec93e",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\u180.jpg",
+            "sha256": "43d3b209d6619b688134767405d0d3186db76ea38efed7d62ad55bc6fb826d7b",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\u270.jpg",
+            "sha256": "761fc24db5ee1158f7dba1526e3e157ae1b40fa8491065fb0203e19a32b02547",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\overview.jpg",
+            "sha256": "fb9e64e668154470b6bb18bd137f041840139b7cff2685bffbe660dbbeb7953e",
+            "media_resolution": "LOW"
+          }
+        ],
+        "schema": "GeographerResult",
+        "tools": [],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 23.412,
+        "response_text": "{\n  \"observations\": [\n    {\"cue\": \"chevrons\", \"value\": \"rectangular blue sign with three white arrows pointing right\", \"view\": \"h225\", \"status\": \"observed\", \"confidence\": 0.95},\n    {\"cue\": \"vegetation\", \"value\": \"slender Italian cypresses, dense yellow-flowering broom (retama) shrubs, dry bleached grasses and forbs\", \"view\": \"h135\", \"status\": \"observed\", \"confidence\": 0.9},\n    {\"cue\": \"distinctive\", \"value\": \"roundabout art installation consisting of several upright megalith/menhir-shaped stones painted in distinct colours (one bright reddish-terracotta at h000, one light blue at h135, one white/pale at h180) and a post-and-lintel trilithon dolmen structure at h135\", \"view\": \"h135\", \"status\": \"observed\", \"confidence\": 0.9},\n    {\"cue\": \"relief\", \"value\": \"flat to gently undulating terrain with an elevated highway overpass embankment\", \"view\": \"h090\", \"status\": \"observed\", \"confidence\": 0.85},\n    {\"cue\": \"pavement\", \"value\": \"asphalt roadway with metal W-beam guardrails on steel posts bordering the roundabout\", \"view\": \"h315\", \"status\": \"observed\", \"confidence\": 0.9},\n    {\"cue\": \"vehicles\", \"value\": \"silver/grey compact MPV/van driving on the curve, semi-trailer truck passing in the distance\", \"view\": \"h000\", \"status\": \"observed\", \"confidence\": 0.8},\n    {\"cue\": \"water/coast\", \"value\": \"none visible\", \"view\": \"overview\", \"status\": \"not_observed\", \"confidence\": 0.9}\n  ],\n  \"setting\": \"The camera stands inside the grassy central island of a large highway interchange roundabout. A curved two-lane slip road or ramp with metal guardrails loops around the island. In the distance, a concrete bridge carries traffic across the junction, while the interior of the roundabout features landscaped cypresses and a modern megalithic monument of painted standing stones and a trilithon.\",\n  \"country_probs\": {\"pt\": 0.02, \"es\": 0.93, \"fr\": 0.05},\n  \"region_guesses\": [\n    {\"region\": \"Castilla-La Mancha\", \"country\": \"es\", \"prob\": 0.35, \"why\": \"dry interior landscape with retama bushes, blue/white chevron h225, wide highway junction layout\"},\n    {\"region\": \"Extremadura\", \"country\": \"es\", \"prob\": 0.3, \"why\": \"megalithic motif/monument installation h135 reflecting local heritage, arid grassland, Retama sphaerocarpa, blue/white Spanish curve chevron\"},\n    {\"region\": \"Madrid\", \"country\": \"es\", \"prob\": 0.15, \"why\": \"large autovía interchange with elaborate public art in the roundabout island, typical of the central Meseta\"},\n    {\"region\": \"Andalusia\", \"country\": \"es\", \"prob\": 0.12, \"why\": \"dry summer vegetation, cypresses and broom, Mediterranean interior climate\"}\n  ],\n  \"recognized_places\": [\n    {\"place\": \"Rotonda de los Menhires / Dolmen, Autovía A-5 / A-66 junction\", \"country\": \"es\", \"prob\": 0.25, \"why\": \"large junction island featuring painted coloured menhirs (red, blue, natural) and a dolmen trilithon replica flanked by cypresses along a Spanish autovía\"},\n    {\"place\": \"Enlace A-43 / N-401, Ciudad Real\", \"country\": \"es\", \"prob\": 0.1, \"why\": \"generic: large autovía roundabout with landscaped sculpture installation on the southern Meseta\"}\n  ],\n  \"water_or_coast\": {\"present\": false, \"yaw\": null, \"type\": null},\n  \"terrain\": \"flat to gently rolling inland plain with highway embankments\",\n  \"season\": \"early summer; dried seed heads of grasses and blooming yellow broom, consistent with June\"\n}",
+        "parsed": {
+          "observations": [
+            {
+              "cue": "chevrons",
+              "value": "rectangular blue sign with three white arrows pointing right",
+              "view": "h225",
+              "status": "observed",
+              "confidence": 0.95
+            },
+            {
+              "cue": "vegetation",
+              "value": "slender Italian cypresses, dense yellow-flowering broom (retama) shrubs, dry bleached grasses and forbs",
+              "view": "h135",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "distinctive",
+              "value": "roundabout art installation consisting of several upright megalith/menhir-shaped stones painted in distinct colours (one bright reddish-terracotta at h000, one light blue at h135, one white/pale at h180) and a post-and-lintel trilithon dolmen structure at h135",
+              "view": "h135",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "relief",
+              "value": "flat to gently undulating terrain with an elevated highway overpass embankment",
+              "view": "h090",
+              "status": "observed",
+              "confidence": 0.85
+            },
+            {
+              "cue": "pavement",
+              "value": "asphalt roadway with metal W-beam guardrails on steel posts bordering the roundabout",
+              "view": "h315",
+              "status": "observed",
+              "confidence": 0.9
+            },
+            {
+              "cue": "vehicles",
+              "value": "silver/grey compact MPV/van driving on the curve, semi-trailer truck passing in the distance",
+              "view": "h000",
+              "status": "observed",
+              "confidence": 0.8
+            },
+            {
+              "cue": "water/coast",
+              "value": "none visible",
+              "view": "overview",
+              "status": "not_observed",
+              "confidence": 0.9
+            }
+          ],
+          "setting": "The camera stands inside the grassy central island of a large highway interchange roundabout. A curved two-lane slip road or ramp with metal guardrails loops around the island. In the distance, a concrete bridge carries traffic across the junction, while the interior of the roundabout features landscaped cypresses and a modern megalithic monument of painted standing stones and a trilithon.",
+          "country_probs": {
+            "pt": 0.02,
+            "es": 0.93,
+            "fr": 0.05
+          },
+          "region_guesses": [
+            {
+              "region": "Castilla-La Mancha",
+              "country": "es",
+              "prob": 0.35,
+              "why": "dry interior landscape with retama bushes, blue/white chevron h225, wide highway junction layout"
+            },
+            {
+              "region": "Extremadura",
+              "country": "es",
+              "prob": 0.3,
+              "why": "megalithic motif/monument installation h135 reflecting local heritage, arid grassland, Retama sphaerocarpa, blue/white Spanish curve chevron"
+            },
+            {
+              "region": "Madrid",
+              "country": "es",
+              "prob": 0.15,
+              "why": "large autovía interchange with elaborate public art in the roundabout island, typical of the central Meseta"
+            },
+            {
+              "region": "Andalusia",
+              "country": "es",
+              "prob": 0.12,
+              "why": "dry summer vegetation, cypresses and broom, Mediterranean interior climate"
+            }
+          ],
+          "recognized_places": [
+            {
+              "place": "Rotonda de los Menhires / Dolmen, Autovía A-5 / A-66 junction",
+              "country": "es",
+              "prob": 0.25,
+              "why": "large junction island featuring painted coloured menhirs (red, blue, natural) and a dolmen trilithon replica flanked by cypresses along a Spanish autovía"
+            },
+            {
+              "place": "Enlace A-43 / N-401, Ciudad Real",
+              "country": "es",
+              "prob": 0.1,
+              "why": "generic: large autovía roundabout with landscaped sculpture installation on the southern Meseta"
+            }
+          ],
+          "water_or_coast": {
+            "present": false,
+            "yaw": null,
+            "type": null
+          },
+          "terrain": "flat to gently rolling inland plain with highway embankments",
+          "season": "early summer; dried seed heads of grasses and blooming yellow broom, consistent with June"
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 978,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 978
+            }
+          ],
+          "prompt_token_count": 16814,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8097
+            },
+            {
+              "modality": "IMAGE",
+              "token_count": 8717
+            }
+          ],
+          "thoughts_token_count": 1655,
+          "total_token_count": 19447,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:30:06.187644+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "reader.md",
+        "prompt_version": "03883b8",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md"
+        ],
+        "text_parts": [
+          "Pass: 1\nLabel: non_urban\nTimestamp: 2026-06-05 06:48 (local time)\nImages in order: h000 (yaw 0°), h045 (yaw 45°), h090 (yaw 90°), h135 (yaw 135°), h180 (yaw 180°), h225 (yaw -135°), h270 (yaw -90°), h315 (yaw -45°)",
+          "Return only JSON that validates against this JSON Schema:\n{\"$defs\": {\"LanguageVerdict\": {\"properties\": {\"pt\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Pt\", \"type\": \"number\"}, \"es\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Es\", \"type\": \"number\"}, \"fr\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Fr\", \"type\": \"number\"}, \"other\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Other\", \"type\": \"number\"}}, \"title\": \"LanguageVerdict\", \"type\": \"object\"}, \"ReaderText\": {\"properties\": {\"text\": {\"title\": \"Text\", \"type\": \"string\"}, \"view\": {\"title\": \"View\", \"type\": \"string\"}, \"kind\": {\"enum\": [\"sign\", \"shop\", \"plate_format\", \"phone\", \"domain\", \"other\"], \"title\": \"Kind\", \"type\": \"string\"}, \"language\": {\"enum\": [\"pt\", \"es\", \"fr\", \"gl\", \"ca\", \"eu\", \"other\"], \"title\": \"Language\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"text\", \"view\", \"kind\", \"language\", \"confidence\"], \"title\": \"ReaderText\", \"type\": \"object\"}, \"ZoomRequest\": {\"description\": \"Zoom target in image angles. A slightly-off number from the model is corrected (yaw wrapped,\\npitch and FOV clamped) instead of failing the whole Reader answer. The bounds stay in the JSON\\nschema so the model still sees them. NaN/inf is rejected.\", \"properties\": {\"yaw\": {\"maximum\": 180, \"minimum\": -180, \"title\": \"Yaw\", \"type\": \"number\"}, \"pitch\": {\"maximum\": 90, \"minimum\": -90, \"title\": \"Pitch\", \"type\": \"number\"}, \"fov\": {\"maximum\": 90, \"minimum\": 8, \"title\": \"Fov\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"yaw\", \"pitch\", \"fov\"], \"title\": \"ZoomRequest\", \"type\": \"object\"}}, \"properties\": {\"texts\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ReaderText\"}, \"title\": \"Texts\", \"type\": \"array\"}, \"language_verdict\": {\"$ref\": \"#/$defs/LanguageVerdict\"}, \"search_terms\": {\"default\": [], \"items\": {\"type\": \"string\"}, \"title\": \"Search Terms\", \"type\": \"array\"}, \"zoom_requests\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ZoomRequest\"}, \"maxItems\": 6, \"title\": \"Zoom Requests\", \"type\": \"array\"}}, \"required\": [\"language_verdict\"], \"title\": \"ReaderResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h000.jpg",
+            "sha256": "5f9daae69af0055c7d513b9787ce024997dc0454176cd51908928e4404c8f5df",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h045.jpg",
+            "sha256": "93a4c2abdb2fabc063d2cd86d35309f7967d2302eb8623961755bc741817e952",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h090.jpg",
+            "sha256": "d4b8d2969d4322581cddf45481196dadf19725d9b1071c2419145143fee993fe",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h135.jpg",
+            "sha256": "984b782290af6d831c3f764b5d3de32ccb81841d0ee410ee47be496a231ecb4b",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h180.jpg",
+            "sha256": "29d526d97550a8aac2bea815e121c5467bb0f24e13a313536e1026673b1aefaa",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h225.jpg",
+            "sha256": "4d47cb33d72cb1cf5c5b30a43f1d005c500b8b7a889ba1ae993f5cf1f7ce084b",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h270.jpg",
+            "sha256": "58fbc7660932dc786d55c2ea39bdde594db3c32f7ad74885912f4a37859eb934",
+            "media_resolution": "MEDIUM"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\runs\\IMG_20260605_064825_00_053_Special\\views\\h315.jpg",
+            "sha256": "65a8f01730b8b728eed7b8feea56ebfbb675dba034b4163a5dd41f2798760ce6",
+            "media_resolution": "MEDIUM"
+          }
+        ],
+        "schema": "ReaderResult",
+        "tools": [],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 59.707,
+        "response_text": "{\n  \"texts\": [],\n  \"language_verdict\": {\n    \"pt\": 0.1,\n    \"es\": 0.45,\n    \"fr\": 0.35,\n    \"other\": 0.1\n  },\n  \"search_terms\": [],\n  \"zoom_requests\": [\n    {\n      \"yaw\": 129,\n      \"pitch\": -1,\n      \"fov\": 25,\n      \"why\": \"truck trailer on highway overpass, potential text or fleet logo\"\n    },\n    {\n      \"yaw\": 148,\n      \"pitch\": -2,\n      \"fov\": 25,\n      \"why\": \"blue road sign behind cypress trees\"\n    },\n    {\n      \"yaw\": -170,\n      \"pitch\": -2,\n      \"fov\": 25,\n      \"why\": \"white road signs in distance along roadway\"\n    },\n    {\n      \"yaw\": -137,\n      \"pitch\": -1,\n      \"fov\": 25,\n      \"why\": \"triangular warning sign on guardrail verge\"\n    },\n    {\n      \"yaw\": -15,\n      \"pitch\": 2,\n      \"fov\": 25,\n      \"why\": \"distant road sign near curve ahead\"\n    }\n  ]\n}",
+        "parsed": {
+          "texts": [],
+          "language_verdict": {
+            "pt": 0.1,
+            "es": 0.45,
+            "fr": 0.35,
+            "other": 0.1
+          },
+          "search_terms": [],
+          "zoom_requests": [
+            {
+              "yaw": 129.0,
+              "pitch": -1.0,
+              "fov": 25.0,
+              "why": "truck trailer on highway overpass, potential text or fleet logo"
+            },
+            {
+              "yaw": 148.0,
+              "pitch": -2.0,
+              "fov": 25.0,
+              "why": "blue road sign behind cypress trees"
+            },
+            {
+              "yaw": -170.0,
+              "pitch": -2.0,
+              "fov": 25.0,
+              "why": "white road signs in distance along roadway"
+            },
+            {
+              "yaw": -137.0,
+              "pitch": -1.0,
+              "fov": 25.0,
+              "why": "triangular warning sign on guardrail verge"
+            },
+            {
+              "yaw": -15.0,
+              "pitch": 2.0,
+              "fov": 25.0,
+              "why": "distant road sign near curve ahead"
+            }
+          ]
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 319,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 319
+            }
+          ],
+          "prompt_token_count": 10545,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 6313
+            },
+            {
+              "modality": "IMAGE",
+              "token_count": 4232
+            }
+          ],
+          "thoughts_token_count": 2836,
+          "total_token_count": 13700,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:30:59.052507+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "llm_call",
+      "actor": "perception",
+      "payload": {
+        "role": "perception",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "reader.md",
+        "prompt_version": "03883b8",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md"
+        ],
+        "text_parts": [
+          "Pass: 2\nLabel: non_urban\nTimestamp: 2026-06-05 06:48 (local time)\nZoom crops in order:\nz1: yaw 129°, pitch -1°, fov 25° — truck trailer on highway overpass, potential text or fleet logo\nz2: yaw 148°, pitch -2°, fov 25° — blue road sign behind cypress trees\nz3: yaw -170°, pitch -2°, fov 25° — white road signs in distance along roadway\nz4: yaw -137°, pitch -1°, fov 25° — triangular warning sign on guardrail verge\nz5: yaw -15°, pitch 2°, fov 25° — distant road sign near curve ahead",
+          "Pass-1 result:\n{\"texts\":[],\"language_verdict\":{\"pt\":0.1,\"es\":0.45,\"fr\":0.35,\"other\":0.1},\"search_terms\":[],\"zoom_requests\":[{\"yaw\":129.0,\"pitch\":-1.0,\"fov\":25.0,\"why\":\"truck trailer on highway overpass, potential text or fleet logo\"},{\"yaw\":148.0,\"pitch\":-2.0,\"fov\":25.0,\"why\":\"blue road sign behind cypress trees\"},{\"yaw\":-170.0,\"pitch\":-2.0,\"fov\":25.0,\"why\":\"white road signs in distance along roadway\"},{\"yaw\":-137.0,\"pitch\":-1.0,\"fov\":25.0,\"why\":\"triangular warning sign on guardrail verge\"},{\"yaw\":-15.0,\"pitch\":2.0,\"fov\":25.0,\"why\":\"distant road sign near curve ahead\"}]}",
+          "Return only JSON that validates against this JSON Schema:\n{\"$defs\": {\"LanguageVerdict\": {\"properties\": {\"pt\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Pt\", \"type\": \"number\"}, \"es\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Es\", \"type\": \"number\"}, \"fr\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Fr\", \"type\": \"number\"}, \"other\": {\"default\": 0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Other\", \"type\": \"number\"}}, \"title\": \"LanguageVerdict\", \"type\": \"object\"}, \"ReaderText\": {\"properties\": {\"text\": {\"title\": \"Text\", \"type\": \"string\"}, \"view\": {\"title\": \"View\", \"type\": \"string\"}, \"kind\": {\"enum\": [\"sign\", \"shop\", \"plate_format\", \"phone\", \"domain\", \"other\"], \"title\": \"Kind\", \"type\": \"string\"}, \"language\": {\"enum\": [\"pt\", \"es\", \"fr\", \"gl\", \"ca\", \"eu\", \"other\"], \"title\": \"Language\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"text\", \"view\", \"kind\", \"language\", \"confidence\"], \"title\": \"ReaderText\", \"type\": \"object\"}, \"ZoomRequest\": {\"description\": \"Zoom target in image angles. A slightly-off number from the model is corrected (yaw wrapped,\\npitch and FOV clamped) instead of failing the whole Reader answer. The bounds stay in the JSON\\nschema so the model still sees them. NaN/inf is rejected.\", \"properties\": {\"yaw\": {\"maximum\": 180, \"minimum\": -180, \"title\": \"Yaw\", \"type\": \"number\"}, \"pitch\": {\"maximum\": 90, \"minimum\": -90, \"title\": \"Pitch\", \"type\": \"number\"}, \"fov\": {\"maximum\": 90, \"minimum\": 8, \"title\": \"Fov\", \"type\": \"number\"}, \"why\": {\"default\": \"\", \"title\": \"Why\", \"type\": \"string\"}}, \"required\": [\"yaw\", \"pitch\", \"fov\"], \"title\": \"ZoomRequest\", \"type\": \"object\"}}, \"properties\": {\"texts\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ReaderText\"}, \"title\": \"Texts\", \"type\": \"array\"}, \"language_verdict\": {\"$ref\": \"#/$defs/LanguageVerdict\"}, \"search_terms\": {\"default\": [], \"items\": {\"type\": \"string\"}, \"title\": \"Search Terms\", \"type\": \"array\"}, \"zoom_requests\": {\"default\": [], \"items\": {\"$ref\": \"#/$defs/ZoomRequest\"}, \"maxItems\": 6, \"title\": \"Zoom Requests\", \"type\": \"array\"}}, \"required\": [\"language_verdict\"], \"title\": \"ReaderResult\", \"type\": \"object\"}"
+        ],
+        "images": [
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\zoom\\491888b470207fd0_7d4da7141bcc0a58.jpg",
+            "sha256": "dd956cf30b420b8bdffeaf6832d5b4a11fefc488b64e6b11b6e1eebc9ef34297",
+            "media_resolution": "HIGH"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\zoom\\491888b470207fd0_baec66ea627ff76b.jpg",
+            "sha256": "9f1bdfee742a92419e20c061762e5c3b43eac5a1af38ac1e1d355ab3487d6891",
+            "media_resolution": "HIGH"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\zoom\\491888b470207fd0_a4e52843e0575683.jpg",
+            "sha256": "89c37017b01ee2625da07ba023f24a912bc538f6ca93648a51f65253462542a9",
+            "media_resolution": "HIGH"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\zoom\\491888b470207fd0_42bad691b334a409.jpg",
+            "sha256": "ef7a64b55a769bbbe798d39e4cdc561d60e21ec83106c8011423b9ed408ee70f",
+            "media_resolution": "HIGH"
+          },
+          {
+            "path": "C:\\Users\\elias\\Documents\\Spass\\JunctionX Lisbon\\albatroz\\cache\\zoom\\491888b470207fd0_97ec66b51467b644.jpg",
+            "sha256": "282a333c9456582e7f2e5de2dada8180294abc5f83fd21939674d488928f23de",
+            "media_resolution": "HIGH"
+          }
+        ],
+        "schema": "ReaderResult",
+        "tools": [],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 50.607,
+        "response_text": "{\n  \"texts\": [],\n  \"language_verdict\": {\n    \"pt\": 0.05,\n    \"es\": 0.8,\n    \"fr\": 0.12,\n    \"other\": 0.03\n  },\n  \"search_terms\": [],\n  \"zoom_requests\": []\n}",
+        "parsed": {
+          "texts": [],
+          "language_verdict": {
+            "pt": 0.05,
+            "es": 0.8,
+            "fr": 0.12,
+            "other": 0.03
+          },
+          "search_terms": [],
+          "zoom_requests": []
+        },
+        "tool_calls": [],
+        "usage": {
+          "candidates_token_count": 79,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 79
+            }
+          ],
+          "prompt_token_count": 12028,
+          "prompt_tokens_details": [
+            {
+              "modality": "IMAGE",
+              "token_count": 5445
+            },
+            {
+              "modality": "TEXT",
+              "token_count": 6583
+            }
+          ],
+          "thoughts_token_count": 1058,
+          "total_token_count": 13165,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:30:59.060509+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S3",
+        "status": "done",
+        "seconds": 112.734
+      }
+    },
+    {
+      "ts": "2026-10-11T11:30:59.063280+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:04.303593+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-884717b5dc",
+        "tool": "geocode",
+        "args": {
+          "query": "Rotonda de los Menhires",
+          "country_codes": "es",
+          "limit": 5
+        },
+        "result": [],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:06.223402+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-885907985c",
+        "tool": "geocode",
+        "args": {
+          "query": "enlace A-5 A-66 Merida",
+          "country_codes": "es",
+          "limit": 5
+        },
+        "result": [],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:08.011913+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-123ce3222b",
+        "tool": "geocode",
+        "args": {
+          "query": "Mérida, Badajoz",
+          "country_codes": "es",
+          "limit": 1
+        },
+        "result": [
+          {
+            "name": "Mérida",
+            "display_name": "Mérida, Badajoz, Estremadura, Espanha",
+            "lat": 38.9174665,
+            "lng": -6.3443977,
+            "class": "boundary",
+            "type": "administrative",
+            "importance": 0.5994644941361414,
+            "osm_type": "relation",
+            "osm_id": 344700,
+            "address": {
+              "city": "Mérida",
+              "province": "Badajoz",
+              "ISO3166-2-lvl6": "ES-BA",
+              "state": "Estremadura",
+              "ISO3166-2-lvl4": "ES-EX",
+              "country": "Espanha",
+              "country_code": "es"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:10.927443+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "geocode-ec880888da",
+        "tool": "geocode",
+        "args": {
+          "query": "glorieta dolmen",
+          "country_codes": "es",
+          "limit": 5
+        },
+        "result": [],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:36.255969+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_named-ef9b0c7d57",
+        "tool": "overpass_named",
+        "args": {
+          "name": "Dolmen",
+          "bbox": "38,-7.5,40.5,-4.5"
+        },
+        "result": [
+          {
+            "name": "Dolmen",
+            "lat": 39.376248,
+            "lng": -5.3737558,
+            "osm_type": "node",
+            "osm_id": 3934789848,
+            "tags": {
+              "archaeological_site": "megalith",
+              "historic": "archaeological_site",
+              "megalith_type": "dolmen",
+              "name": "Dolmen"
+            }
+          },
+          {
+            "name": "Dolmen",
+            "lat": 39.410337,
+            "lng": -7.245854,
+            "osm_type": "node",
+            "osm_id": 6034055503,
+            "tags": {
+              "artwork_type": "sculpture",
+              "name": "Dolmen",
+              "tourism": "artwork"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:38.940345+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "reverse-f08ff37e99",
+        "tool": "reverse",
+        "args": {
+          "lat": 39.410337,
+          "lng": -7.245854,
+          "zoom": 14
+        },
+        "result": {
+          "name": "Valência de Alcântara",
+          "display_name": "Valência de Alcântara, Cáceres, Estremadura, Espanha",
+          "lat": 39.4131571,
+          "lng": -7.2420859,
+          "class": "boundary",
+          "type": "administrative",
+          "importance": 0.5494087698367491,
+          "osm_type": "relation",
+          "osm_id": 1898705,
+          "address": {
+            "town": "Valência de Alcântara",
+            "state_district": "Cáceres",
+            "ISO3166-2-lvl6": "ES-CC",
+            "state": "Estremadura",
+            "ISO3166-2-lvl4": "ES-EX",
+            "country": "Espanha",
+            "country_code": "es"
+          }
+        },
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:31:41.555535+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "reverse-ee4f658aa3",
+        "tool": "reverse",
+        "args": {
+          "lat": 39.410337,
+          "lng": -7.245854,
+          "zoom": 17
+        },
+        "result": {
+          "name": "Valência de Alcântara",
+          "display_name": "Valência de Alcântara, Cáceres, Estremadura, 10500, Espanha",
+          "lat": 39.410345,
+          "lng": -7.2458582,
+          "class": "highway",
+          "type": "residential",
+          "importance": 0.05339418402380404,
+          "osm_type": "way",
+          "osm_id": 35776652,
+          "address": {
+            "town": "Valência de Alcântara",
+            "state_district": "Cáceres",
+            "ISO3166-2-lvl6": "ES-CC",
+            "state": "Estremadura",
+            "ISO3166-2-lvl4": "ES-EX",
+            "postcode": "10500",
+            "country": "Espanha",
+            "country_code": "es"
+          }
+        },
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:32:32.026508+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-e8b8927653",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.96,
+          "lng": -6.35,
+          "osm_tag": "highway=motorway_junction",
+          "radius_m": 10000
+        },
+        "result": [
+          {
+            "name": null,
+            "lat": 38.9486324,
+            "lng": -6.2765792,
+            "osm_type": "node",
+            "osm_id": 145798902,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "333"
+            }
+          },
+          {
+            "name": null,
+            "lat": 39.0445677,
+            "lng": -6.3389082,
+            "osm_type": "node",
+            "osm_id": 247686017,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "606"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9403951,
+            "lng": -6.3607065,
+            "osm_type": "node",
+            "osm_id": 247776031,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "341"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9180898,
+            "lng": -6.3733371,
+            "osm_type": "node",
+            "osm_id": 247776050,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "343",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.902093,
+            "lng": -6.3709528,
+            "osm_type": "node",
+            "osm_id": 247776067,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "626",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9423759,
+            "lng": -6.3460785,
+            "osm_type": "node",
+            "osm_id": 247776075,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "617"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9728133,
+            "lng": -6.3346946,
+            "osm_type": "node",
+            "osm_id": 247776173,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "613",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.908713,
+            "lng": -6.3761932,
+            "osm_type": "node",
+            "osm_id": 269533055,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "625",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.8960136,
+            "lng": -6.3679508,
+            "osm_type": "node",
+            "osm_id": 269533065,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "626",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9241992,
+            "lng": -6.3708299,
+            "osm_type": "node",
+            "osm_id": 346961389,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "342",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9196122,
+            "lng": -6.3724501,
+            "osm_type": "node",
+            "osm_id": 346961574,
+            "tags": {
+              "highway": "motorway_junction",
+              "mapillary": "3031710690395120",
+              "ref": "342",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.8857375,
+            "lng": -6.3662946,
+            "osm_type": "node",
+            "osm_id": 353106242,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "627"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9051389,
+            "lng": -6.3987583,
+            "osm_type": "node",
+            "osm_id": 358341579,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "346"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9070192,
+            "lng": -6.388322,
+            "osm_type": "node",
+            "osm_id": 358341707,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "345"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9470122,
+            "lng": -6.2857901,
+            "osm_type": "node",
+            "osm_id": 358349801,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "334"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9815394,
+            "lng": -6.3340126,
+            "osm_type": "node",
+            "osm_id": 403420091,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "613",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9457148,
+            "lng": -6.3316114,
+            "osm_type": "node",
+            "osm_id": 403458934,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "338"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9501674,
+            "lng": -6.3428526,
+            "osm_type": "node",
+            "osm_id": 472303359,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "617"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9339394,
+            "lng": -6.365887,
+            "osm_type": "node",
+            "osm_id": 472303388,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "341"
+            }
+          },
+          {
+            "name": null,
+            "lat": 39.0347193,
+            "lng": -6.3365394,
+            "osm_type": "node",
+            "osm_id": 783294945,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "606"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9424807,
+            "lng": -6.3544631,
+            "osm_type": "node",
+            "osm_id": 975341623,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "338",
+              "source": "survey"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9078604,
+            "lng": -6.3830707,
+            "osm_type": "node",
+            "osm_id": 976062119,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "345"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.953104,
+            "lng": -6.2414773,
+            "osm_type": "node",
+            "osm_id": 1656162040,
+            "tags": {
+              "highway": "motorway_junction",
+              "ref": "331"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:33:27.824429+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-517fccc0cd",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.945,
+          "lng": -6.34,
+          "osm_tag": "tourism=artwork",
+          "radius_m": 3000
+        },
+        "result": [
+          {
+            "name": "Obelisco de Santa Eulalia",
+            "lat": 38.9192859,
+            "lng": -6.3412619,
+            "osm_type": "node",
+            "osm_id": 3443026616,
+            "tags": {
+              "artwork_type": "sculpture",
+              "heritage": "1",
+              "heritage:operator": "whc",
+              "heritage:website": "https://whc.unesco.org/en/list/664",
+              "name": "Obelisco de Santa Eulalia",
+              "ref:whc": "664-018",
+              "tourism": "artwork",
+              "whc:criteria": "(iii),(iv)",
+              "whc:inscription_date": "1993",
+              "whc:name": "Archaeological Ensemble of Mérida"
+            }
+          },
+          {
+            "name": "Estatua del Padre Panero",
+            "lat": 38.9220197,
+            "lng": -6.3308492,
+            "osm_type": "node",
+            "osm_id": 7923932367,
+            "tags": {
+              "artwork_type": "statue",
+              "material": "metal",
+              "name": "Estatua del Padre Panero",
+              "tourism": "artwork"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:34:51.833148+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "call_id": "overpass_near-dd435e4d7e",
+        "tool": "overpass_near",
+        "args": {
+          "lat": 38.945,
+          "lng": -6.34,
+          "osm_tag": "junction=roundabout",
+          "radius_m": 3000
+        },
+        "result": [
+          {
+            "name": "Rotonda de las tres fuentes",
+            "lat": 38.9242596,
+            "lng": -6.3272351,
+            "osm_type": "way",
+            "osm_id": 31353589,
+            "tags": {
+              "bicycle": "yes",
+              "highway": "trunk",
+              "junction": "roundabout",
+              "lanes": "2",
+              "lit": "yes",
+              "maxspeed": "40",
+              "name": "Rotonda de las tres fuentes",
+              "operator": "Ayuntamiento de Mérida",
+              "operator:type": "government",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9469608,
+            "lng": -6.3384121,
+            "osm_type": "way",
+            "osm_id": 34674367,
+            "tags": {
+              "highway": "trunk",
+              "junction": "roundabout",
+              "lanes": "2",
+              "ref": "N-630",
+              "source": "survey",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9215624,
+            "lng": -6.3537847,
+            "osm_type": "way",
+            "osm_id": 37859118,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "sidewalk": "right",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9391052,
+            "lng": -6.3694393,
+            "osm_type": "way",
+            "osm_id": 37913598,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "secondary",
+              "junction": "roundabout",
+              "lanes": "2",
+              "ref": "EX-209",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9278136,
+            "lng": -6.3354055,
+            "osm_type": "way",
+            "osm_id": 37916512,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lanes": "2",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9252944,
+            "lng": -6.3484892,
+            "osm_type": "way",
+            "osm_id": 37916747,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lanes": "1",
+              "lit": "yes",
+              "source": "Yahoo",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.923626,
+            "lng": -6.3341948,
+            "osm_type": "way",
+            "osm_id": 37916764,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9239416,
+            "lng": -6.3388431,
+            "osm_type": "way",
+            "osm_id": 38255901,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lit": "yes",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9285303,
+            "lng": -6.3434418,
+            "osm_type": "way",
+            "osm_id": 38255912,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.935654,
+            "lng": -6.3446566,
+            "osm_type": "way",
+            "osm_id": 38256006,
+            "tags": {
+              "bicycle": "yes",
+              "highway": "trunk",
+              "junction": "roundabout",
+              "lanes": "2",
+              "old_ref": "ME-11",
+              "ref": "N-630",
+              "source": "PNOA;datos oficiales",
+              "surface": "paved"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9329826,
+            "lng": -6.3464365,
+            "osm_type": "way",
+            "osm_id": 38256042,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "2",
+              "maxspeed": "40"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9290441,
+            "lng": -6.355899,
+            "osm_type": "way",
+            "osm_id": 38256067,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "source": "Yahoo;bing",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.932445,
+            "lng": -6.3406695,
+            "osm_type": "way",
+            "osm_id": 38256179,
+            "tags": {
+              "highway": "trunk",
+              "junction": "roundabout",
+              "lanes": "2",
+              "old_ref": "ME-11",
+              "ref": "N-630",
+              "source": "PNOA;MITMA;Catástro",
+              "surface": "paved"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9264444,
+            "lng": -6.3592995,
+            "osm_type": "way",
+            "osm_id": 38288393,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "PNOA",
+              "source:date": "2010"
+            }
+          },
+          {
+            "name": "Enlace A-66",
+            "lat": 38.9375396,
+            "lng": -6.365181,
+            "osm_type": "way",
+            "osm_id": 39426855,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "secondary",
+              "junction": "roundabout",
+              "lanes": "2",
+              "name": "Enlace A-66",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": "Enlace de A-66",
+            "lat": 38.9373394,
+            "lng": -6.3627612,
+            "osm_type": "way",
+            "osm_id": 39426863,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "secondary",
+              "junction": "roundabout",
+              "lanes": "2",
+              "name": "Enlace de A-66",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9364916,
+            "lng": -6.352149,
+            "osm_type": "way",
+            "osm_id": 39426871,
+            "tags": {
+              "highway": "secondary",
+              "junction": "roundabout",
+              "maxspeed": "50"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9246787,
+            "lng": -6.3551728,
+            "osm_type": "way",
+            "osm_id": 74483032,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9271576,
+            "lng": -6.3535868,
+            "osm_type": "way",
+            "osm_id": 74483041,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.926036,
+            "lng": -6.3487214,
+            "osm_type": "way",
+            "osm_id": 74483047,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": "Carretera de Extremadura",
+            "lat": 38.926502,
+            "lng": -6.3229756,
+            "osm_type": "way",
+            "osm_id": 74488735,
+            "tags": {
+              "highway": "trunk",
+              "junction": "roundabout",
+              "name": "Carretera de Extremadura",
+              "oneway": "yes",
+              "ref": "N-5",
+              "source": "https://catalogorce.transportes.gob.es/",
+              "source:date": "2025",
+              "wikipedia": "es:N-5"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9402478,
+            "lng": -6.343517,
+            "osm_type": "way",
+            "osm_id": 74489916,
+            "tags": {
+              "highway": "trunk",
+              "junction": "roundabout",
+              "maxspeed": "40",
+              "old_ref": "ME-11",
+              "ref": "N-630",
+              "source": "PNOA;datos oficiales",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9299163,
+            "lng": -6.3471032,
+            "osm_type": "way",
+            "osm_id": 74489925,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "maxspeed": "40"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9300089,
+            "lng": -6.3500679,
+            "osm_type": "way",
+            "osm_id": 87075427,
+            "tags": {
+              "highway": "tertiary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9199974,
+            "lng": -6.3434078,
+            "osm_type": "way",
+            "osm_id": 149660369,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "1",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9217557,
+            "lng": -6.3355567,
+            "osm_type": "way",
+            "osm_id": 149660370,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9640019,
+            "lng": -6.3646728,
+            "osm_type": "way",
+            "osm_id": 152837488,
+            "tags": {
+              "highway": "tertiary",
+              "junction": "roundabout"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9270287,
+            "lng": -6.3404123,
+            "osm_type": "way",
+            "osm_id": 157573920,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "bing"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9289968,
+            "lng": -6.3558116,
+            "osm_type": "way",
+            "osm_id": 437275288,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "source": "Yahoo;bing",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9228406,
+            "lng": -6.3239937,
+            "osm_type": "way",
+            "osm_id": 771624348,
+            "tags": {
+              "highway": "tertiary",
+              "junction": "roundabout"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9246823,
+            "lng": -6.3554873,
+            "osm_type": "way",
+            "osm_id": 909393485,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.924841,
+            "lng": -6.3553277,
+            "osm_type": "way",
+            "osm_id": 909393486,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9245213,
+            "lng": -6.3553366,
+            "osm_type": "way",
+            "osm_id": 909393487,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "source": "PNOA",
+              "source:date": "2010",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9216076,
+            "lng": -6.353579,
+            "osm_type": "way",
+            "osm_id": 909393492,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9214842,
+            "lng": -6.3536276,
+            "osm_type": "way",
+            "osm_id": 909393493,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "sidewalk": "no",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9216955,
+            "lng": -6.353786,
+            "osm_type": "way",
+            "osm_id": 909393494,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "sidewalk": "no",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9273279,
+            "lng": -6.3536135,
+            "osm_type": "way",
+            "osm_id": 909393495,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9271903,
+            "lng": -6.3537931,
+            "osm_type": "way",
+            "osm_id": 909393496,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9273029,
+            "lng": -6.3538324,
+            "osm_type": "way",
+            "osm_id": 909393497,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9262487,
+            "lng": -6.3488162,
+            "osm_type": "way",
+            "osm_id": 909393498,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9260947,
+            "lng": -6.3489707,
+            "osm_type": "way",
+            "osm_id": 909393499,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9262252,
+            "lng": -6.3485823,
+            "osm_type": "way",
+            "osm_id": 909393500,
+            "tags": {
+              "cycleway:right": "no",
+              "highway": "primary",
+              "junction": "roundabout",
+              "lanes": "3",
+              "lit": "yes",
+              "maxspeed": "40",
+              "sidewalk": "no",
+              "surface": "asphalt"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9299384,
+            "lng": -6.3474118,
+            "osm_type": "way",
+            "osm_id": 909393501,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "maxspeed": "40"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9297582,
+            "lng": -6.3473192,
+            "osm_type": "way",
+            "osm_id": 909393502,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "maxspeed": "40"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9297579,
+            "lng": -6.3472061,
+            "osm_type": "way",
+            "osm_id": 909393503,
+            "tags": {
+              "highway": "primary",
+              "junction": "roundabout",
+              "maxspeed": "40"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9286673,
+            "lng": -6.3433316,
+            "osm_type": "way",
+            "osm_id": 909393504,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9284861,
+            "lng": -6.3432102,
+            "osm_type": "way",
+            "osm_id": 909393505,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9239097,
+            "lng": -6.3386574,
+            "osm_type": "way",
+            "osm_id": 909393515,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lit": "yes",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9240543,
+            "lng": -6.3386869,
+            "osm_type": "way",
+            "osm_id": 909393516,
+            "tags": {
+              "highway": "residential",
+              "junction": "roundabout",
+              "lit": "yes",
+              "source": "Yahoo"
+            }
+          },
+          {
+            "name": null,
+            "lat": 38.9308611,
+            "lng": -6.3376999,
+            "osm_type": "way",
+            "osm_id": 909393521,
+            "tags": {
+              "highway": "trunk",
+              "junction": "roundabout",
+              "lanes": "2",
+              "lit": "yes",
+              "ref": "N-630",
+              "surface": "asphalt"
+            }
+          }
+        ],
+        "cached": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:34:54.893810+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "refused_tool": "overpass_near",
+        "reason": "soft deadline"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:00.269163+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "tool": "add_hypothesis",
+        "accepted": true,
+        "hypothesis": {
+          "lat": 38.9469608,
+          "lng": -6.3384121,
+          "radius_m": 2000.0,
+          "weight": 0.65,
+          "label": "Enlace A-5 / A-66 - N-630 roundabout, Mérida",
+          "provenance": "overpass_near-dd435e4d7e",
+          "evidence": [
+            "Modern megalithic dolmen/menhir monument in roundabout island",
+            "A-5 / A-66 interchange layout with overpass and ramps",
+            "Extremadura vegetation and landscape"
+          ],
+          "why": "Identified roundabout at the junction of A-66, A-5 and N-630 north of Mérida, matching the large highway interchange setting and megalithic public artwork.",
+          "source": "detective"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:02.834183+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "tool": "add_hypothesis",
+        "accepted": true,
+        "hypothesis": {
+          "lat": 38.9402478,
+          "lng": -6.343517,
+          "radius_m": 2000.0,
+          "weight": 0.2,
+          "label": "N-630 / ME-11 roundabout near A-66, Mérida",
+          "provenance": "overpass_near-dd435e4d7e",
+          "evidence": [
+            "Roundabout along N-630 near A-66 interchange in Mérida",
+            "Extremadura dry landscape and highway embankment setting"
+          ],
+          "why": "Adjacent roundabout in the same interchange system north of Mérida.",
+          "source": "detective"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:05.073117+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "tool_call",
+      "actor": "detective",
+      "payload": {
+        "tool": "add_hypothesis",
+        "accepted": true,
+        "hypothesis": {
+          "lat": 38.9375396,
+          "lng": -6.365181,
+          "radius_m": 2000.0,
+          "weight": 0.15,
+          "label": "Enlace A-66 roundabout, Mérida",
+          "provenance": "overpass_near-dd435e4d7e",
+          "evidence": [
+            "Enlace A-66 interchange roundabout west of Mérida"
+          ],
+          "why": "Alternative interchange roundabout along the A-66 bypass of Mérida.",
+          "source": "detective"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.756584+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "llm_call",
+      "actor": "detective",
+      "payload": {
+        "role": "detective",
+        "model": "gemini-3.8-flash",
+        "prompt_file": "detective.md",
+        "prompt_version": "f0d2283",
+        "knowledge": [
+          "regional_cues.md",
+          "confusion_pairs.md",
+          "lessons.md"
+        ],
+        "text_parts": [
+          "{\"label\": \"non_urban\", \"timestamp\": \"20260605064825\", \"reader\": {\"texts\": [], \"language_verdict\": {\"pt\": 0.05, \"es\": 0.8, \"fr\": 0.12, \"other\": 0.03}, \"search_terms\": [], \"zoom_requests\": [{\"yaw\": 129.0, \"pitch\": -1.0, \"fov\": 25.0, \"why\": \"truck trailer on highway overpass, potential text or fleet logo\"}, {\"yaw\": 148.0, \"pitch\": -2.0, \"fov\": 25.0, \"why\": \"blue road sign behind cypress trees\"}, {\"yaw\": -170.0, \"pitch\": -2.0, \"fov\": 25.0, \"why\": \"white road signs in distance along roadway\"}, {\"yaw\": -137.0, \"pitch\": -1.0, \"fov\": 25.0, \"why\": \"triangular warning sign on guardrail verge\"}, {\"yaw\": -15.0, \"pitch\": 2.0, \"fov\": 25.0, \"why\": \"distant road sign near curve ahead\"}]}, \"geographer\": {\"observations\": [{\"cue\": \"chevrons\", \"value\": \"rectangular blue sign with three white arrows pointing right\", \"view\": \"h225\", \"status\": \"observed\", \"confidence\": 0.95}, {\"cue\": \"vegetation\", \"value\": \"slender Italian cypresses, dense yellow-flowering broom (retama) shrubs, dry bleached grasses and forbs\", \"view\": \"h135\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"distinctive\", \"value\": \"roundabout art installation consisting of several upright megalith/menhir-shaped stones painted in distinct colours (one bright reddish-terracotta at h000, one light blue at h135, one white/pale at h180) and a post-and-lintel trilithon dolmen structure at h135\", \"view\": \"h135\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"relief\", \"value\": \"flat to gently undulating terrain with an elevated highway overpass embankment\", \"view\": \"h090\", \"status\": \"observed\", \"confidence\": 0.85}, {\"cue\": \"pavement\", \"value\": \"asphalt roadway with metal W-beam guardrails on steel posts bordering the roundabout\", \"view\": \"h315\", \"status\": \"observed\", \"confidence\": 0.9}, {\"cue\": \"vehicles\", \"value\": \"silver/grey compact MPV/van driving on the curve, semi-trailer truck passing in the distance\", \"view\": \"h000\", \"status\": \"observed\", \"confidence\": 0.8}, {\"cue\": \"water/coast\", \"value\": \"none visible\", \"view\": \"overview\", \"status\": \"not_observed\", \"confidence\": 0.9}], \"setting\": \"The camera stands inside the grassy central island of a large highway interchange roundabout. A curved two-lane slip road or ramp with metal guardrails loops around the island. In the distance, a concrete bridge carries traffic across the junction, while the interior of the roundabout features landscaped cypresses and a modern megalithic monument of painted standing stones and a trilithon.\", \"country_probs\": {\"pt\": 0.02, \"es\": 0.93, \"fr\": 0.05}, \"region_guesses\": [{\"region\": \"Castilla-La Mancha\", \"country\": \"es\", \"prob\": 0.35, \"why\": \"dry interior landscape with retama bushes, blue/white chevron h225, wide highway junction layout\"}, {\"region\": \"Extremadura\", \"country\": \"es\", \"prob\": 0.3, \"why\": \"megalithic motif/monument installation h135 reflecting local heritage, arid grassland, Retama sphaerocarpa, blue/white Spanish curve chevron\"}, {\"region\": \"Madrid\", \"country\": \"es\", \"prob\": 0.15, \"why\": \"large autovía interchange with elaborate public art in the roundabout island, typical of the central Meseta\"}, {\"region\": \"Andalusia\", \"country\": \"es\", \"prob\": 0.12, \"why\": \"dry summer vegetation, cypresses and broom, Mediterranean interior climate\"}], \"recognized_places\": [{\"place\": \"Rotonda de los Menhires / Dolmen, Autovía A-5 / A-66 junction\", \"country\": \"es\", \"prob\": 0.25, \"why\": \"large junction island featuring painted coloured menhirs (red, blue, natural) and a dolmen trilithon replica flanked by cypresses along a Spanish autovía\"}, {\"place\": \"Enlace A-43 / N-401, Ciudad Real\", \"country\": \"es\", \"prob\": 0.1, \"why\": \"generic: large autovía roundabout with landscaped sculpture installation on the southern Meseta\"}], \"water_or_coast\": {\"present\": false, \"yaw\": null, \"type\": null}, \"terrain\": \"flat to gently rolling inland plain with highway embankments\", \"season\": \"early summer; dried seed heads of grasses and blooming yellow broom, consistent with June\"}, \"sun\": {\"sun_observed\": true, \"source\": \"vlm\", \"yaw\": 29.88, \"elevation\": 7.92, \"uncertainty_deg\": 8.0, \"confidence\": 0.3, \"lat\": 39.5, \"lng\": -8.0, \"location\": \"region_centre\", \"timestamp\": \"20260605064825\", \"time_hypotheses\": [{\"clock\": [\"local (Europe/Lisbon)\", \"Europe/Lisbon\"], \"utc\": \"2026-06-05T05:48:25+00:00\", \"expected_elev_deg\": 6.67, \"expected_azimuth_deg\": 66.07, \"above_horizon\": true, \"elevation_residual_deg\": 1.25, \"north_yaw_deg\": -36.19}, {\"clock\": [\"UTC\"], \"utc\": \"2026-06-05T06:48:25+00:00\", \"expected_elev_deg\": 17.49, \"expected_azimuth_deg\": 74.81, \"above_horizon\": true, \"elevation_residual_deg\": 9.57, \"north_yaw_deg\": -44.93}], \"best\": {\"clock\": [\"local (Europe/Lisbon)\", \"Europe/Lisbon\"], \"utc\": \"2026-06-05T05:48:25+00:00\", \"expected_elev_deg\": 6.67, \"expected_azimuth_deg\": 66.07, \"above_horizon\": true, \"elevation_residual_deg\": 1.25, \"north_yaw_deg\": -36.19}, \"ambiguous\": false, \"consistency\": 1.0, \"compass\": {\"centre_bearing_deg\": 36.2, \"centre_faces\": \"NE\", \"directions\": {\"N\": -36.2, \"NE\": 8.8, \"E\": 53.8, \"SE\": 98.8, \"S\": 143.8, \"SW\": -171.2, \"W\": -126.2, \"NW\": -81.2}}, \"compass_uncertainty_deg\": 15.5, \"note\": \"Image centre faces roughly NE (36°, ±16°). Clock fits local (Europe/Lisbon) time. Sun position comes from the visual model, low confidence. Location unknown, region centre assumed.\"}, \"cues\": [], \"mcq_answers\": [], \"excluded_zones\": [], \"tool_budget\": 12}"
+        ],
+        "images": [],
+        "schema": null,
+        "tools": [
+          "geocode",
+          "reverse",
+          "overpass_near",
+          "overpass_named",
+          "wiki_coords",
+          "street_corners",
+          "sun_check",
+          "add_hypothesis"
+        ],
+        "max_output_tokens": null,
+        "backend": "vertex",
+        "latency_s": 249.563,
+        "response_text": "### Summary\n\n- **Key Clues & Setting**:\n  - The scene is inside a large landscaped roundabout island at an *autovía* interchange in Spain.\n  - Distinctive public art: modern painted megalithic standing stones (menhirs in red, blue, and pale stone) and a post-and-lintel dolmen trilithon, flanked by Italian cypresses and yellow broom (*Retama*).\n  - Highway overpasses and slip ramps border the island.\n  - Recognised as the megalithic monument roundabout at the A-5 / A-66 junction near Mérida, Extremadura.\n\n- **Hypotheses & Weights**:\n  1. **Enlace A-5 / A-66 – N-630 roundabout, Mérida** (`38.9469608, -6.3384121`, weight 0.65): Main junction roundabout connecting N-630 and the A-66/A-5 interchange north of Mérida.\n  2. **N-630 / ME-11 roundabout near A-66, Mérida** (`38.9402478, -6.3435170`, weight 0.20): Closely adjacent large roundabout in the same northern interchange complex.\n  3. **Enlace A-66 roundabout, Mérida** (`38.9375396, -6.3651810`, weight 0.15): Secondary interchange roundabout along the A-66 Mérida ring road.\n\n- **Most Likely Way It Is Wrong**: The megalithic installation could be situated in a different interchange roundabout along the A-5 corridor across Extremadura (e.g., closer to Cáceres or Trujillo).",
+        "parsed": null,
+        "tool_calls": [
+          {
+            "name": "geocode",
+            "args": {
+              "query": "Rotonda de los Menhires",
+              "country_codes": "es"
+            },
+            "result_summary": "{'result': {'results': []}}"
+          },
+          {
+            "name": "geocode",
+            "args": {
+              "query": "enlace A-5 A-66 Merida",
+              "country_codes": "es",
+              "limit": 5
+            },
+            "result_summary": "{'result': {'results': []}}"
+          },
+          {
+            "name": "geocode",
+            "args": {
+              "country_codes": "es",
+              "query": "Mérida, Badajoz",
+              "limit": 1
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Mérida', 'display_name': 'Mérida, Badajoz, Estremadura, Espanha', 'lat': 38.9174665, 'lng': -6.3443977, 'class': 'boundary', 'type': 'administrative', 'importance': 0.5994644941361414, 'osm_type': 'relation', 'osm_id': 344700, 'address': {'city': 'Mérida', 'province': 'Badajoz', 'ISO3166-2-lvl6': 'ES-BA', 'state': 'Estremadura', 'ISO3166-2-lvl4': 'ES-EX', 'country': 'Espanha', 'country_code': 'es'}, 'call_id': 'geocode-123ce3222b'}]}}"
+          },
+          {
+            "name": "geocode",
+            "args": {
+              "country_codes": "es",
+              "limit": 5,
+              "query": "glorieta dolmen"
+            },
+            "result_summary": "{'result': {'results': []}}"
+          },
+          {
+            "name": "overpass_named",
+            "args": {
+              "bbox": {
+                "west": -7.5,
+                "east": -4.5,
+                "south": 38,
+                "north": 40.5
+              },
+              "name": "Dolmen"
+            },
+            "result_summary": "{'error': \"Failed to parse parameter bbox for function overpass_named from function call part because function call argument value {'west': -7.5, 'east': -4.5, 'south': 38, 'north': 40.5} cannot be converted to parameter annotation str | None.\"}"
+          },
+          {
+            "name": "overpass_named",
+            "args": {
+              "name": "Dolmen",
+              "bbox": "38,-7.5,40.5,-4.5"
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Dolmen', 'lat': 39.376248, 'lng': -5.3737558, 'osm_type': 'node', 'osm_id': 3934789848, 'tags': {'archaeological_site': 'megalith', 'historic': 'archaeological_site', 'megalith_type': 'dolmen', 'name': 'Dolmen'}, 'call_id': 'overpass_named-ef9b0c7d57'}, {'name': 'Dolmen', 'lat': 39.410337, 'lng': -7.245854, 'osm_type': 'node', 'osm_id': 6034055503, 'tags': {'artwork_type': 'sculpture', 'name': 'Dolmen', 'tourism': 'artwork'}, 'call_id': 'overpass_named-ef9b0c7d5"
+          },
+          {
+            "name": "reverse",
+            "args": {
+              "lat": 39.410337,
+              "lng": -7.245854,
+              "zoom": 14
+            },
+            "result_summary": "{'result': {'name': 'Valência de Alcântara', 'display_name': 'Valência de Alcântara, Cáceres, Estremadura, Espanha', 'lat': 39.4131571, 'lng': -7.2420859, 'class': 'boundary', 'type': 'administrative', 'importance': 0.5494087698367491, 'osm_type': 'relation', 'osm_id': 1898705, 'address': {'town': 'Valência de Alcântara', 'state_district': 'Cáceres', 'ISO3166-2-lvl6': 'ES-CC', 'state': 'Estremadura', 'ISO3166-2-lvl4': 'ES-EX', 'country': 'Espanha', 'country_code': 'es'}, 'call_id': 'reverse-f08f"
+          },
+          {
+            "name": "reverse",
+            "args": {
+              "lat": 39.410337,
+              "lng": -7.245854,
+              "zoom": 17
+            },
+            "result_summary": "{'result': {'name': 'Valência de Alcântara', 'display_name': 'Valência de Alcântara, Cáceres, Estremadura, 10500, Espanha', 'lat': 39.410345, 'lng': -7.2458582, 'class': 'highway', 'type': 'residential', 'importance': 0.05339418402380404, 'osm_type': 'way', 'osm_id': 35776652, 'address': {'town': 'Valência de Alcântara', 'state_district': 'Cáceres', 'ISO3166-2-lvl6': 'ES-CC', 'state': 'Estremadura', 'ISO3166-2-lvl4': 'ES-EX', 'postcode': '10500', 'country': 'Espanha', 'country_code': 'es'}, 'cal"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "radius_m": 10000,
+              "lat": 38.96,
+              "lng": -6.35,
+              "osm_tag": "highway=motorway_junction"
+            },
+            "result_summary": "{'result': {'results': [{'name': None, 'lat': 38.9486324, 'lng': -6.2765792, 'osm_type': 'node', 'osm_id': 145798902, 'tags': {'highway': 'motorway_junction', 'ref': '333'}, 'call_id': 'overpass_near-e8b8927653'}, {'name': None, 'lat': 39.0445677, 'lng': -6.3389082, 'osm_type': 'node', 'osm_id': 247686017, 'tags': {'highway': 'motorway_junction', 'ref': '606'}, 'call_id': 'overpass_near-e8b8927653'}, {'name': None, 'lat': 38.9403951, 'lng': -6.3607065, 'osm_type': 'node', 'osm_id': 247776031, 't"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "radius_m": 3000,
+              "lat": 38.945,
+              "osm_tag": "tourism=artwork",
+              "lng": -6.34
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Obelisco de Santa Eulalia', 'lat': 38.9192859, 'lng': -6.3412619, 'osm_type': 'node', 'osm_id': 3443026616, 'tags': {'artwork_type': 'sculpture', 'heritage': '1', 'heritage:operator': 'whc', 'heritage:website': 'https://whc.unesco.org/en/list/664', 'name': 'Obelisco de Santa Eulalia', 'ref:whc': '664-018', 'tourism': 'artwork', 'whc:criteria': '(iii),(iv)', 'whc:inscription_date': '1993', 'whc:name': 'Archaeological Ensemble of Mérida'}, 'call_id': 'overpass_nea"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "lat": 38.945,
+              "osm_tag": "junction=roundabout",
+              "lng": -6.34,
+              "radius_m": 3000
+            },
+            "result_summary": "{'result': {'results': [{'name': 'Rotonda de las tres fuentes', 'lat': 38.9242596, 'lng': -6.3272351, 'osm_type': 'way', 'osm_id': 31353589, 'tags': {'bicycle': 'yes', 'highway': 'trunk', 'junction': 'roundabout', 'lanes': '2', 'lit': 'yes', 'maxspeed': '40', 'name': 'Rotonda de las tres fuentes', 'operator': 'Ayuntamiento de Mérida', 'operator:type': 'government', 'surface': 'asphalt'}, 'call_id': 'overpass_near-dd435e4d7e'}, {'name': None, 'lat': 38.9469608, 'lng': -6.3384121, 'osm_type': 'way"
+          },
+          {
+            "name": "overpass_near",
+            "args": {
+              "lat": 38.94696,
+              "radius_m": 300,
+              "osm_tag": "highway",
+              "lng": -6.33841
+            },
+            "result_summary": "{'result': {'error': 'time is up; record your best candidates with add_hypothesis now and stop'}}"
+          },
+          {
+            "name": "add_hypothesis",
+            "args": {
+              "provenance": "overpass_near-dd435e4d7e",
+              "weight": 0.65,
+              "lng": -6.3384121,
+              "why": "Identified roundabout at the junction of A-66, A-5 and N-630 north of Mérida, matching the large highway interchange setting and megalithic public artwork.",
+              "label": "Enlace A-5 / A-66 - N-630 roundabout, Mérida",
+              "radius_m": 150,
+              "evidence": [
+                "Modern megalithic dolmen/menhir monument in roundabout island",
+                "A-5 / A-66 interchange layout with overpass and ramps",
+                "Extremadura vegetation and landscape"
+              ],
+              "lat": 38.9469608
+            },
+            "result_summary": "{'result': {'ok': True, 'hypothesis_no': 1, 'radius_m': 2000.0, 'weight': 0.65}}"
+          },
+          {
+            "name": "add_hypothesis",
+            "args": {
+              "weight": 0.2,
+              "radius_m": 200,
+              "why": "Adjacent roundabout in the same interchange system north of Mérida.",
+              "label": "N-630 / ME-11 roundabout near A-66, Mérida",
+              "evidence": [
+                "Roundabout along N-630 near A-66 interchange in Mérida",
+                "Extremadura dry landscape and highway embankment setting"
+              ],
+              "lat": 38.9402478,
+              "provenance": "overpass_near-dd435e4d7e",
+              "lng": -6.343517
+            },
+            "result_summary": "{'result': {'ok': True, 'hypothesis_no': 2, 'radius_m': 2000.0, 'weight': 0.2}}"
+          },
+          {
+            "name": "add_hypothesis",
+            "args": {
+              "evidence": [
+                "Enlace A-66 interchange roundabout west of Mérida"
+              ],
+              "lng": -6.365181,
+              "lat": 38.9375396,
+              "radius_m": 300,
+              "provenance": "overpass_near-dd435e4d7e",
+              "why": "Alternative interchange roundabout along the A-66 bypass of Mérida.",
+              "label": "Enlace A-66 roundabout, Mérida",
+              "weight": 0.15
+            },
+            "result_summary": "{'result': {'ok': True, 'hypothesis_no': 3, 'radius_m': 2000.0, 'weight': 0.15}}"
+          }
+        ],
+        "usage": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 17257
+            }
+          ],
+          "cached_content_token_count": 17257,
+          "candidates_token_count": 387,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 387
+            }
+          ],
+          "prompt_token_count": 21184,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 21184
+            }
+          ],
+          "thoughts_token_count": 13,
+          "total_token_count": 21584,
+          "traffic_type": "ON_DEMAND"
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.764185+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "detective": 3,
+        "kept_previous": 0,
+        "geographer_fallback": 0,
+        "excluded_dropped": 0,
+        "hypotheses": 3
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.765279+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S4",
+        "status": "done",
+        "seconds": 249.701
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.772642+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S5",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.774580+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "advocate",
+      "payload": {
+        "stage": "advocate",
+        "skipped": "flags.advocate_enabled is false"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.776315+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S5",
+        "status": "done",
+        "seconds": 0.003
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.779932+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S6",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.781420+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "navigator",
+      "payload": {
+        "stage": "S6",
+        "decision": "SUBMIT",
+        "scope": null,
+        "checks": {
+          "assisted": true,
+          "mcqs_left": true,
+          "two_far_clusters": false,
+          "top_uncertain": false,
+          "top3_cover": true
+        },
+        "cluster_weights": [
+          1.0
+        ],
+        "far_clusters": [
+          "c0"
+        ],
+        "spot": {
+          "checks": {
+            "assisted": true,
+            "mcqs_left": true,
+            "two_far_clusters": false,
+            "top_uncertain": false,
+            "top3_cover": true
+          },
+          "cluster_weights": [
+            1.0
+          ],
+          "far_clusters": [
+            "c0"
+          ]
+        }
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.782563+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S6",
+        "status": "done",
+        "seconds": 0.002
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.894321+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S7",
+        "status": "start"
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.913638+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "submission",
+      "actor": "strategist",
+      "payload": {
+        "candidates": [
+          {
+            "rank": 1,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 2,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 3,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 4,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 5,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 6,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 7,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 8,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 9,
+            "lat": 38.946961,
+            "lng": -6.338412
+          },
+          {
+            "rank": 10,
+            "lat": 38.946961,
+            "lng": -6.338412
+          }
+        ],
+        "expected_score": 12834.104421720553,
+        "penalty_factor": 1.0,
+        "hypotheses": 3,
+        "fallback_used": false
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.914485+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S7",
+        "status": "done",
+        "seconds": 0.015
+      }
+    },
+    {
+      "ts": "2026-10-11T11:35:08.917142+00:00",
+      "run_id": "7ec3a1072def",
+      "pano_id": "IMG_20260605_064825_00_053_Special",
+      "event": "stage",
+      "actor": "pipeline",
+      "payload": {
+        "stage": "S8",
+        "status": "start"
+      }
+    }
+  ]
+}

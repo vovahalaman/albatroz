@@ -96,3 +96,25 @@ How to tell apart:
 - Lisboa: white limestone calçada with black patterns, yellow trams, many azulejo façades, hills down to a wide estuary; phone 21.
 - Porto: dark granite buildings and paving, steep streets to a narrow river gorge, azulejo churches; phone 22.
 - Municipal bins and street furniture often carry the city name or coat of arms — look for it.
+
+- **Medieval castles (PT) ↔ each other.** Crenellated walls, square keep and cobbled parade grounds
+  are generic across dozens of Portuguese castles. How to tell apart: stone colour (pale limestone vs.
+  dark granite/basalt), hill shape and what the town below looks like, unique elements
+  (Gothic loggia/arcaded palace windows, chapel ruins), size of the bailey. A castle alone is class
+  evidence → hedge with other castles.
+- **Lower Tejo estuary (east Lisbon) ↔ Sado estuary (Setúbal).** Both: port cranes, railway in
+  cuttings, red-roofed slopes down to wide water. How to tell apart: Tejo — very wide water with a low,
+  flat far shore and dense multi-storey city around; Sado — Tróia sand spit and the pale limestone
+  Arrábida ridge as backdrop, smaller town scale.
+- **Ribatejo river/charneca ↔ Alentejo reservoirs.** Both: bridges over wide still water, cork oaks,
+  pines. How to tell apart: white/yellow sandy banks and maritime/stone pines → Ribatejo charneca
+  (Sorraia/Tejo basin); dendritic shoreline, ochre/red schist banks, bathtub ring, holm-oak montado →
+  Alentejo reservoir.
+- **Landes ↔ Périgord (both Nouvelle-Aquitaine).** Both: rural Romanesque churches, plane trees,
+  green lawns in winter. How to tell apart: Landes — dead flat, brown iron-stained sandstone
+  (garluche/alios), open grassy "airial" squares, low single-storey houses, pine forest edge;
+  Périgord — golden/pale limestone, noticeable relief, steep roofs, often stone-slab (lauze) roofing.
+- **Granite villages: Beira Alta ↔ Beira Interior ↔ Trás-os-Montes ↔ Galicia.** Region is easy, the
+  village is not. Granite cobbles, granite outcrops in the street, free-standing bell/clock towers and
+  houses with stone balconies (alpendre) repeat across hundreds of villages. Use signage language
+  (PT vs. GL) for the country, then enumerate concrete villages, never the region centroid.

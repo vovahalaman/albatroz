@@ -101,7 +101,7 @@ def _throttle() -> None:
 
 
 def _request(service: Service, method: str, url: str, params: dict[str, Any] | None,
-             data: dict[str, Any] | None, timeout: float) -> Any:
+             data: dict[str, Any] | None, timeout: float, attempts: int | None = None) -> Any:
     cfg = settings().geo
     headers = {"User-Agent": cfg.user_agent, "Accept-Language": "pt,es,fr,en"}
 
@@ -116,12 +116,27 @@ def _request(service: Service, method: str, url: str, params: dict[str, Any] | N
 
     retrying = Retrying(
         retry=retry_if_exception_type((_Retryable, requests.ConnectionError, requests.Timeout)),
-        stop=stop_after_attempt(cfg.retries), wait=wait_exponential(multiplier=1, max=8),
+        stop=stop_after_attempt(attempts or cfg.retries), wait=wait_exponential(multiplier=1, max=8),
         sleep=lambda s: _sleep(s), reraise=True)
     try:
         return retrying(once)
     except (requests.RequestException, _Retryable, ValueError) as exc:
         raise GeoError(f"{service} request failed: {type(exc).__name__}: {exc}") from exc
+
+
+def _request_parsed(service: Service, method: str, url: str, params: dict[str, Any] | None,
+                    data: dict[str, Any] | None, timeout: float, parse: Callable[[Any], Any]) -> Any:
+    """Request + parse. Overpass: on failure (HTTP error or a timeout remark) try the next mirror in
+    `geo.overpass_fallback_urls`, one attempt each except the last server; the last error is raised."""
+    urls = [url, *settings().geo.overpass_fallback_urls] if service == "overpass" else [url]
+    for i, u in enumerate(urls):
+        last = i == len(urls) - 1
+        try:
+            return parse(_request(service, method, u, params, data, timeout, attempts=None if last else 1))
+        except (GeoError, ValueError):
+            if last:
+                raise
+    raise AssertionError("unreachable")
 
 
 def _fetch(tool: str, args: dict[str, Any], service: Service, parse: Callable[[Any], Any], *,
@@ -134,8 +149,8 @@ def _fetch(tool: str, args: dict[str, Any], service: Service, parse: Callable[[A
     if not hit:
         try:
             _check_policy(pano_id, tool)
-            raw = _request(service, method, url, params, data, timeout or settings().geo.http_timeout_s)
-            value = parse(raw)
+            value = _request_parsed(service, method, url, params, data, timeout or settings().geo.http_timeout_s,
+                                    parse)
         except GeoError as exc:
             scribe.log_event(pano_id, "error", actor, {"tool": tool, "args": args, "error": str(exc)})
             raise

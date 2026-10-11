@@ -1,7 +1,8 @@
 """Detects the panorama label (urban / non_urban) before a run, so the operator does not choose it.
 
-One llm.call with the cheapest configured model (flash-lite) on a low-resolution overview only. Results are
-cached on disk (tools/cache) by image content, model and prompt, so the same panorama is never asked twice.
+One llm.call with the cheapest configured model (flash-lite) on a low-resolution overview only (written to
+cache/label_overview/, never next to the panorama). Results are cached on disk (tools/cache) by image content,
+model and prompt, so the same panorama is never asked twice.
 Any failure or a timeout (TIMEOUT_S) falls back to "urban" (source "default"). The prompt lives in
 ui/prompts/label_classifier.md (R6: no prompt text in Python).
 """
@@ -19,7 +20,7 @@ from PIL import Image
 from pydantic import BaseModel, Field
 
 from navegador import llm
-from navegador.config import PROMPTS_DIR, settings
+from navegador.config import PROMPTS_DIR, cache_dir, settings
 from navegador.core.state import pano_id_for
 from navegador.tools import cache, magnifier
 
@@ -56,12 +57,17 @@ def cheapest_model() -> str:
 
 
 def overview(path: Path) -> Path:
-    """A small JPEG of the whole panorama next to the upload (made once per file)."""
-    out = path.with_name(f"{path.stem}.overview.jpg")
-    if not out.exists() or out.stat().st_mtime < path.stat().st_mtime:
+    """A small JPEG of the whole panorama in cache/label_overview/<content hash>.jpg (made once per image).
+    Never written next to the panorama or into data/: a copy there looks like another panorama."""
+    out = cache_dir() / "label_overview" / f"{magnifier.pano_hash(path)}.jpg"
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tmp = out.with_suffix(f".{os.getpid()}.tmp")
         with Image.open(path) as im:
             im.draft("RGB", (OVERVIEW_W, OVERVIEW_W // 2))
-            im.convert("RGB").resize((OVERVIEW_W, OVERVIEW_W // 2), Image.Resampling.LANCZOS).save(out, quality=85)
+            im.convert("RGB").resize((OVERVIEW_W, OVERVIEW_W // 2), Image.Resampling.LANCZOS).save(tmp, "JPEG",
+                                                                                                    quality=85)
+        os.replace(tmp, out)
     return out
 
 

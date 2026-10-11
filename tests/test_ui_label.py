@@ -39,7 +39,7 @@ def test_one_cheap_call_with_only_a_low_res_overview(monkeypatch, pano):
     (call,) = fake.calls
     assert "lite" in call["model"] and call["model"] in settings().models.values()
     (img, level), = call["images"]
-    assert level == "LOW" and Path(img).name.endswith(".overview.jpg")
+    assert level == "LOW" and Path(img).parent.name == "label_overview" and Path(img).suffix == ".jpg"
     assert call["schema"] is lc.LabelResult and call["timeout_s"] == lc.TIMEOUT_S
     assert call["max_attempts"] == 1 and call["retry_invalid"] is False  # exactly one request
     assert call["prompt_file"].endswith("ui/prompts/label_classifier.md")
@@ -65,3 +65,26 @@ def test_timeout_falls_back_to_urban(monkeypatch, pano):
     monkeypatch.setattr(llm, "call", FakeLLM({"label": "non_urban", "reason": "x"}, delay=1.0))
     det = lc.classify(pano)
     assert (det.label, det.source) == ("urban", "default") and "TimeoutError" in det.error
+
+
+def test_writes_nothing_outside_cache(monkeypatch, tmp_path):
+    """The overview goes to cache/label_overview/ only: never next to the panorama or into data/."""
+    from navegador.config import cache_dir
+
+    data = tmp_path / "data" / "train1"
+    data.mkdir(parents=True)
+    pano = make_pano(data)
+    monkeypatch.setattr(llm, "call", FakeLLM({"label": "urban", "reason": "Streets."}))
+
+    def snapshot(root: Path) -> set[Path]:
+        return {p for p in root.rglob("*") if p.is_file()}
+
+    cache_root = cache_dir().resolve()
+    before = snapshot(tmp_path)
+    lc.classify(pano)
+    created = {p.resolve() for p in snapshot(tmp_path) - before}
+    assert created, "expected the overview and the label result in the cache"
+    assert all(cache_root in p.parents for p in created), sorted(map(str, created))
+    assert sorted(p.name for p in data.iterdir()) == [pano.name]
+    (ov,) = list((cache_root / "label_overview").glob("*.jpg"))
+    assert ov.stem == lc.magnifier.pano_hash(pano)

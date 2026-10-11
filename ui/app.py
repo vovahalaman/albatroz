@@ -21,8 +21,8 @@ from navegador.core.export import to_text  # noqa: E402
 from navegador.tools.astrolabe_summary import summarise  # noqa: E402
 from ui import components as ui  # noqa: E402
 from ui import label_classifier, progress, theme  # noqa: E402
-from ui.runner import (Runner, RunView, cue_block_reason, finished_at, save_upload, stage_line,  # noqa: E402
-                       top_place)
+from ui.runner import (Runner, RunView, cue_block_reason, finished_at, mcq_points, save_upload,  # noqa: E402
+                       stage_line, top_place)
 
 TICK_S = 1.0
 COORDS_H_SINGLE = 340  # coordinates + map panels when the 10 coordinates are one point
@@ -53,6 +53,7 @@ def _reset() -> None:
     ss.progress_max = 0.0  # the bar never goes backwards
     ss.north = None  # (pano_id, compass bearing of the image centre or None)
     ss.detected = None  # (image_path, label_classifier.Detected)
+    ss.mcq_preview = None  # (mcq_id, (option id, point index)) shown as Street View in the question card
 
 
 # ---------------------------------------------------------------- actions (callbacks)
@@ -181,12 +182,19 @@ def result_ready(view: RunView) -> bool:
 
 def progress_panel(view: RunView) -> None:
     """Right of the viewer during a run: the question when the agent asks, else what is being solved."""
-    s = view.state
+    ss, s = st.session_state, view.state
     with st.container(border=True):
         if asking(view):
-            clicked = ui.question_card(s.pending_mcq, enabled=True)
+            mcq = s.pending_mcq
+            pv = ss.mcq_preview[1] if ss.mcq_preview and ss.mcq_preview[0] == mcq.mcq_id else None
+            clicked, asked = ui.question_card(mcq, enabled=True, points=mcq_points(s, mcq), preview=pv,
+                                              label_=s.label)
             if clicked:
+                ss.mcq_preview = None
                 answer(clicked)
+                st.rerun()
+            if asked:
+                ss.mcq_preview = None if asked == pv else (mcq.mcq_id, asked)  # Preview / Hide toggle
                 st.rerun()
             return
         ui.html(f'<p class="nv-title nv-mono">{escape(Path(s.pano_path).name)}</p>')

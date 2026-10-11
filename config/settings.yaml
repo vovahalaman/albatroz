@@ -47,8 +47,11 @@ magnifier: {view_fov: 90, view_size: 1024, ground_pitch: -50, up_pitch: 50, over
 baseline: {top_places: 3, geocode_limit: 1, radius_m: {urban: 300, non_urban: 8000}}
 
 # Added in P1 (not in SPEC §6): S4 fallback when the Detective yields no hypothesis: geocode the Geographer's
-# top region guesses (weight = prob) with these radii.
-crew: {region_top: 3, region_radius_m: {urban: 5000, non_urban: 25000}}
+# recognized_places, then its region guesses (top region_top of each, weight = prob) with these radii.
+crew:
+  region_top: 3
+  region_radius_m: {urban: 5000, non_urban: 25000}
+  recognized_radius_m: {urban: 400, non_urban: 5000}
 
 # Added in P2 (not in SPEC §6): Advocate (SPEC §10). Label groups shown to the model; lowest weight multiplier code applies.
 advocate: {top_n: 3, min_multiplier: 0.3}

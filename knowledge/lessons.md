@@ -3,11 +3,14 @@
 ### Scoring strategy
 - **Class vs. instance evidence.** If the top hypothesis rests on a landmark *class*
   (a castle, a bridge over still water, an estuary with port cranes, a granite village),
-  fill ranks 2–4 with the next most likely *other instances* of that class in the region.
-  Never repeat one class-level guess across all 10 slots. A correct twin on rank 2 still earns ~95%.
+  record the next most likely *other instances* of that class in the region as separate hypotheses
+  with honest weights. Never let one class-level guess carry all the weight.
+  (Ranks are not ours to fill: the Strategist puts the single best point in all 10 slots, and weights are
+  normalised. An honest twin is what lets the system ask the human in assisted runs, and it moves the
+  expected-best point in non_urban.)
 - **Urban + region-only knowledge = near-zero score.** At d=30 km, θ_U ≈ 0.006.
   For urban panoramas never submit a region or admin centroid. Enumerate ≥5 distinct concrete
-  candidate sites (villages, squares, POIs) via overpass and spread them over the slots.
+  candidate sites (villages, squares, POIs) via overpass and record them as separate hypotheses.
 
 ### Geocoding hygiene
 - **Institutions have several sites.** A geocoded organisation name often resolves to its
@@ -20,4 +23,5 @@
 
 ### Time
 - The filename timestamp is not a precise capture time (identical stamps were seen ~200 m apart).
-  Treat sun-position checks as weak evidence only.
+  Treat sun-position checks as weak evidence only. (Coarse directions from the sun compass — which side
+  the water or a landmark is on — stay usable with ±30° tolerance.)

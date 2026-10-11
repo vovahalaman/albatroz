@@ -138,6 +138,33 @@ def test_detective_failure_falls_back_to_geographer_regions(pano, crew):
     assert s4[-1]["detective"] == 0 and s4[-1]["geographer_fallback"] == 1
 
 
+def test_fallback_geocodes_recognized_places_before_region_guesses(pano, crew, monkeypatch):
+    """S4 fallback: recognized places (prob > 0, best first, at most region_top) with recognized_radius_m,
+    then region guesses as before with region_radius_m."""
+    monkeypatch.setattr(settings().crew, "region_top", 2)
+    monkeypatch.setitem(PLACES, "Lagos, Faro", (37.1028, -8.6730))
+    monkeypatch.setitem(PLACES, "Sagres, Faro", (37.0086, -8.9403))
+    monkeypatch.setitem(PLACES, "Tavira, Faro", (37.1274, -7.6506))
+    monkeypatch.setitem(PLACES, "Zero", LISBOA)
+    crew["geographer"] = {**GEOGRAPHER, "recognized_places": [
+        {"place": "Sagres, Faro", "country": "pt", "prob": 0.2, "why": "cape"},
+        {"place": "Tavira, Faro", "country": "pt", "prob": 0.1, "why": "cut by region_top"},
+        {"place": "Lagos, Faro", "country": "pt", "prob": 0.4, "why": "cliffs"},
+        {"place": "Zero", "country": "pt", "prob": 0.0, "why": "prob 0 is skipped"}]}
+    crew["detective"] = [NotImplementedError("no Detective")]
+    state = run(pano, label="non_urban")
+    assert state.status == "done"
+    assert [(h.label, h.weight, h.radius_m, h.why) for h in state.hypotheses] == [
+        ("Lagos, Faro", 0.4, 5000, "cliffs"), ("Sagres, Faro", 0.2, 5000, "cape"),
+        ("Algarve", 0.6, 25000, "dry scrub")]
+    assert {h.source for h in state.hypotheses} == {"geographer"}
+    queries = [e["payload"]["args"]["query"] for e in scribe.read_events(state.pano_id)
+               if e["event"] == "tool_call" and e["actor"] == "geographer" and e["payload"].get("tool") == "geocode"]
+    assert queries == ["Lagos, Faro", "Sagres, Faro", "Algarve", "Nowhere"]
+    s4 = [e["payload"] for e in scribe.read_events(state.pano_id) if "geographer_fallback" in e["payload"]]
+    assert s4[-1]["geographer_fallback"] == 3
+
+
 def test_real_detective_tool_loop_in_pipeline(pano, crew, monkeypatch):
     """The real agents/detective.py inside S4: its geocode + add_hypothesis tools, R2 check, detective.json."""
     monkeypatch.setattr(detective, "run", REAL_DETECTIVE)

@@ -93,10 +93,12 @@ class BaselineSettings(BaseModel):
 
 
 class CrewSettings(BaseModel):
-    """S4 fallback when the Detective yields nothing: geocode the Geographer's top region guesses."""
+    """S4 fallback when the Detective yields nothing: geocode the Geographer's recognized places, then its
+    top region guesses (at most `region_top` of each)."""
 
     region_top: int = 3
     region_radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=5000, non_urban=25000))
+    recognized_radius_m: PerLabel = Field(default_factory=lambda: PerLabel(urban=400, non_urban=5000))
 
 
 class AdvocateSettings(BaseModel):

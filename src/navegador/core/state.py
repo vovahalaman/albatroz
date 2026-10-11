@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import re
+import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,16 +128,35 @@ def load(pano_id: str) -> State:
     path = runs_dir() / pano_id / "state.json"
     if not path.exists():
         raise FileNotFoundError(f"no run state for pano_id={pano_id!r} at {path}")
-    return State.model_validate_json(path.read_text(encoding="utf-8"))
+    return State.model_validate_json(_retry(lambda: path.read_text(encoding="utf-8")))
 
 
 def save(state: State) -> Path:
-    """Atomic write: temp file + rename, so a crash never leaves a half-written state.json."""
+    """Atomic write: temp file + rename, so a crash never leaves a half-written state.json.
+    The temp name is unique per process and thread (the UI's worker thread and its cue handler may save at
+    the same time)."""
     path = state_path(state.pano_id)
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(state.model_dump_json(indent=2), encoding="utf-8")
-    os.replace(tmp, path)
+    tmp = path.with_name(f"state.json.{os.getpid()}-{threading.get_ident()}.tmp")
+    try:
+        tmp.write_text(state.model_dump_json(indent=2), encoding="utf-8")
+        _retry(lambda: os.replace(tmp, path))
+    finally:
+        tmp.unlink(missing_ok=True)
     return path
+
+
+# Windows: replacing or reading state.json fails with PermissionError (WinError 5/32) while another thread
+# has it open, e.g. the UI polling it every second during a save. Those holds last milliseconds: retry.
+_RETRY_DELAYS_S = (0.02, 0.05, 0.1, 0.2, 0.4, 0.8)
+
+
+def _retry(fn: Any) -> Any:
+    for delay in _RETRY_DELAYS_S:
+        try:
+            return fn()
+        except PermissionError:
+            time.sleep(delay)
+    return fn()  # last attempt: the error propagates
 
 
 def exists(pano_id: str) -> bool:

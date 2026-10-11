@@ -143,6 +143,31 @@ def test_new_image_clears_everything(calls, tmp_path):
     assert at.segmented_control(key="label-1").value is None  # a fresh label choice
 
 
+def test_iframes_have_titles_not_the_default_label(calls, tmp_path):
+    """Streamlit maps `alt` to the iframe title; without it the page shows a stray "st.iframe" label."""
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
+    alts = [f.alt for f in _iframes(at)]
+    assert "360 panorama" in alts and "Copy 10 coordinates" in alts and "" not in alts
+
+
+def test_viewer_and_street_view_are_a_matching_pair(calls, tmp_path):
+    at = _click(_started(tmp_path), "A · Baixa, Lisboa")
+    text = _text(at)
+    assert "Panorama" in text and "Street View · #1 ·" in text
+    heights = []
+
+    def walk(node):
+        proto = getattr(node, "proto", None)
+        if proto is not None and "height_config" in proto.DESCRIPTOR.fields_by_name and proto.height_config.pixel_height:
+            heights.append(proto.height_config.pixel_height)
+        for child in getattr(node, "children", {}).values():
+            walk(child)
+
+    walk(at.main)
+    from ui.components import PAIR_H
+    assert heights.count(PAIR_H) == 2  # 360 viewer panel and Street View panel: one fixed height
+
+
 def test_viewer_html_is_stable_across_reruns(calls, tmp_path):
     """Same image → same viewer HTML, so the browser keeps the iframe (no reload, view kept)."""
     at = _started(tmp_path)

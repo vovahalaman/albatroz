@@ -26,6 +26,9 @@ from ui.runner import (Runner, RunView, cue_block_reason, finished_at, save_uplo
 
 TICK_S = 1.0
 LABELS = ["urban", "non_urban"]
+COORDS_H_SINGLE = 340  # coordinates + map panels when the 10 coordinates are one point
+COORDS_H_LIST = 720  # ... when they are a ranked list of different points
+MAP_PAD = 36  # panel padding and border around the map
 
 st.set_page_config(page_title="Navegador", layout="wide", initial_sidebar_state="collapsed")
 ui.html(theme.css())
@@ -154,7 +157,7 @@ def north_offset(view: RunView | None) -> float | None:
 def setup_panel() -> None:
     """Right of the viewer before a run: upload, label, Start (same height as the viewer)."""
     ss = st.session_state
-    with st.container(border=True, height=ui.VIEWER_H):
+    with st.container(border=True, height=ui.PAIR_H):
         st.file_uploader("Panorama (JPG)", type=["jpg", "jpeg"], key=f"upload-{ss.upload_key}")  # read in main()
         ui.label("Label")
         label = st.segmented_control("Label", LABELS, default=None, key=f"label-{ss.upload_key}",
@@ -189,7 +192,7 @@ def progress_panel(view: RunView) -> None:
 def streetview_panel(view: RunView) -> None:
     ss, sub = st.session_state, view.state.submission
     cand = next((c for c in sub.candidates if c.rank == ss.sv_rank), sub.candidates[0])
-    with st.container(border=True):
+    with st.container(border=True, height=ui.PAIR_H):  # the same panel as the 360 viewer
         ui.streetview_panel(cand.lat, cand.lng, cand.rank, view.state.label)
 
 
@@ -198,17 +201,20 @@ def results(view: RunView) -> None:
     sub = s.submission
     with st.container(border=True):
         ui.result_card(*top_place(view))
-    left, right = st.columns([1, 1.25], gap="medium")
-    with left, st.container(border=True):
-        ui.label("10 coordinates")
-        clicked = ui.candidate_rows(sub, ss.sv_rank)
+    identical = len({(c.lat, c.lng) for c in sub.candidates}) == 1
+    panel_h = COORDS_H_SINGLE if identical else COORDS_H_LIST  # both panels, so they line up
+    left, right = st.columns([1, 1.25], gap="medium", vertical_alignment="top")
+    with left, st.container(border=True, height=panel_h, key="coords-panel"):  # 3 parts, evenly spaced
+        with st.container():
+            ui.label("10 coordinates")
+            clicked = ui.candidate_rows(sub, ss.sv_rank)
         if clicked is not None and clicked != ss.sv_rank:
             select_rank(clicked)
             st.rerun()
         ui.copy_button(to_text(sub))
         ui.downloads(s.pano_id, ss.runner.log_json(s.pano_id), sub)
-    with right, st.container(border=True):
-        point = ui.candidate_map(s, sub, ss.sv_rank)
+    with right, st.container(border=True, height=panel_h):
+        point = ui.candidate_map(s, sub, ss.sv_rank, height=panel_h - MAP_PAD)
         if point is not None and point != ss.last_map_click:
             ss.last_map_click = point
             nearest = min(sub.candidates, key=lambda c: (c.lat - point[0]) ** 2 + (c.lng - point[1]) ** 2)
@@ -271,8 +277,8 @@ def main() -> None:
     if view is not None:
         with bar:
             progress_bar()
-    left, right = st.columns([1.2, 1], gap="medium", vertical_alignment="top")
-    with left:
+    left, right = st.columns([1, 1], gap="medium", vertical_alignment="top")  # a matching pair
+    with left, st.container(border=True, height=ui.PAIR_H):
         ui.viewer(Path(ss.image_path) if ss.image_path else None, north_offset(view))
     with right:
         if view is None:

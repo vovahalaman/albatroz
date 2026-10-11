@@ -84,3 +84,30 @@ def test_background_worker_is_busy_until_the_agent_stops(monkeypatch, tmp_path):
 def test_upload_keeps_the_file_name_for_the_timestamp(tmp_path):
     path = save_upload("IMG_20250125_144630_00_319.jpg", b"jpeg-bytes")
     assert path.name == "IMG_20250125_144630_00_319.jpg" and path.read_bytes() == b"jpeg-bytes"
+
+
+REAL_MD = """### Summary
+
+- **Key clues & selectivity:** Classic Portuguese *JAE-style* concrete bridge with green railings. Calm river valley.
+- **Candidates generated:** Sorraia basin bridges (Couço, Coruche).
+- **Final hypotheses:**
+  1. **Ponte de Coruche** (weight 0.5)
+"""
+
+
+def test_clean_summary_drops_the_heading_and_keeps_markdown_for_rendering():
+    from ui.runner import clean_summary
+    md = clean_summary(REAL_MD + "\n## Notes\nmore")
+    assert "Summary" not in md and not md.startswith("#")
+    assert md.splitlines()[0].startswith("- **Key clues")  # list kept for st.markdown
+    assert "**Notes**" in md and "##" not in md  # other headings become bold lines
+
+
+def test_first_point_is_plain_text_without_label_or_symbols():
+    from ui.runner import first_point
+    text = first_point(REAL_MD)
+    assert text == "Classic Portuguese JAE-style concrete bridge with green railings. Calm river valley."
+    assert not any(sym in text for sym in ("#", "**", "*", "`", "- "))
+    assert first_point("Plain sentence one. Sentence two.") == "Plain sentence one."
+    long = first_point("- " + "word " * 80)
+    assert len(long) <= 221 and long.endswith("…")

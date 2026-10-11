@@ -173,6 +173,10 @@ header[data-testid="stHeader"], #MainMenu, footer, [data-testid="stToolbar"] {{ 
   margin: {s["sm"]}px 0 0 0; }}
 .nv-row-x10, .stMarkdown p.nv-row-x10 {{ font-size: {z["title"]}px !important; margin: 0; }}
 
+.nv-gap {{ height: {s["sm"]}px; }}
+/* coordinates panel: row, copy button and downloads spread over the panel height (no empty gap below) */
+.st-key-coords-panel {{ justify-content: space-between !important; }}
+
 /* the one big Start button */
 .st-key-start button {{ min-height: 64px !important; font-size: {z["title"]}px !important; }}
 [data-testid="stFileUploaderDropzone"] {{ background: {c["panel_2"]}; border: 1px dashed {c["border"]};

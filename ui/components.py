@@ -16,10 +16,12 @@ from streamlit_folium import st_folium
 from navegador.core.state import State
 from navegador.schemas import MCQ, Submission
 from ui import streetview, theme
-from ui.runner import RunView
+from ui.runner import RunView, clean_summary
 
 VIEWER_MAX_W = 4096  # px: the 360 viewer gets a downscaled copy so it loads fast
-VIEWER_H = 480
+VIEWER_H = 460  # the 360 viewer and the Street View frame
+PAIR_H = VIEWER_H + 58  # their panels: padding + header label + frame + padding
+NOTE_H = 32  # room for the satellite-fallback note under the Street View frame
 RESULT_ZOOM = {"urban": 15, "non_urban": 11}  # map zoom on the result
 PANNELLUM = "https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build"
 
@@ -95,10 +97,11 @@ setInterval(save, 1000);
 
 def viewer(path: Path | None, north_offset: float | None = None) -> None:
     """The interactive 360 view (drag to look around, scroll to zoom; compass when the sun gave north)."""
+    label("Panorama")
     if path is None:
         html(f'<div class="nv-placeholder" style="height:{VIEWER_H}px">The 360 view appears here after upload.</div>')
         return
-    st.iframe(viewer_html(str(path), path.stat().st_mtime, north_offset), height=VIEWER_H)
+    st.iframe(viewer_html(str(path), path.stat().st_mtime, north_offset), height=VIEWER_H, alt="360 panorama")
 
 
 def question_card(mcq: MCQ, enabled: bool) -> str | None:
@@ -125,7 +128,7 @@ def findings(view: RunView) -> None:
     with tabs[0]:
         det = f.get("detective") or {}
         if det.get("summary"):
-            html(f"<p>{escape(str(det['summary']))}</p>")
+            st.markdown(clean_summary(str(det["summary"])))  # rendered Markdown, never raw symbols
         hyps = sorted(view.state.hypotheses, key=lambda h: -h.weight)
         if hyps:
             total = sum(h.weight for h in hyps) or 1.0
@@ -180,7 +183,7 @@ def findings(view: RunView) -> None:
                  f"<th>Weight</th></tr>{rows}</table>")
 
 
-def candidate_map(state: State, sub: Submission, selected: int, height: int = 460) -> tuple[float, float] | None:
+def candidate_map(state: State, sub: Submission, selected: int, height: int = 420) -> tuple[float, float] | None:
     """Map with the 10 candidates (grouped when identical); returns the last clicked (lat, lng), if any."""
     pts = [(c.lat, c.lng) for c in sub.candidates]
     focus = next((p for c, p in zip(sub.candidates, pts) if c.rank == selected), pts[0])
@@ -227,7 +230,7 @@ def candidate_rows(sub: Submission, selected: int) -> int | None:
     otherwise the ranked list, where clicking a row selects it. Returns the clicked rank."""
     cands = sorted(sub.candidates, key=lambda x: x.rank)
     if len({(c.lat, c.lng) for c in cands}) == 1:
-        c1, c2, c3 = st.columns([2.4, 1, 1], vertical_alignment="center", gap="small")
+        c1, c2, c3 = st.columns([3.4, 1, 1], vertical_alignment="center", gap="small")  # room for "×10"
         c1.markdown(f'<p class="nv-row-x10 nv-mono">{cands[0].lat:.6f}, {cands[0].lng:.6f}'
                     f' <span class="nv-pill accent">×10</span></p>', unsafe_allow_html=True)
         _links(c2, c3, cands[0])
@@ -247,12 +250,13 @@ def streetview_panel(lat: float, lng: float, rank: int, label_: str) -> None:
     key = streetview.embed_key()
     label(f"Street View · #{rank} · {lat:.6f}, {lng:.6f}")
     if key is None:
-        html(f'<p class="nv-muted">{escape(streetview.ENABLE_HINT)}</p>')
+        html(f'<div class="nv-placeholder" style="height:{VIEWER_H}px;padding:0 24px;text-align:center">'
+             f'{escape(streetview.ENABLE_HINT)}</div>')
         return
     emb = streetview.embed_for(lat, lng, label_, key)
-    st.iframe(emb.url, height=VIEWER_H - 24)
+    st.iframe(emb.url, height=VIEWER_H - (NOTE_H if emb.note else 0), alt="Street View")  # panel keeps its height
     if emb.note:
-        html(f'<p class="nv-muted nv-warn">{escape(emb.note)}</p>')
+        html(f'<p class="nv-muted nv-warn" style="margin:0">{escape(emb.note)}</p>')
 
 
 def copy_button(text: str, caption: str = "Copy 10 coordinates") -> None:
@@ -275,7 +279,11 @@ b.onclick = async () => {{
   setTimeout(() => (b.textContent = idle), 2000);
 }};
 </script>
-<style>body{{margin:0;background:transparent}}</style>""", height=64)
+<style>body{{margin:0;background:transparent}}</style>""", height=64, alt=caption)
+
+
+def gap() -> None:
+    html('<div class="nv-gap"></div>')
 
 
 def downloads(pano_id: str, log_json: str, sub: Submission) -> None:

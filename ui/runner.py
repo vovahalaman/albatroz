@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import queue
+import re
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -73,12 +74,55 @@ def finished_at(view: RunView) -> float | None:
     return datetime.fromisoformat(view.events[-1]["ts"]).timestamp()
 
 
+_HEADING = re.compile(r"^\s{0,3}#{1,6}\s*(.*?)\s*#*\s*$")
+_BULLET = re.compile(r"^(?:[-*+]|\d+[.)])\s+(.*)$")  # top-level list item (no indentation)
+_LABEL = re.compile(r"^(?:\*\*|__)([^*_]{1,60}?)(?::\s*(?:\*\*|__)|(?:\*\*|__)\s*:)\s*")  # **Label:** / **Label**:
+CARD_MAX = 220
+
+
+def clean_summary(md: str) -> str:
+    """The Detective's Markdown for st.markdown: no "Summary" heading; other headings become bold lines
+    (no oversized titles inside a tab)."""
+    out = []
+    for line in md.strip().splitlines():
+        m = _HEADING.match(line)
+        if m is None:
+            out.append(line)
+        elif m.group(1).strip().lower() not in ("summary", "final summary"):
+            out.append(f"**{m.group(1).strip()}**")
+    return "\n".join(out).strip()
+
+
+def plain(md: str) -> str:
+    """Markdown inline → plain text (bold/italic/code/links removed, spaces collapsed)."""
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", md)
+    text = re.sub(r"(\*\*|__|\*|_|`)(.+?)\1", r"\2", text)
+    text = text.replace("**", "").replace("`", "")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def first_point(md: str) -> str:
+    """One short plain paragraph for the result card: the first top-level bullet without its bold label,
+    or, without bullets, the first sentence of the first paragraph."""
+    lines = [ln for ln in md.strip().splitlines() if ln.strip() and not _HEADING.match(ln)]
+    text = next((m.group(1) for ln in lines if (m := _BULLET.match(ln))), None)
+    if text is None:
+        para = plain(" ".join(lines))
+        text = (para.split(". ")[0].rstrip(".") + ".") if para else ""
+    else:
+        text = plain(_LABEL.sub("", text.strip()))
+    if len(text) > CARD_MAX:
+        cut = text[:CARD_MAX]
+        end = cut.rfind(". ")
+        text = cut[: end + 1] if end >= 80 else cut.rsplit(" ", 1)[0].rstrip(",;:(") + "…"
+    return text
+
+
 def top_place(view: RunView) -> tuple[str, float, str]:
-    """(place, weight share 0–1, one-sentence summary) for the result card. The place is the heaviest
+    """(place, weight share 0–1, short plain summary) for the result card. The place is the heaviest
     hypothesis in the cluster that holds coordinate #1; the share is that cluster's weight."""
     s, sub = view.state, view.state.submission
-    summary = str((view.findings.get("detective") or {}).get("summary") or "").strip()
-    summary = (summary.split(". ")[0].rstrip(".") + ".") if summary else ""
+    summary = first_point(str((view.findings.get("detective") or {}).get("summary") or ""))
     if not s.hypotheses or sub is None:
         return "No confident place (fallback point)", 0.0, summary
     top = min(sub.candidates, key=lambda c: c.rank)

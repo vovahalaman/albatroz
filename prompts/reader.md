@@ -53,10 +53,17 @@ coordinates or guess the location yourself.
    ("Farmácia", "Restaurante") without a name.
 7. Write `zoom_requests` (at most 6) only where text is visible but not readable. Most valuable first,
    using the order of step 2.
+   - Zoom only where you can see letters or digits that are too small to read. Never zoom "to check" an
+     object that shows no text: bins, manhole/utility covers, posts, rocks, walls, vegetation,
+     "the road ahead", buildings in the distance.
+   - Never zoom on licence plates: only the format is recorded, and it is readable without zooming.
+   - If no text is visible anywhere in the panorama, return an empty `zoom_requests`. Fewer zooms is
+     better than useless ones.
    - Direction from the view you saw it in (view is 1024 × 1024 px, x right, y down):
      yaw ≈ view yaw + (x − 512) / 512 × 45, pitch ≈ view pitch + (512 − y) / 512 × 45.
      If the text is in an h-view as well as a u- or g-view, use the h-view (more accurate).
-   - FOV: small or distant sign 10–20, shop front or plaque 20–30, large banner 30–45.
+   - FOV: small or distant sign or plaque 25, shop front 25–35, large banner 35–45. Narrower crops add
+     no detail (the panorama resolution is the limit) and are widened to 25 by the code.
    - Give a short `why` naming the object ("street sign on corner building, left of the café").
 
 ### Pass 2
@@ -96,7 +103,7 @@ coordinates or guess the location yourself.
   "language_verdict": {"pt": 0.9, "es": 0.05, "fr": 0.0, "other": 0.05},
   "search_terms": ["Pastelaria Estrela d'Ouro, Rua das Flores", "Rua das Flores", "Pingo Doce"],
   "zoom_requests": [
-    {"yaw": 175, "pitch": -35, "fov": 20, "why": "municipality name on bin, partly unreadable"}
+    {"yaw": 175, "pitch": -35, "fov": 25, "why": "municipality name on bin, partly unreadable"}
   ]
 }
 ```

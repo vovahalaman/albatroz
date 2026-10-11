@@ -94,3 +94,15 @@ def test_unrenderable_zoom_is_skipped(state, fakes, monkeypatch, tmp_path):
     result = asyncio.run(reader.run(state))
     assert len(calls[1]["images"]) == 1 and [z.yaw for z in result.zoom_requests] == [150]
     assert any(e["payload"].get("where") == "zoom" for e in scribe.read_events(state.pano_id))
+
+
+def test_narrow_zooms_are_widened_to_the_minimum_fov(state, fakes, monkeypatch, tmp_path):
+    from navegador.config import settings
+    calls, _ = fakes
+    fovs = []
+    monkeypatch.setattr(magnifier, "zoom", lambda pano, yaw, pitch, fov: fovs.append(fov) or tmp_path / "z.jpg")
+    result = asyncio.run(reader.run(state))
+    lo = settings().reader.zoom_min_fov
+    assert fovs == [max(20, lo), max(15, lo)]  # PASS1 asks for 20 and 15
+    assert [z.fov for z in result.zoom_requests] == fovs  # the result records what was rendered
+    assert f"fov {max(15, lo):g}°" in calls[1]["text"][0]  # pass 2 is told the real crop width

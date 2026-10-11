@@ -158,6 +158,12 @@ class AstrolabeSettings(BaseModel):
     consistency_falloff_deg: float = 3
 
 
+class ReaderSettings(BaseModel):
+    # The pano has ~17 px/deg, so a 1024 px crop narrower than ~30° only upscales; a tighter FOV adds no
+    # detail but loses targets the model aimed a few degrees off. Requests below this are widened.
+    zoom_min_fov: float = 25
+
+
 class DetectiveSettings(BaseModel):
     timeout_s: float = 300  # whole tool loop; hypotheses recorded before a timeout are kept
     # After this many seconds the lookup tools answer "time is up" so the model records its candidates.
@@ -192,6 +198,7 @@ class Settings(BaseModel):
     structured_output: Literal["json_mode", "response_schema", "response_json_schema"] = "json_mode"
     astrolabe: AstrolabeSettings = Field(default_factory=AstrolabeSettings)
     detective: DetectiveSettings = Field(default_factory=DetectiveSettings)
+    reader: ReaderSettings = Field(default_factory=ReaderSettings)
 
 
 class Regions(BaseModel):

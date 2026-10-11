@@ -108,3 +108,7 @@ detective:
   provenance_tolerance_m: {urban: 500, non_urban: 5000}
   radius_min_m: {urban: 30, non_urban: 2000}
   radius_max_m: {urban: 500, non_urban: 20000}
+
+# Added: Reader zooms narrower than this are widened (pano ≈ 17 px/deg: below ~30° a crop only upscales,
+# so a wider crop loses no detail and keeps targets the model aimed a few degrees off).
+reader: {zoom_min_fov: 25}

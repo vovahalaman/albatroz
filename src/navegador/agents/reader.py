@@ -39,7 +39,9 @@ def _add_usage(state: State, usage: dict) -> None:
 def _render_zooms(state: State, requests: list[ZoomRequest]) -> list[tuple[str, ZoomRequest, Path]]:
     """Render each zoom request; a request that cannot be rendered is logged and skipped."""
     out = []
+    min_fov = settings().reader.zoom_min_fov
     for i, z in enumerate(requests, 1):
+        z = z.model_copy(update={"fov": max(z.fov, min_fov)}) if z.fov < min_fov else z
         try:
             out.append((f"z{i}", z, magnifier.zoom(state.pano_path, z.yaw, z.pitch, z.fov)))
         except (ValueError, OSError) as exc:

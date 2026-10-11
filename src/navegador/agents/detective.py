@@ -28,7 +28,8 @@ from navegador.tools import astrolabe, astrolabe_summary, geo, strategist
 ACTOR = "detective"
 # Tools whose results contain looked-up places. sun_check is not one: its result echoes the input lat/lng,
 # so citing it would let a remembered coordinate pass as a tool result (R2).
-PROVENANCE_TOOLS = frozenset({"geocode", "reverse", "overpass_near", "overpass_named", "wiki_coords"})
+PROVENANCE_TOOLS = frozenset({"geocode", "reverse", "overpass_near", "overpass_named", "wiki_coords",
+                              "street_corners"})
 
 
 class _Session:
@@ -189,7 +190,8 @@ def _tools(session: _Session) -> list[Callable[..., Any]]:
         call_id = scribe.register_tool_call(state.pano_id, ACTOR, "sun_check", {"lat": lat, "lng": lng}, result)
         return {**result, "call_id": call_id}
 
-    lookups = [geo.geocode, geo.reverse, geo.overpass_near, geo.overpass_named, geo.wiki_coords, sun_check]
+    lookups = [geo.geocode, geo.reverse, geo.overpass_near, geo.overpass_named, geo.wiki_coords, geo.street_corners,
+               sun_check]
     return [*(_lookup(session, f) for f in lookups), make_add_hypothesis(state, session)]
 
 

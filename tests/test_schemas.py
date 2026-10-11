@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from navegador.schemas import (MCQ, BaselineResult, Candidate, Cue, GeographerResult, Hypothesis, ReaderResult,
-                               MCQOption, Submission)
+                               MCQOption, RecognizedPlace, Submission)
 
 NOW = datetime.now(timezone.utc)
 H = dict(lat=38.7, lng=-9.1, radius_m=100, weight=0.5, label="x", source="detective")
@@ -59,6 +59,35 @@ def test_agent_example_parses():
     BaselineResult.model_validate_json(
         '{"country_probs":{"pt":0.8,"es":0.2,"fr":0},'
         '"places":[{"query":"Monsaraz, Évora","country":"pt","confidence":0.4,"why":"whitewash"}],"clues":["x"]}')
+
+
+def test_geographer_result_without_new_fields():
+    """An answer without `setting` / `recognized_places` (e.g. a cached v1 answer) still parses."""
+    g = GeographerResult.model_validate(
+        {"country_probs": {"pt": 0.8}, "region_guesses": [{"region": "Alentejo", "country": "pt", "prob": 0.6}]})
+    assert g.setting == "" and g.recognized_places == []
+
+
+def test_geographer_result_with_new_fields_and_field_order():
+    g = GeographerResult.model_validate(
+        {"setting": "Rural road through montado.", "country_probs": {"pt": 0.8},
+         "recognized_places": [{"place": "Monsaraz, Évora", "country": "pt", "prob": 0.3, "why": "hilltop keep"}]})
+    assert g.setting == "Rural road through montado."
+    assert g.recognized_places == [RecognizedPlace(place="Monsaraz, Évora", country="pt", prob=0.3, why="hilltop keep")]
+    # The JSON schema sent to the model lists the fields in the order prompts/geographer.md asks for.
+    assert list(GeographerResult.model_json_schema()["properties"]) == [
+        "observations", "setting", "country_probs", "region_guesses", "recognized_places", "water_or_coast",
+        "terrain", "season"]
+
+
+def test_recognized_place_validation():
+    assert RecognizedPlace(place="Ronda", country="es", prob=0).why == ""
+    for bad in ({"place": "Ronda", "country": "it", "prob": 0.3},  # country outside pt | es | fr
+                {"place": "Ronda", "country": "es", "prob": 1.2},
+                {"place": "Ronda", "country": "es", "prob": -0.1},
+                {"country": "es", "prob": 0.3}):  # place missing
+        with pytest.raises(ValidationError):
+            RecognizedPlace.model_validate(bad)
 
 
 def test_zoom_request_corrects_out_of_range_numbers():

@@ -19,8 +19,10 @@ from navegador.tools import magnifier
 ANSWER = {
     "observations": [{"cue": "vegetation", "value": "cork oaks", "view": "h090", "status": "observed",
                       "confidence": 0.8}],
+    "setting": "Rural road through montado.",
     "country_probs": {"pt": 0.8, "es": 0.15, "fr": 0.05},
     "region_guesses": [{"region": f"Region {i}", "country": "pt", "prob": 0.5 - i / 20, "why": "x"} for i in range(7)],
+    "recognized_places": [{"place": f"Place {i}", "country": "pt", "prob": 0.3 - i / 20, "why": "y"} for i in range(5)],
     "water_or_coast": {"present": True, "yaw": 90.0, "type": "sea"},
     "terrain": "rolling", "season": "summer",
 }
@@ -89,8 +91,11 @@ def test_sun_note_is_passed_when_sun_known(fake: FakeLLM, state: st.State):
 def test_writes_json_caps_regions_and_counts_tokens(fake: FakeLLM, state: st.State):
     result = asyncio.run(geographer.run(state))
     assert len(result.region_guesses) == geographer.MAX_REGION_GUESSES
+    assert len(result.recognized_places) == geographer.MAX_RECOGNIZED_PLACES == 3
     saved = json.loads((st.run_dir(state.pano_id) / "geographer.json").read_text())
     assert [g["region"] for g in saved["region_guesses"]] == [f"Region {i}" for i in range(5)]
+    assert [p["place"] for p in saved["recognized_places"]] == ["Place 0", "Place 1", "Place 2"]
+    assert saved["setting"] == "Rural road through montado."
     assert state.token_usage["total_token_count"] == 1200
 
 

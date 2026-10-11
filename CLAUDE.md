@@ -28,7 +28,7 @@ The package and project name `navegador` is unchanged.
 `feature/crew-pipeline`). `autonomous` solves real panoramas end to end (Gemini + Nominatim/Overpass/Wikipedia);
 `assisted` adds MCQ pause/resume and cues. Navigator phrasing and cue guard verified live. Missing: UI (D).**
 
-Implemented and tested (`uv run pytest` → 204 passed):
+Implemented and tested (`uv run pytest` → 213 passed):
 
 | Module | What works |
 |---|---|
@@ -42,7 +42,7 @@ Implemented and tested (`uv run pytest` → 204 passed):
 | `tools/geo.py` | §9.3: `geocode`, `reverse` (Nominatim), `overpass_near`, `overpass_named`, `wiki_coords`. Every call: disk cache → policy check → HTTP with timeout + tenacity retry (429/5xx/connection) → `scribe.register_tool_call` (`call_id` on every result, `cached` flag). Failures log an `error` event and raise `GeoError`; errors are never cached. Nominatim: 1.1 s process-wide throttle (cache hits skip it), User-Agent from settings, `max_geocode_calls_per_pano` counted from the run's log. Calls must run inside `geo.use_run(pano_id, actor)`. Tests: `tests/test_geo.py` (mocked HTTP, fake clock). |
 | `tools/magnifier.py` | §9.1 `views()` (8 h + 4 g + 4 u + overview; reused via `views.json` when pano + settings unchanged), `zoom()` (input clamped, cached by pano content hash). Settings in `settings.yaml → magnifier:`. |
 | `core/pipeline.py` | `start_run` (S0), `advance` (runs the mode's stages until `done` or `awaiting_human`; every stage timed, logged, saved; a failing stage logs `error` and the run still submits), `answer_mcq` (×0.95, resumes at S6 or S4), `add_cue` (assisted only, not while an MCQ is pending; R4 length, guard, `cue_blocked`/`cue_override`, ×0.8, re-enters S4; caller then calls `advance`), `force_submit` (also while awaiting). Baseline: S1 → BASELINE → S7 → S8. Crew: S1 → S2 → S3 → S4 → S5 → S6 → S7 → S8. S7 fallback: baseline or Geographer country box. |
-| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, keeps the previous pass's Detective hypotheses (re-run after a cue / "none of these", e.g. Nominatim budget used up), else geocodes the Geographer's top `crew.region_top` region guesses (weight = prob, `crew.region_radius_m`); then drops hypotheses in `excluded_zones` (`_apply_exclusions`, code, not prompt). S5 `advocate.run` + `advocate.apply` (run skips itself unless `flags.advocate_enabled`). S6 `navigator.assess` logged; ASK_MCQ → `mcq_shown`, pause. |
+| `core/stages.py` | Crew stages. S2 `astrolabe.detect` → `state.sun`. S3 Reader ‖ Geographer (`asyncio.gather`, one may fail). S4: drops earlier non-EXIF hypotheses, runs `detective.run` inside `geo.use_run(..., "detective")`; if it adds nothing, keeps the previous pass's Detective hypotheses (re-run after a cue / "none of these", e.g. Nominatim budget used up), else geocodes the Geographer's `recognized_places` (`crew.recognized_radius_m`), then its region guesses (`crew.region_radius_m`); top `crew.region_top` of each, prob > 0, weight = prob; then drops hypotheses in `excluded_zones` (`_apply_exclusions`, code, not prompt). S5 `advocate.run` + `advocate.apply` (run skips itself unless `flags.advocate_enabled`). S6 `navigator.assess` logged; ASK_MCQ → `mcq_shown`, pause. |
 | `core/navigator.py` | (vova-navigator, PR #14) `assess`/`decide` (SPEC §4 rule; options = top clusters at least `far_m` apart, greedy), `build_mcq` (reverse geocode at `REVERSE_ZOOM` 14/10, hardcoded; LLM words the question and options, ids and cluster mapping fixed in code; code-built texts if the LLM fails), `apply_answer` (logs `mcq_answer`; chosen cluster → `q_trust`; "none of these" → excluded zones covering every member circle → S4). |
 | `agents/cue_guard.py` | Flash-Lite check via `prompts/cue_guard.md`; fails closed (flagged, override still possible). |
 | `agents/reader.py`, `geographer.py`, `detective.py` | Reader: 2 passes (views, then zoom crops). Geographer: one call over all views, cached on disk. Detective: AFC tool loop (geo tools + `sun_check` + `add_hypothesis` with R2 check: the point must lie near a coordinate in the cited result), lookup budget, soft deadline (`detective.soft_deadline_s`), writes `detective.json`. |
@@ -147,12 +147,13 @@ Answered by the brief:
 - **Cross-panorama inference is not allowed** (team decision, 2026-10-11): each panorama is solved on its
   own. `related_panoramas` was removed from `prompts/detective.md`; do not add timestamp-neighbour logic.
 - **Detective weight calibration (2026-10-11, before freeze).** Batch 1: weight 0.95 was wrong ~1 in 5, all
-  weights < 0.8 were wrong, 14/20 panos ended with one hypothesis (nothing for an MCQ). `prompts/detective.md`
-  now caps class-level / linear-feature / unconfirmed-organisation evidence at 0.6 and asks for 2–3 other
-  instances as hypotheses. Spot check (4 panos): 209 and 683 still hit; 179 moved from Setúbal (30 km off)
-  to Marvila 0.65 with Setúbal as an alternative; 141 still picked the CAL head office (the organisation
-  rule was tightened after that run, untested). `lessons.md` no longer tells the model to fill rank slots:
-  the Strategist's `ev` mode stays (all 10 slots on the best point maximise expected score).
+  weights < 0.8 were wrong, 14/20 panos ended with one hypothesis (nothing for an MCQ). A first fix (65e158c,
+  absolute caps at 0.6) was replaced by Prompts v2 (Iisakki): weights as relative shares (a single hypothesis
+  = certainty), > 60 % only with two independent discriminating clues, type clues → enumerate instances via
+  `overpass_near` type tags, organisation name ≠ camera position, contradiction check first. Spot check of the
+  65e158c version (4 panos): 209 and 683 still hit; 179 moved from Setúbal (30 km off) to Marvila 0.65 with
+  Setúbal as an alternative; 141 still picked the CAL head office. Prompts v2 is not yet tested live.
+  `lessons.md` no longer tells the model to fill rank slots: the Strategist's `ev` mode stays.
 
 [CONFIRM] still open for the organizers (ask on Discord):
 

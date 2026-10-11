@@ -233,6 +233,13 @@ class RegionGuess(BaseModel):
     why: str = ""
 
 
+class RecognizedPlace(BaseModel):
+    place: str
+    country: Country
+    prob: Confidence
+    why: str = ""
+
+
 class WaterOrCoast(BaseModel):
     present: bool = False
     yaw: float | None = None
@@ -240,9 +247,12 @@ class WaterOrCoast(BaseModel):
 
 
 class GeographerResult(BaseModel):
+    # Field order = order of the JSON schema sent to the model (prompts/geographer.md "Output").
     observations: list[GeographerObservation] = []
+    setting: str = ""
     country_probs: CountryProbs
     region_guesses: list[RegionGuess] = []
+    recognized_places: list[RecognizedPlace] = []
     water_or_coast: WaterOrCoast = WaterOrCoast()
     terrain: str = ""
     season: str = ""

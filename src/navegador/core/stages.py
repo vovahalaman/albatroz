@@ -8,7 +8,7 @@ Contracts with the agents:
   which S4 adds to `state.hypotheses`.
 - Every S4 starts from scratch: hypotheses from earlier passes are dropped (only EXIF ones are kept).
 - If the Detective adds nothing (error, no result): on a re-run the previous pass's hypotheses are kept
-  (outside excluded zones); otherwise the Geographer's top region guesses are geocoded.
+  (outside excluded zones); otherwise the Geographer's recognized places and top region guesses are geocoded.
 - Excluded zones are enforced here, in code, after every S4.
 """
 
@@ -67,22 +67,30 @@ def s3_perceive(state: State) -> None:
 
 
 def region_hypotheses(state: State) -> list[Hypothesis]:
-    """Geocode the Geographer's top region guesses (weight = prob). Coarse, but real coordinates."""
+    """Geocode the Geographer's recognized places, then its region guesses (top `region_top` of each,
+    best first, weight = prob). Coarse, but real coordinates."""
     result = load_geographer(state)
     if result is None:
         return []
     cfg = settings().crew
-    guesses = sorted((g for g in result.region_guesses if g.prob > 0), key=lambda g: -g.prob)[: cfg.region_top]
+
+    def top(items: list[Any]) -> list[Any]:
+        return sorted((x for x in items if x.prob > 0), key=lambda x: -x.prob)[: cfg.region_top]
+
+    todo = [(p.place, p.country, p.prob, p.why, cfg.recognized_radius_m.get(state.label))
+            for p in top(result.recognized_places)]
+    todo += [(g.region, g.country, g.prob, g.why, cfg.region_radius_m.get(state.label))
+             for g in top(result.region_guesses)]
     raw: list[dict[str, Any]] = []
     with geo.use_run(state.pano_id, actor="geographer"):
-        for g in guesses:
+        for name, country, prob, why, radius in todo:
             try:
-                hits = geo.geocode(g.region, country_codes=g.country, limit=1)
+                hits = geo.geocode(name, country_codes=country, limit=1)
             except geo.GeoError:
                 continue
-            raw += [{"lat": h["lat"], "lng": h["lng"], "radius_m": cfg.region_radius_m.get(state.label),
-                     "weight": g.prob, "label": g.region, "provenance": h["call_id"],
-                     "evidence": [h.get("display_name") or ""], "why": g.why, "source": "geographer"}
+            raw += [{"lat": h["lat"], "lng": h["lng"], "radius_m": radius, "weight": prob, "label": name,
+                     "provenance": h["call_id"], "evidence": [h.get("display_name") or ""], "why": why,
+                     "source": "geographer"}
                     for h in hits if regions().contains(h["lat"], h["lng"])]
     registry = scribe.tool_registry(state.pano_id, state.run_id)
     return [Hypothesis.model_validate(h, context={"registry": registry}) for h in raw]

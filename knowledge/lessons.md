@@ -3,11 +3,14 @@
 ### Scoring strategy
 - **Class vs. instance evidence.** If the top hypothesis rests on a landmark *class*
   (a castle, a bridge over still water, an estuary with port cranes, a granite village),
-  also record the next most likely *other instances* of that class in the region as separate
-  hypotheses with honest (low) weights, and keep the class-level guess at ≤ 0.6. The code decides the
-  10 slots; the alternatives let the system ask the human a multiple-choice question, which costs only 5 %.
-- **Overconfidence.** Hypotheses weighted 0.95 were wrong about 1 time in 5; every hypothesis below 0.8
-  was wrong. Reserve > 0.9 for a unique clue confirmed at the point by an independent mapped feature.
+  record the next most likely *other instances* of that class in the region as separate hypotheses
+  with honest weights. Never let one class-level guess carry all the weight.
+  (Ranks are not ours to fill: the Strategist puts the single best point in all 10 slots, and weights are
+  normalised. An honest twin is what lets the system ask the human in assisted runs, and it moves the
+  expected-best point in non_urban.)
+- **Overconfidence.** Top answers held with ~95 % certainty were wrong about 1 time in 5, and every top
+  answer held with less than 80 % was wrong. More than 60 % of the weight on one place needs at least two
+  independent discriminating clues.
 - **Urban + region-only knowledge = near-zero score.** At d=30 km, θ_U ≈ 0.006.
   For urban panoramas never record a region or admin centroid as the answer. Enumerate 3–5 distinct
   concrete candidate sites (villages, squares, POIs) via overpass/geocode, each as its own hypothesis.
@@ -23,4 +26,5 @@
 
 ### Time
 - The filename timestamp is not a precise capture time (it can be off by minutes).
-  Treat sun-position checks as weak evidence only.
+  Treat sun-position checks as weak evidence only. (Coarse directions from the sun compass — which side
+  the water or a landmark is on — stay usable with ±30° tolerance.)

@@ -21,6 +21,7 @@ from navegador.tools.astrolabe_summary import summarise
 PROMPT = "geographer.md"
 ROLE = "perception"
 MAX_REGION_GUESSES = 5  # prompts/geographer.md: "at most 5"
+MAX_RECOGNIZED_PLACES = 3  # prompts/geographer.md: "at most 3"
 
 
 def _context(state: State, views: list[View]) -> str:
@@ -67,6 +68,7 @@ async def run(state: State) -> GeographerResult:
         result = res.parsed
         cache.put("geographer", key, result.model_dump(mode="json"))
 
-    result = result.model_copy(update={"region_guesses": result.region_guesses[:MAX_REGION_GUESSES]})
+    result = result.model_copy(update={"region_guesses": result.region_guesses[:MAX_REGION_GUESSES],
+                                       "recognized_places": result.recognized_places[:MAX_RECOGNIZED_PLACES]})
     (out / "geographer.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
     return result
